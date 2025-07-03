@@ -1,0 +1,209 @@
+/* Modal Overlay */
+.registration-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal Container */
+.registration-modal {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Close Button */
+.modal-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #999;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.modal-close-btn:hover {
+  background: #f5f5f5;
+  color: #666;
+  transform: scale(1.1);
+}
+
+.modal-close-btn:active {
+  transform: scale(0.95);
+}
+
+/* Modal Content */
+.registration-modal-content {
+  padding: 40px;
+}
+
+.registration-container {
+  min-height: unset;
+  display: block;
+  background: none;
+  padding: 0;
+}
+
+.registration-card {
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  animation: none;
+}
+
+.registration-card h2 {
+  text-align: center;
+  color: #2353ff;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 28px;
+}
+
+.registration-form {
+  width: 100%;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #333;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e1e5e9;
+  border-radius: 12px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #2353ff;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(35, 83, 255, 0.10);
+}
+
+.form-input::placeholder {
+  color: #aaa;
+}
+
+.form-error {
+  color: #d32f2f;
+  font-size: 0.98rem;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.registration-button {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #2353ff 0%, #1a3fd9 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.registration-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.registration-button:hover:not(:disabled) {
+  background: #1636a8;
+  box-shadow: 0 4px 16px rgba(35, 83, 255, 0.15);
+}
+
+.otp-info {
+  text-align: center;
+  color: #2353ff;
+  font-size: 1rem;
+  margin-top: 18px;
+  background: #f3f7ff;
+  border-radius: 8px;
+  padding: 8px 0;
+}
+
+@media (max-width: 600px) {
+  .registration-modal {
+    width: 95%;
+    margin: 20px;
+  }
+  .registration-modal-content {
+    padding: 30px;
+  }
+  .modal-close-btn {
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+  }
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+}
+
+.address-textarea {
+  min-height: 60px;
+  resize: vertical;
+  font-family: inherit;
+} 
