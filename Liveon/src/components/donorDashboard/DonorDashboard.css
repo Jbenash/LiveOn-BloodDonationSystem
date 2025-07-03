@@ -1,0 +1,375 @@
+/* Paste the latest DonorDashboard.css here for pixel-perfect styling */
+/* (Content copied from your latest working DonorDashboard.css) */
+
+/* Root and Layout */
+.liveon-root {
+    display: flex;
+    min-height: 100vh;
+    background: #fafbfc;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+/* Sidebar */
+.liveon-sidebar {
+    width: 220px;
+    background: #fff;
+    border-right: 1px solid #ececec;
+    padding: 2rem 1.2rem 1.2rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.liveon-logo {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #2353ff;
+    margin-bottom: 2.5rem;
+    letter-spacing: 0.5px;
+}
+
+.liveon-sidebar nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.liveon-sidebar nav ul li {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.4rem;
+    font-size: 1.04rem;
+    color: #222;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+}
+
+.liveon-sidebar nav ul li.active,
+.liveon-sidebar nav ul li:hover {
+    background: #f1f5ff;
+    color: #2353ff;
+}
+
+/* Main Content */
+.liveon-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.liveon-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 1.1rem 2.3rem 0.5rem 0;
+    background: #fafbfc;
+    border-bottom: 1px solid #ececec;
+}
+
+.liveon-user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.liveon-user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ececec;
+}
+
+.liveon-user-name {
+    font-weight: 500;
+    font-size: 1.05rem;
+}
+
+.liveon-content {
+    padding: 2.2rem 2.5rem 2.5rem 2.5rem;
+}
+
+.liveon-title {
+    margin-bottom: 1.4rem;
+    font-size: 2.1rem;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+}
+
+/* Dashboard Grid */
+.liveon-dashboard-grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 1.6rem;
+}
+
+.profile-summary {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+}
+
+.next-eligible {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+}
+
+.donation-stats {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+}
+
+.reward-stats {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+}
+
+.feedback-section {
+    grid-column: 1 / 3;
+    grid-row: 3 / 4;
+}
+
+/* Cards */
+.liveon-card {
+    background: #fff;
+    border: 1px solid #ececec;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+    padding: 1.7rem 2rem 1.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+/* Profile Summary */
+.profile-summary-title {
+    font-weight: 600;
+    font-size: 1.13rem;
+    margin-bottom: 1.1rem;
+}
+
+.profile-summary-details {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.1rem;
+    margin-bottom: 1.1rem;
+}
+
+.profile-avatar {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ececec;
+}
+
+.profile-summary-text {
+    font-size: 1rem;
+    color: #333;
+}
+
+.label {
+    color: #bbb;
+    font-size: 0.99rem;
+    margin-right: 0.3rem;
+}
+
+/* Next Eligible */
+.next-eligible-title {
+    font-weight: 600;
+    font-size: 1.13rem;
+    margin-bottom: 1.1rem;
+}
+
+.next-eligible-date {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    color: #2353ff;
+    font-size: 2.1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.calendar-icon {
+    font-size: 2.1rem;
+}
+
+.date-text {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2353ff;
+}
+
+.next-eligible-desc {
+    color: #888;
+    font-size: 1rem;
+    text-align: center;
+}
+
+/* Donation Stats 2x2 Grid */
+.donation-stats-2row {
+  padding: 2.2rem 2.5rem 2.5rem 2.5rem;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+  margin-bottom: 1.5rem;
+}
+.donation-stats-title-2row {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 1.7rem;
+  text-align: left;
+}
+.donation-stats-rows.donation-stats-grid-2x2 {
+  display: flex;
+  flex-direction: column;
+  gap: 2.2rem;
+}
+.donation-stats-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4rem;
+}
+.donation-stat-2col {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 140px;
+}
+.stat-value-2row {
+  font-size: 2.3rem;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+}
+.stat-blue {
+  color: #2353ff;
+}
+.stat-green {
+  color: #13b02d;
+}
+.stat-label-2row {
+  font-size: 1.18rem;
+  color: #aaa;
+  font-weight: 400;
+  margin-top: 0.2rem;
+}
+@media (max-width: 700px) {
+  .donation-stats-row {
+    gap: 1.5rem;
+  }
+  .donation-stats-2row {
+    padding: 1.2rem 0.7rem 1.5rem 0.7rem;
+  }
+  .donation-stat-2col {
+    min-width: 100px;
+  }
+  .donation-stats-title-2row {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .stat-value-2row {
+    font-size: 1.4rem;
+  }
+  .stat-label-2row {
+    font-size: 0.95rem;
+  }
+}
+
+
+/* Reward Stats */
+.reward-title {
+    font-weight: 600;
+    font-size: 1.13rem;
+    margin-bottom: 1.1rem;
+}
+
+.reward-points {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.reward-rank {
+    font-size: 1.07rem;
+    color: #444;
+    margin-bottom: 1.1rem;
+}
+
+/* Feedback */
+.feedback-title {
+    font-weight: 600;
+    font-size: 1.13rem;
+    margin-bottom: 0.7rem;
+}
+
+.feedback-desc {
+    color: #888;
+    font-size: 1rem;
+    margin-bottom: 1.1rem;
+}
+
+/* Buttons */
+.liveon-btn {
+    background: #2353ff;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.85rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+}
+
+.liveon-btn:hover {
+    background: #1837a7;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+    .liveon-dashboard-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto auto;
+    }
+
+    .profile-summary,
+    .next-eligible,
+    .donation-stats,
+    .reward-stats,
+    .feedback-section {
+        grid-column: 1 / 2 !important;
+        grid-row: auto !important;
+    }
+
+    .liveon-content {
+        padding: 1.2rem;
+    }
+
+    .liveon-header {
+        padding-right: 1rem;
+    }
+
+    .liveon-sidebar {
+        width: 60px;
+        padding: 1rem 0.5rem;
+    }
+
+    .liveon-logo {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .liveon-sidebar nav ul li span:not(.icon) {
+        display: none;
+    }
+}
