@@ -19,7 +19,7 @@ class User
 
         if ($user && password_verify($password, $user['password_hash'])) {
             return [
-                'id' => $user['id'],
+                'user_id' => $user['user_id'],
                 'name' => $user['name'],
                 'role' => $user['role'], // Assuming you have a role field
             ];
