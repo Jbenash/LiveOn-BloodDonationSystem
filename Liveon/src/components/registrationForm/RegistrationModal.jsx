@@ -5,7 +5,15 @@ const bloodTypes = [
   '', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
 ];
 
-const RegistrationModal = ({ isOpen, onClose }) => {
+const hospitalOptions = [
+  { id: '', name: 'Select hospital' },
+  { id: 'hosp1', name: 'City Hospital' },
+  { id: 'hosp2', name: 'General Hospital' },
+  { id: 'hosp3', name: 'St. Mary\'s Hospital' },
+  { id: 'hosp4', name: 'Red Cross Clinic' },
+];
+
+const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     fullName: '',
@@ -13,10 +21,11 @@ const RegistrationModal = ({ isOpen, onClose }) => {
     password: '',
     confirmPassword: '',
     dob: '',
-    bloodType: '',
     address: '',
     city: '',
-    otp: ''
+    phone: '',
+    otp: '',
+    hospitalId: '',
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,12 +51,13 @@ const RegistrationModal = ({ isOpen, onClose }) => {
     if (!formData.email.trim()) errs.email = 'Email is required';
     else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.email)) errs.email = 'Invalid email';
     if (!formData.dob) errs.dob = 'Date of birth is required';
-    if (!formData.bloodType) errs.bloodType = 'Blood type is required';
     if (!formData.address.trim()) errs.address = 'Address is required';
     if (!formData.city.trim()) errs.city = 'City is required';
+    if (!formData.phone.trim()) errs.phone = 'Phone number is required';
     if (!formData.password) errs.password = 'Password is required';
     else if (formData.password.length < 6) errs.password = 'Password must be at least 6 characters';
     if (formData.confirmPassword !== formData.password) errs.confirmPassword = 'Passwords do not match';
+    if (!formData.hospitalId) errs.hospitalId = 'Hospital is required';
     return errs;
   };
 
@@ -63,15 +73,17 @@ const RegistrationModal = ({ isOpen, onClose }) => {
           email: formData.email,
           password: formData.password,
           dob: formData.dob,
-          bloodType: formData.bloodType,
           address: formData.address,
-          city: formData.city
+          city: formData.city,
+          phone: formData.phone,
+          hospitalId: formData.hospitalId,
         };
         
         const response = await fetch('http://localhost/liveonv2/backend_api/register_donor.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestData),
+          credentials: 'include'
         });
         
         const result = await response.json();
@@ -106,18 +118,19 @@ const RegistrationModal = ({ isOpen, onClose }) => {
           email: formData.email,
           otp: formData.otp
         }),
+        credentials: 'include'
       });
       const result = await response.json();
       
       if (result.success) {
-        alert('Registration successful!');
         setFormData({
           fullName: '', email: '', password: '', confirmPassword: '',
-          dob: '', bloodType: '', address: '', city: '', otp: ''
+          dob: '', address: '', city: '', otp: '', hospitalId: '',
         });
         setStep(1);
         setOtpSent(false);
         onClose && onClose();
+        if (onRegistrationComplete) onRegistrationComplete();
       } else {
         setErrors({ otp: result.message || 'Invalid OTP' });
       }
@@ -199,22 +212,6 @@ const RegistrationModal = ({ isOpen, onClose }) => {
                     {errors.dob && <div className="form-error">{errors.dob}</div>}
                   </div>
                   <div className="form-group">
-                    <label htmlFor="bloodType">Blood Type</label>
-                    <select
-                      id="bloodType"
-                      name="bloodType"
-                      value={formData.bloodType}
-                      onChange={handleChange}
-                      className="form-input"
-                      required
-                    >
-                      {bloodTypes.map(type => (
-                        <option key={type} value={type}>{type ? type : 'Select blood type'}</option>
-                      ))}
-                    </select>
-                    {errors.bloodType && <div className="form-error">{errors.bloodType}</div>}
-                  </div>
-                  <div className="form-group">
                     <label htmlFor="address">Address</label>
                     <textarea
                       id="address"
@@ -239,6 +236,35 @@ const RegistrationModal = ({ isOpen, onClose }) => {
                       required
                     />
                     {errors.city && <div className="form-error">{errors.city}</div>}
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="phone">Phone Number</label>
+                    <input
+                      type="text"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="form-input"
+                      required
+                    />
+                    {errors.phone && <div className="form-error">{errors.phone}</div>}
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="hospitalId">Hospital</label>
+                    <select
+                      id="hospitalId"
+                      name="hospitalId"
+                      value={formData.hospitalId}
+                      onChange={handleChange}
+                      className="form-input"
+                      required
+                    >
+                      {hospitalOptions.map(h => (
+                        <option key={h.id} value={h.id}>{h.name}</option>
+                      ))}
+                    </select>
+                    {errors.hospitalId && <div className="form-error">{errors.hospitalId}</div>}
                   </div>
                   <div className="form-group">
                     <label htmlFor="password">Password</label>
@@ -294,7 +320,7 @@ const RegistrationModal = ({ isOpen, onClose }) => {
                 </form>
               )}
               {otpSent && step === 2 && (
-                <div className="otp-info">(For demo, use <b>123456</b> as OTP)</div>
+                <div className="otp-info"></div>
               )}
             </div>
           </div>
