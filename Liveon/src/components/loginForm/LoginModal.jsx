@@ -9,6 +9,9 @@ const LoginModal = ({ isOpen, onClose }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showRequestSent, setShowRequestSent] = useState(false);
+  const [showEmailRequired, setShowEmailRequired] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,7 +31,8 @@ const LoginModal = ({ isOpen, onClose }) => {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
+        credentials: "include"
       });
 
       const data = await response.json();
@@ -40,8 +44,10 @@ const LoginModal = ({ isOpen, onClose }) => {
           navigate('/HospitalDashboard');
         } else if (data.user.role === "mro") {
           navigate('/DonorDashboard');
-        }else if (data.user.role === "admin") {
+        } else if (data.user.role === "admin") {
           navigate('/AdminDashboard');
+        } else if (data.user.role === "donor") {
+          navigate('/DonorDashboard');
         }
 
       } else {
@@ -68,6 +74,20 @@ const LoginModal = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleForgotPassword = () => {
+    if (!formData.username || !formData.username.trim()) {
+      setShowEmailRequired(true);
+      return;
+    }
+    setShowForgotPassword(true);
+  };
+
+  const handleForgotPasswordSubmit = (newPassword) => {
+    // Here you would send the request to the backend
+    setShowForgotPassword(false);
+    setShowRequestSent(true);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -84,7 +104,7 @@ const LoginModal = ({ isOpen, onClose }) => {
         
         <div className="login-modal-content">
           <div className="login-header">
-            <h1>Welcome Back</h1>
+            <h1>Get Started</h1>
             <p>Sign in to your account</p>
           </div>
 
@@ -116,6 +136,11 @@ const LoginModal = ({ isOpen, onClose }) => {
                 required
                 className="form-input"
               />
+              <div style={{ textAlign: 'right', marginTop: 4 }}>
+                <span className="link" style={{ fontSize: '14px', cursor: 'pointer' }} onClick={handleForgotPassword}>
+                  Forgot Password?
+                </span>
+              </div>
             </div>
 
             <button
@@ -130,6 +155,97 @@ const LoginModal = ({ isOpen, onClose }) => {
           <div className="login-footer">
             <p><span className="link">Contact your administrator</span></p>
           </div>
+        </div>
+      </div>
+      {showForgotPassword && (
+        <ForgotPasswordPopup
+          isOpen={showForgotPassword}
+          email={formData.username}
+          onClose={() => setShowForgotPassword(false)}
+          onSubmit={handleForgotPasswordSubmit}
+        />
+      )}
+      {showRequestSent && (
+        <RequestSentPopup
+          isOpen={showRequestSent}
+          onClose={() => setShowRequestSent(false)}
+        />
+      )}
+      {showEmailRequired && (
+        <EmailRequiredPopup
+          isOpen={showEmailRequired}
+          onClose={() => setShowEmailRequired(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+const ForgotPasswordPopup = ({ isOpen, email, onClose, onSubmit }) => {
+  const [newPassword, setNewPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  if (!isOpen) return null;
+  return (
+    <div className="login-modal-overlay">
+      <div className="login-modal forgot-password-modal">
+        <button className="modal-close-btn" onClick={onClose}>
+          <span>&times;</span>
+        </button>
+        <div className="login-modal-content">
+          <h2>Reset Password</h2>
+          <p>Email: <b>{email}</b></p>
+          <input
+            type="password"
+            placeholder="Enter new password"
+            className="form-input"
+            value={newPassword}
+            onChange={e => setNewPassword(e.target.value)}
+            required
+          />
+          <button
+            className="login-button"
+            style={{ marginTop: 16 }}
+            disabled={isSubmitting || !newPassword}
+            onClick={() => { setIsSubmitting(true); onSubmit(newPassword); }}
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RequestSentPopup = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="login-modal-overlay">
+      <div className="login-modal forgot-password-modal">
+        <button className="modal-close-btn" onClick={onClose}>
+          <span>&times;</span>
+        </button>
+        <div className="login-modal-content">
+          <h2>Request Sent</h2>
+          <p>Your request is sent to the admin.<br />Wait for approval.</p>
+          <button className="login-button" style={{ marginTop: 16 }} onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const EmailRequiredPopup = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="login-modal-overlay">
+      <div className="login-modal forgot-password-modal">
+        <button className="modal-close-btn" onClick={onClose}>
+          <span>&times;</span>
+        </button>
+        <div className="login-modal-content">
+          <h2>Email Required</h2>
+          <p>You need to enter your email.</p>
+          <button className="login-button" style={{ marginTop: 16 }} onClick={onClose}>Close</button>
         </div>
       </div>
     </div>
