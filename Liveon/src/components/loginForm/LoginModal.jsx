@@ -39,7 +39,7 @@ const LoginModal = ({ isOpen, onClose }) => {
 
       if (data.success) {
         onClose(); // Close modal on successful login
-        
+
         if (data.user.role === "hospital") {
           navigate('/HospitalDashboard');
         } else if (data.user.role === "mro") {
@@ -91,8 +91,8 @@ const LoginModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="login-modal-overlay" 
+    <div
+      className="login-modal-overlay"
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
@@ -101,7 +101,7 @@ const LoginModal = ({ isOpen, onClose }) => {
         <button className="modal-close-btn" onClick={onClose}>
           <span>&times;</span>
         </button>
-        
+
         <div className="login-modal-content">
           <div className="login-header">
             <h1>Get Started</h1>

@@ -44,12 +44,12 @@ class OTPManager
     {
         $this->pdo = $pdo;
     }
-    public function generateAndStore($email)
+    public function generateAndStore($userId)
     {
         $otp = rand(100000, 999999);
-        $expiresAt = date("Y-m-d H:i:s", strtotime("+10 minutes"));
-        $stmt = $this->pdo->prepare("INSERT INTO otp_verifications (email, otp, expires_at) VALUES (?, ?, ?)");
-        $stmt->execute([$email, $otp, $expiresAt]);
+        $expiration = date("Y-m-d H:i:s", strtotime("+10 minutes"));
+        $stmt = $this->pdo->prepare("INSERT INTO otp_verification (user_id, otp_code, expires_at, verified) VALUES (?, ?, ?, 0)");
+        $stmt->execute([$userId, $otp, $expiration]);
         return $otp;
     }
 }
@@ -63,25 +63,24 @@ class DonorRegistration
     }
     public function isEmailRegistered($email)
     {
-        $check = $this->pdo->prepare("SELECT id FROM users WHERE email = ?");
+        $check = $this->pdo->prepare("SELECT user_id FROM users WHERE email = ?");
         $check->execute([$email]);
         return $check->rowCount() > 0;
     }
-    public function registerUser($email, $password)
+    public function registerUser($userId, $name, $email, $phone, $passwordHash)
     {
-        $stmt = $this->pdo->prepare("INSERT INTO users (email, password, role, status) VALUES (?, ?, 'donor', 'pending')");
-        $stmt->execute([$email, $password]);
-        return $this->pdo->lastInsertId();
+        $stmt = $this->pdo->prepare("INSERT INTO users (user_id, name, email, phone, password_hash, role, status) VALUES (?, ?, ?, ?, ?, 'donor', 'pending')");
+        $stmt->execute([$userId, $name, $email, $phone, $passwordHash]);
     }
-    public function registerDonor($userId, $fullName, $email)
+    public function registerDonor($donorId, $userId, $dob, $address, $city)
     {
-        $stmt = $this->pdo->prepare("INSERT INTO donors (user_id, full_name, email, status) VALUES (?, ?, ?, 'pending')");
-        $stmt->execute([$userId, $fullName, $email]);
+        $stmt = $this->pdo->prepare("INSERT INTO donors (donor_id, user_id, dob, address, city, status) VALUES (?, ?, ?, ?, ?, 'pending')");
+        $stmt->execute([$donorId, $userId, $dob, $address, $city]);
     }
 }
 
 $data = json_decode(file_get_contents("php://input"), true);
-if (!$data || !isset($data['fullName'], $data['email'], $data['password'])) {
+if (!$data || !isset($data['fullName'], $data['email'], $data['password'], $data['dob'], $data['address'], $data['city'], $data['phone'])) {
     echo json_encode(["success" => false, "message" => "Missing or invalid data"]);
     exit;
 }
@@ -94,16 +93,22 @@ $mailer = new Mailer();
 
 $fullName = $data['fullName'];
 $email = $data['email'];
-$password = password_hash($data['password'], PASSWORD_BCRYPT);
+$passwordHash = password_hash($data['password'], PASSWORD_BCRYPT);
+$dob = $data['dob'];
+$address = $data['address'];
+$city = $data['city'];
+$phone = $data['phone'];
 
 if ($donorReg->isEmailRegistered($email)) {
     echo json_encode(["success" => false, "message" => "Email already registered."]);
     exit;
 }
 
-$userId = $donorReg->registerUser($email, $password);
-$donorReg->registerDonor($userId, $fullName, $email);
-$otp = $otpManager->generateAndStore($email);
+$userId = 'US' . uniqid();
+$donorId = 'DN' . uniqid();
+$donorReg->registerUser($userId, $fullName, $email, $phone, $passwordHash);
+$donorReg->registerDonor($donorId, $userId, $dob, $address, $city);
+$otp = $otpManager->generateAndStore($userId);
 
 try {
     $mailer->sendOTP($email, $fullName, $otp);

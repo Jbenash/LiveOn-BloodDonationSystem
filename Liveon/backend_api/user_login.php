@@ -1,7 +1,10 @@
 <?php
 
-header("Access-Control-Allow-Origin: *"); // Allow requests from any origin (for development only)
-header("Access-Control-Allow-Methods: POST, OPTIONS");
+session_start();
+
+header("Access-Control-Allow-Origin: http://localhost:5173"); // Use your frontend origin
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 
 // Handle preflight OPTIONS request
@@ -9,7 +12,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit();
 }
-
 
 header("Content-Type: application/json");
 require_once 'db_connection.php';
@@ -42,8 +44,11 @@ $loginManager = new LoginManager($conn);
 
 $user = $loginManager->login($username, $password);
 
-
 if ($user) {
+    $_SESSION['user_id'] = $user['user_id'];
+    $_SESSION['role'] = $user['role'];
+    $_SESSION['name'] = $user['name'];
+    $_SESSION['user'] = $user;
     echo json_encode(["success" => true, "user" => $user]);
 } else {
     echo json_encode(["success" => false, "message" => "Invalid credentials"]);
