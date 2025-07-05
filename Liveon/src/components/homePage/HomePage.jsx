@@ -4,8 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
 import LoginModal from '../loginForm/LoginModal';
 import RegistrationModal from '../registrationForm/RegistrationModal';
+
+import MRODashboard from '../mroDashboard/MRODashboard';
+
 import MRODashboard from '../mroDashboard/MRODashboard';
 import MroVerificationPopup from '../mroVerificationPopup/MroVerificationPopup';
+=========
+import MRODashboard from '../mroDashboard/MRODashboard';
+>>>>>>>>> Temporary merge branch 2
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -13,8 +19,11 @@ const HomePage = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [showMRODashboard, setShowMRODashboard] = useState(false);
+<<<<<<<<< Temporary merge branch 1
   const [showMroPopup, setShowMroPopup] = useState(false);
+=========
+  const [showMRODashboard, setShowMRODashboard] = useState(false);
+>>>>>>>>> Temporary merge branch 2
 
   useEffect(() => {
     const handleScroll = () => {
@@ -63,6 +72,10 @@ const HomePage = () => {
     document.body.classList.remove('modal-open');
   };
 
+<<<<<<<<< Temporary merge branch 1
+  const handleRegistrationComplete = () => {
+    setShowMroPopup(true);
+=========
   const handleShowMRODashboard = () => {
     setShowMRODashboard(true);
     setIsMenuOpen(false);
@@ -70,10 +83,7 @@ const HomePage = () => {
 
   const handleHideMRODashboard = () => {
     setShowMRODashboard(false);
-  };
-
-  const handleRegistrationComplete = () => {
-    setShowMroPopup(true);
+>>>>>>>>> Temporary merge branch 2
   };
 
   return (
