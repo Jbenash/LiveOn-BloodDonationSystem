@@ -43,7 +43,7 @@ const LoginModal = ({ isOpen, onClose }) => {
         if (data.user.role === "hospital") {
           navigate('/HospitalDashboard');
         } else if (data.user.role === "mro") {
-          navigate('/DonorDashboard');
+          navigate('/MRODashboard');
         } else if (data.user.role === "admin") {
           navigate('/AdminDashboard');
         } else if (data.user.role === "donor") {

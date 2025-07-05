@@ -99,7 +99,6 @@ const HomePage = () => {
             <li onClick={() => handleNavLinkClick('why-donate')}>Why Donate</li>
             <li onClick={() => handleNavLinkClick('testimonials')}>Testimonials</li>
             <li onClick={() => handleNavLinkClick('contact')}>Contact</li>
-            <li onClick={handleShowMRODashboard}>MRO</li>
           </ul>
 
           {/* Mobile Menu Button */}
@@ -123,7 +122,7 @@ const HomePage = () => {
       {/* Render MRODashboard if showMRODashboard is true, otherwise render the rest of the homepage */}
       {showMRODashboard ? (
         <>
-          <button style={{margin: '20px'}} onClick={handleHideMRODashboard}>Back to Home</button>
+          <button style={{ margin: '20px' }} onClick={handleHideMRODashboard}>Back to Home</button>
           <MRODashboard />
         </>
       ) : (
@@ -135,14 +134,14 @@ const HomePage = () => {
               <h1>Give the Gift of Life</h1>
               <p>Join LiveOn and make a difference today. Every donation saves lives.</p>
               <div className="homepage-hero-buttons">
-                <button 
+                <button
                   className="homepage-btn homepage-btn-primary"
                   onClick={openRegModal}
                 >
                   Become a Donor
                 </button>
-                <button 
-                  className="homepage-btn homepage-btn-secondary" 
+                <button
+                  className="homepage-btn homepage-btn-secondary"
                   onClick={openLoginModal}
                 >
                   Hospital Login
@@ -207,7 +206,7 @@ const HomePage = () => {
               </div>
             </div>
             <div className="homepage-learnmore">
-              <button 
+              <button
                 className="homepage-link"
                 onClick={() => handleNavLinkClick('how-it-works')}
               >
@@ -297,9 +296,9 @@ const HomePage = () => {
       )}
 
       {/* Login Modal */}
-      <LoginModal 
-        isOpen={isLoginModalOpen} 
-        onClose={closeLoginModal} 
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={closeLoginModal}
       />
       {/* Registration Modal */}
       <RegistrationModal

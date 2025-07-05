@@ -6,6 +6,7 @@ import DonorDashboard from './components/donorDashboard/DonorDashboard';
 import AdminDashboard from './components/adminDashboard/AdminDashboard';
 import RegistrationModal from './components/registrationForm/RegistrationModal';
 import MroVerificationPopup from './components/mroVerificationPopup/MroVerificationPopup';
+import MRODashboard from './components/mroDashboard/MRODashboard'; // Assuming you have a MRO Dashboard component
 
 function App() {
   const [showMroPopup, setShowMroPopup] = useState(false);
@@ -23,6 +24,8 @@ function App() {
         <Route path="/AdminDashboard" element={<AdminDashboard />} />
         {/* <Route path="/RegistrationForm" element={<RegistrationForm />} /> */}
         <Route path='/RegistrationModal' element={<RegistrationModal onRegistrationComplete={handleRegistrationComplete} />} />
+        <Route path="/MRODashboard" element={<MRODashboard />} />
+        {/* Add other routes as needed */}
       </Routes>
       <MroVerificationPopup isOpen={showMroPopup} onClose={() => setShowMroPopup(false)} />
     </Router>
