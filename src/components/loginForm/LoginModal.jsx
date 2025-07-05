@@ -26,7 +26,7 @@ const LoginModal = ({ isOpen, onClose }) => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost/liveonv2/backend_api/user_login.php", {
+      const response = await fetch("http://localhost/Liveonv2/backend_api/user_login.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

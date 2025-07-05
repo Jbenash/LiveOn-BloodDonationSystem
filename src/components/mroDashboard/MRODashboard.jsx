@@ -30,7 +30,7 @@ const MRODashboard = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch("http://localhost/Liveon_git/project-1/Liveon/backend/get_donor_requests.php")
+    fetch("http://localhost/Liveonv2/backend_api/get_donor_requests.php")
       .then((res) => {
         if (!res.ok) throw new Error("Network response was not ok");
         return res.json();
@@ -45,7 +45,7 @@ const MRODashboard = () => {
       });
   
   // Fetch donor registrations
-  fetch("http://localhost/Liveon_git/project-1/Liveon/backend/get_donor_registrations.php")
+  fetch("http://localhost/Liveonv2/backend_api/get_donor_registrations.php")
     .then((res) => {
       if (!res.ok) throw new Error("Network response was not ok");
       return res.json();
@@ -58,7 +58,7 @@ const MRODashboard = () => {
     });
 
   // Fetch verification statistics
-  fetch("http://localhost/Liveon_git/project-1/Liveon/backend/get_verification_stats.php")
+  fetch("http://localhost/Liveonv2/backend_api/get_verification_stats.php")
     .then((res) => {
       if (!res.ok) throw new Error("Network response was not ok");
       return res.json();
@@ -71,7 +71,7 @@ const MRODashboard = () => {
     });
 
   // Fetch donation logs
-  fetch("http://localhost/Liveon_git/project-1/Liveon/backend/get_donation_logs.php")
+  fetch("http://localhost/Liveonv2/backend_api/get_donation_logs.php")
     .then((res) => {
       if (!res.ok) throw new Error("Network response was not ok");
       return res.json();
@@ -121,7 +121,7 @@ const MRODashboard = () => {
     };
     console.log('payload:', payload); // Debug: check the payload being sent
     try {
-      const response = await fetch('http://localhost/Liveon_git/project-1/Liveon/backend/save_medical_verification.php', {
+      const response = await fetch('http://localhost/Liveonv2/backend_api/save_medical_verification.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -180,7 +180,7 @@ const MRODashboard = () => {
     console.log('Donation payload:', payload); // Debug: check the payload
     
     try {
-      const response = await fetch('http://localhost/Liveon_git/project-1/Liveon/backend/save_donation.php', {
+      const response = await fetch('http://localhost/Liveonv2/backend_api/save_donation.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

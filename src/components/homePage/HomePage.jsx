@@ -77,10 +77,10 @@ const HomePage = () => {
 
   const handleHideMRODashboard = () => {
     setShowMRODashboard(false);
+  };
 
   const handleRegistrationComplete = () => {
     setShowMroPopup(true);
-
   };
 
   return (

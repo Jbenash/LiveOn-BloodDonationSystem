@@ -7,7 +7,7 @@ const DonorDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('http://localhost/liveonv2/backend_api/donor_dashboard.php', {
+    fetch('http://localhost/Liveonv2/backend_api/donor_dashboard.php', {
       credentials: 'include'
     })
       .then(res => res.json())
@@ -25,7 +25,7 @@ const DonorDashboard = () => {
   }, [navigate]);
 
   const handleLogout = () => {
-    fetch("http://localhost/liveonv2/backend_api/logout.php", {
+    fetch("http://localhost/Liveonv2/backend_api/logout.php", {
       method: 'POST',
       credentials: 'include'
     })
