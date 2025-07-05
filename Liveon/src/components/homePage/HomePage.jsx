@@ -5,6 +5,7 @@ import logo from '../../assets/logo.svg';
 import LoginModal from '../loginForm/LoginModal';
 import RegistrationModal from '../registrationForm/RegistrationModal';
 import MRODashboard from '../mroDashboard/MRODashboard';
+import MroVerificationPopup from '../mroVerificationPopup/MroVerificationPopup';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ const HomePage = () => {
   const [isRegModalOpen, setIsRegModalOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showMRODashboard, setShowMRODashboard] = useState(false);
+  const [showMroPopup, setShowMroPopup] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -68,6 +70,10 @@ const HomePage = () => {
 
   const handleHideMRODashboard = () => {
     setShowMRODashboard(false);
+  };
+
+  const handleRegistrationComplete = () => {
+    setShowMroPopup(true);
   };
 
   return (
@@ -292,7 +298,9 @@ const HomePage = () => {
       <RegistrationModal
         isOpen={isRegModalOpen}
         onClose={closeRegModal}
+        onRegistrationComplete={handleRegistrationComplete}
       />
+      <MroVerificationPopup isOpen={showMroPopup} onClose={() => setShowMroPopup(false)} />
     </div>
   );
 };
