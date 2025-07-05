@@ -79,7 +79,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
           hospitalId: formData.hospitalId,
         };
         
-        const response = await fetch('http://localhost/liveonv2/backend_api/register_donor.php', {
+        const response = await fetch('http://localhost/Liveonv2/backend_api/register_donor.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestData),
@@ -111,7 +111,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     }
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost/liveonv2/backend_api/verify_otp.php', {
+      const response = await fetch('http://localhost/Liveonv2/backend_api/verify_otp.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

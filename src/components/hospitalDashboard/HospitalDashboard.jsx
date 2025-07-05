@@ -8,7 +8,7 @@ const HospitalDashboard = () => {
   const [hospitalName, setHospitalName] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost/liveonv2/backend_api/hospital_dashboard.php", {
+    fetch("http://localhost/Liveonv2/backend_api/hospital_dashboard.php", {
       credentials: "include"
     })
       .then(res => res.json())
