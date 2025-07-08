@@ -1,7 +1,12 @@
 <?php
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowedOrigins)) {
+    header("Access-Control-Allow-Origin: $origin");
+}
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header('Content-Type: application/json');
 
 // Handle preflight OPTIONS request
@@ -45,16 +50,16 @@ $password = '';
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
+
     // Generate unique donation_id
     $donation_id = 'DON' . date('YmdHis') . rand(100, 999);
-    
+
     // Prepare SQL statement
     $sql = "INSERT INTO donations (donation_id, donor_id, full_name, blood_type, donation_date, volume, created_at) 
             VALUES (:donation_id, :donor_id, :full_name, :blood_type, :donation_date, :volume, NOW())";
-    
+
     $stmt = $pdo->prepare($sql);
-    
+
     // Bind parameters
     $stmt->bindParam(':donation_id', $donation_id);
     $stmt->bindParam(':donor_id', $input['donor_id']);
@@ -62,17 +67,16 @@ try {
     $stmt->bindParam(':blood_type', $input['blood_type']);
     $stmt->bindParam(':donation_date', $input['donation_date']);
     $stmt->bindParam(':volume', $input['volume']);
-    
+
     // Execute the statement
     $stmt->execute();
-    
+
     // Return success response
     echo json_encode([
         'success' => true,
         'message' => 'Donation saved successfully',
         'donation_id' => $donation_id
     ]);
-    
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode([
@@ -86,4 +90,3 @@ try {
         'error' => 'Server error: ' . $e->getMessage()
     ]);
 }
-?> 
