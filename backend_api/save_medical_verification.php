@@ -1,7 +1,12 @@
 <?php
-header("Access-Control-Allow-Origin: *");
+$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowedOrigins)) {
+    header("Access-Control-Allow-Origin: $origin");
+}
+header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -69,16 +74,16 @@ try {
         throw new Exception("Prepare failed for user lookup: " . $conn->error);
     }
     $stmt2->bind_param('s', $donor_id);
-    
+
     if (!$stmt2->execute()) {
         throw new Exception("User lookup failed: " . $stmt2->error);
     }
-    
+
     $result = $stmt2->get_result();
     if ($result->num_rows === 0) {
         throw new Exception("Donor not found");
     }
-    
+
     $row = $result->fetch_assoc();
     $user_id = $row['user_id'];
     $stmt2->close();
@@ -90,17 +95,28 @@ try {
         throw new Exception("Prepare failed for user update: " . $conn->error);
     }
     $stmt3->bind_param('s', $user_id);
-    
+
     if (!$stmt3->execute()) {
         throw new Exception("User update failed: " . $stmt3->error);
     }
     $stmt3->close();
 
+    // Update donors table status to 'available'
+    $sql4 = "UPDATE donors SET status = 'available' WHERE donor_id = ?";
+    $stmt4 = $conn->prepare($sql4);
+    if (!$stmt4) {
+        throw new Exception("Prepare failed for donor update: " . $conn->error);
+    }
+    $stmt4->bind_param('s', $donor_id);
+    if (!$stmt4->execute()) {
+        throw new Exception("Donor update failed: " . $stmt4->error);
+    }
+    $stmt4->close();
+
     // Commit transaction
     $conn->commit();
-    
-    echo json_encode(["success" => true, "verification_id" => $verification_id, "user_status_updated" => true]);
 
+    echo json_encode(["success" => true, "verification_id" => $verification_id, "user_status_updated" => true]);
 } catch (Exception $e) {
     // Rollback transaction on error
     $conn->rollback();
@@ -108,4 +124,4 @@ try {
     echo json_encode(["error" => $e->getMessage()]);
 }
 
-$conn->close(); 
+$conn->close();

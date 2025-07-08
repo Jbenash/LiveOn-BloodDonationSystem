@@ -26,7 +26,7 @@ const LoginModal = ({ isOpen, onClose }) => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost/Liveonv2/backend_api/user_login.php", {
+      const response = await fetch("http://localhost/liveonv2/backend_api/user_login.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -98,65 +98,93 @@ const LoginModal = ({ isOpen, onClose }) => {
       tabIndex={-1}
     >
       <div className="login-modal">
+        <div className="modal-background">
+          <div className="modal-grid"></div>
+          <div className="modal-particles"></div>
+        </div>
+
         <button className="modal-close-btn" onClick={onClose}>
           <span>&times;</span>
         </button>
 
         <div className="login-modal-content">
           <div className="login-header">
-            <h1>Get Started</h1>
-            <p>Sign in to your account</p>
+            <div className="header-icon">
+              <span className="icon-symbol">🔐</span>
+            </div>
+            <h2 className="login-title">
+              <span className="title-line">Welcome</span>
+              <span className="title-highlight">Back</span>
+            </h2>
+            <p className="login-subtitle">
+              Sign in to access your account and continue saving lives
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="login-form">
-            <div className="form-group">
-              <label htmlFor="username">Email</label>
-              <input
-                type="email"
-                id="username"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                placeholder="Enter your email"
-                required
-                className="form-input"
-                autoFocus
-              />
-            </div>
+          <div className="login-container">
+            <div className="login-card">
+              <form onSubmit={handleSubmit} className="login-form">
+                <div className="form-group">
+                  <label htmlFor="username">Email Address</label>
+                  <input
+                    type="email"
+                    id="username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    placeholder="Enter your email"
+                    required
+                    className="form-input"
+                    autoFocus
+                  />
+                </div>
 
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                required
-                className="form-input"
-              />
-              <div style={{ textAlign: 'right', marginTop: 4 }}>
-                <span className="link" style={{ fontSize: '14px', cursor: 'pointer' }} onClick={handleForgotPassword}>
-                  Forgot Password?
-                </span>
-              </div>
-            </div>
+                <div className="form-group">
+                  <label htmlFor="password">Password</label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Enter your password"
+                    required
+                    className="form-input"
+                  />
+                  <div className="forgot-password-link">
+                    <span className="link" onClick={handleForgotPassword}>
+                      Forgot Password?
+                    </span>
+                  </div>
+                </div>
 
-            <button
-              type="submit"
-              className={`login-button ${isLoading ? 'loading' : ''}`}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
+                <button
+                  type="submit"
+                  className="login-button"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <span className="loading-spinner">
+                      <span className="spinner"></span>
+                      Signing in...
+                    </span>
+                  ) : (
+                    <>
+                      <span className="btn-text">Sign In</span>
+                      <span className="btn-icon">→</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
 
           <div className="login-footer">
-            <p><span className="link">Contact your administrator</span></p>
+            <p>Need help? <span className="link">Contact your administrator</span></p>
           </div>
         </div>
       </div>
+
       {showForgotPassword && (
         <ForgotPasswordPopup
           isOpen={showForgotPassword}
@@ -188,28 +216,56 @@ const ForgotPasswordPopup = ({ isOpen, email, onClose, onSubmit }) => {
   return (
     <div className="login-modal-overlay">
       <div className="login-modal forgot-password-modal">
+        <div className="modal-background">
+          <div className="modal-grid"></div>
+          <div className="modal-particles"></div>
+        </div>
         <button className="modal-close-btn" onClick={onClose}>
           <span>&times;</span>
         </button>
         <div className="login-modal-content">
-          <h2>Reset Password</h2>
-          <p>Email: <b>{email}</b></p>
-          <input
-            type="password"
-            placeholder="Enter new password"
-            className="form-input"
-            value={newPassword}
-            onChange={e => setNewPassword(e.target.value)}
-            required
-          />
-          <button
-            className="login-button"
-            style={{ marginTop: 16 }}
-            disabled={isSubmitting || !newPassword}
-            onClick={() => { setIsSubmitting(true); onSubmit(newPassword); }}
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit'}
-          </button>
+          <div className="login-header">
+            <div className="header-icon">
+              <span className="icon-symbol">🔑</span>
+            </div>
+            <h2 className="login-title">Reset Password</h2>
+            <p className="login-subtitle">Email: <strong>{email}</strong></p>
+          </div>
+
+          <div className="login-container">
+            <div className="login-card">
+              <div className="form-group">
+                <label htmlFor="newPassword">New Password</label>
+                <input
+                  type="password"
+                  id="newPassword"
+                  placeholder="Enter new password"
+                  className="form-input"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <button
+                className="login-button"
+                disabled={isSubmitting || !newPassword}
+                onClick={() => { setIsSubmitting(true); onSubmit(newPassword); }}
+              >
+                {isSubmitting ? (
+                  <span className="loading-spinner">
+                    <span className="spinner"></span>
+                    Submitting...
+                  </span>
+                ) : (
+                  <>
+                    <span className="btn-text">Submit</span>
+                    <span className="btn-icon">✓</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -221,13 +277,30 @@ const RequestSentPopup = ({ isOpen, onClose }) => {
   return (
     <div className="login-modal-overlay">
       <div className="login-modal forgot-password-modal">
+        <div className="modal-background">
+          <div className="modal-grid"></div>
+          <div className="modal-particles"></div>
+        </div>
         <button className="modal-close-btn" onClick={onClose}>
           <span>&times;</span>
         </button>
         <div className="login-modal-content">
-          <h2>Request Sent</h2>
-          <p>Your request is sent to the admin.<br />Wait for approval.</p>
-          <button className="login-button" style={{ marginTop: 16 }} onClick={onClose}>Close</button>
+          <div className="login-header">
+            <div className="header-icon">
+              <span className="icon-symbol">📧</span>
+            </div>
+            <h2 className="login-title">Request Sent</h2>
+            <p className="login-subtitle">Your request is sent to the admin.<br />Wait for approval.</p>
+          </div>
+
+          <div className="login-container">
+            <div className="login-card">
+              <button className="login-button" onClick={onClose}>
+                <span className="btn-text">Close</span>
+                <span className="btn-icon">✓</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -239,13 +312,30 @@ const EmailRequiredPopup = ({ isOpen, onClose }) => {
   return (
     <div className="login-modal-overlay">
       <div className="login-modal forgot-password-modal">
+        <div className="modal-background">
+          <div className="modal-grid"></div>
+          <div className="modal-particles"></div>
+        </div>
         <button className="modal-close-btn" onClick={onClose}>
           <span>&times;</span>
         </button>
         <div className="login-modal-content">
-          <h2>Email Required</h2>
-          <p>You need to enter your email.</p>
-          <button className="login-button" style={{ marginTop: 16 }} onClick={onClose}>Close</button>
+          <div className="login-header">
+            <div className="header-icon">
+              <span className="icon-symbol">⚠️</span>
+            </div>
+            <h2 className="login-title">Email Required</h2>
+            <p className="login-subtitle">You need to enter your email.</p>
+          </div>
+
+          <div className="login-container">
+            <div className="login-card">
+              <button className="login-button" onClick={onClose}>
+                <span className="btn-text">Close</span>
+                <span className="btn-icon">✓</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

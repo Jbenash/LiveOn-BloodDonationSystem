@@ -30,7 +30,9 @@ const MRODashboard = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch("http://localhost/Liveonv2/backend_api/get_donor_requests.php")
+    fetch("http://localhost/Liveonv2/backend_api/get_donor_requests.php", {
+      credentials: "include"
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Network response was not ok");
         return res.json();
@@ -43,50 +45,56 @@ const MRODashboard = () => {
         setError(err.message);
         setLoading(false);
       });
-  
-  // Fetch donor registrations
-  fetch("http://localhost/Liveonv2/backend_api/get_donor_registrations.php")
-    .then((res) => {
-      if (!res.ok) throw new Error("Network response was not ok");
-      return res.json();
-    })
-    .then((data) => {
-      setDonorRegistrations(data);
-    })
-    .catch((err) => {
-      console.error("Error fetching donor registrations:", err);
-    });
 
-  // Fetch verification statistics
-  fetch("http://localhost/Liveonv2/backend_api/get_verification_stats.php")
-    .then((res) => {
-      if (!res.ok) throw new Error("Network response was not ok");
-      return res.json();
+    // Fetch donor registrations
+    fetch("http://localhost/Liveonv2/backend_api/get_donor_registrations.php", {
+      credentials: "include"
     })
-    .then((data) => {
-      setVerificationStats(data);
-    })
-    .catch((err) => {
-      console.error("Error fetching verification stats:", err);
-    });
+      .then((res) => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.json();
+      })
+      .then((data) => {
+        setDonorRegistrations(data);
+      })
+      .catch((err) => {
+        console.error("Error fetching donor registrations:", err);
+      });
 
-  // Fetch donation logs
-  fetch("http://localhost/Liveonv2/backend_api/get_donation_logs.php")
-    .then((res) => {
-      if (!res.ok) throw new Error("Network response was not ok");
-      return res.json();
+    // Fetch verification statistics
+    fetch("http://localhost/Liveonv2/backend_api/get_verification_stats.php", {
+      credentials: "include"
     })
-    .then((data) => {
-      if (data.success) {
-        setDonationLogs(data.donations);
-      } else {
-        console.error("Error fetching donation logs:", data.error);
-      }
+      .then((res) => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.json();
+      })
+      .then((data) => {
+        setVerificationStats(data);
+      })
+      .catch((err) => {
+        console.error("Error fetching verification stats:", err);
+      });
+
+    // Fetch donation logs
+    fetch("http://localhost/Liveonv2/backend_api/get_donation_logs.php", {
+      credentials: "include"
     })
-    .catch((err) => {
-      console.error("Error fetching donation logs:", err);
-    });
-}, []);
+      .then((res) => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.json();
+      })
+      .then((data) => {
+        if (data.success) {
+          setDonationLogs(data.donations);
+        } else {
+          console.error("Error fetching donation logs:", data.error);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching donation logs:", err);
+      });
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -149,10 +157,10 @@ const MRODashboard = () => {
     setShowDonatePopup(true);
     // Prefill form with donor details and current date/time
     const currentDateTime = new Date().toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
-    setDonateForm({ 
-      bloodType: donor.blood_group || '', 
+    setDonateForm({
+      bloodType: donor.blood_group || '',
       donationDate: new Date().toISOString().split('T')[0], // Current date
-      volume: '' 
+      volume: ''
     });
     console.log("donatePopupDonor:", donor);
   };
@@ -167,27 +175,25 @@ const MRODashboard = () => {
   const handleDonateSubmit = async (e) => {
     e.preventDefault();
     if (!donatePopupDonor) return;
-    
+
+    // Get the current timestamp in MySQL DATETIME format
+    const currentTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
     // Prepare data for backend
     const payload = {
       donor_id: donatePopupDonor.donor_id,
-      full_name: donatePopupDonor.full_name,
       blood_type: donateForm.bloodType,
-      donation_date: donateForm.donationDate,
+      donation_date: currentTimestamp, // send current timestamp
       volume: donateForm.volume
     };
-    
-    console.log('Donation payload:', payload); // Debug: check the payload
-    
+
     try {
       const response = await fetch('http://localhost/Liveonv2/backend_api/save_donation.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
       const data = await response.json();
-      
       if (data.success) {
         alert(`Donation saved successfully! Donation ID: ${data.donation_id}`);
         setShowDonatePopup(false);
@@ -201,11 +207,11 @@ const MRODashboard = () => {
     }
   };
 
-  // Filter donorRequests based on search term
+  // Filter donorRequests based on search term, role, and status
   const filteredDonorRequests = donorRequests.filter(donor =>
     donor.donor_fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     donor.donor_email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ).filter(donor => donor.status === 'inactive');
 
   // Function to create colorful bar chart
   const createVerificationChart = () => {
@@ -223,7 +229,7 @@ const MRODashboard = () => {
           {verificationStats.verificationData.map((item, index) => {
             const height = maxCount > 0 ? (item.count / maxCount) * 150 : 0;
             const color = colors[index % colors.length];
-            
+
             return (
               <div key={item.date} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
                 <div
@@ -246,18 +252,18 @@ const MRODashboard = () => {
                     e.target.style.boxShadow = 'none';
                   }}
                 />
-                <div style={{ 
-                  fontSize: '0.75rem', 
-                  color: '#6b7280', 
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: '#6b7280',
                   marginTop: '8px',
                   transform: 'rotate(-45deg)',
                   whiteSpace: 'nowrap'
                 }}>
                   {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </div>
-                <div style={{ 
-                  fontSize: '0.8rem', 
-                  fontWeight: 'bold', 
+                <div style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 'bold',
                   color: '#2d3a8c',
                   marginTop: '4px'
                 }}>
@@ -293,8 +299,8 @@ const MRODashboard = () => {
                 <input className="search-bar" type="text" placeholder="Search donor names..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 <button className="btn-search" type="button" aria-label="Search">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="9" cy="9" r="7" stroke="white" strokeWidth="2"/>
-                    <line x1="14.2929" y1="14.7071" x2="18" y2="18.4142" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                    <circle cx="9" cy="9" r="7" stroke="white" strokeWidth="2" />
+                    <line x1="14.2929" y1="14.7071" x2="18" y2="18.4142" stroke="white" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                 </button>
               </div>
@@ -309,35 +315,35 @@ const MRODashboard = () => {
                   <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#2d3a8c', margin: '0' }}>{donorRequests.length + donorRegistrations.length}</p>
                   <p style={{ color: '#6b7280', margin: '5px 0 0 0', fontSize: '0.9rem' }}>Registered in system</p>
                 </div>
-                
+
                 <div style={{ background: '#fef3c7', padding: '20px', borderRadius: '12px', border: '1px solid #fde68a' }}>
                   <h3 style={{ color: '#92400e', margin: '0 0 10px 0', fontSize: '1.1rem' }}>Pending Requests</h3>
                   <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#92400e', margin: '0' }}>{donorRequests.length}</p>
                   <p style={{ color: '#6b7280', margin: '5px 0 0 0', fontSize: '0.9rem' }}>Awaiting verification</p>
                 </div>
-                
+
                 <div style={{ background: '#dcfce7', padding: '20px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
                   <h3 style={{ color: '#166534', margin: '0 0 10px 0', fontSize: '1.1rem' }}>Active Donors</h3>
                   <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#166534', margin: '0' }}>{donorRegistrations.length}</p>
                   <p style={{ color: '#6b7280', margin: '5px 0 0 0', fontSize: '0.9rem' }}>Verified and active</p>
                 </div>
-                
+
                 <div style={{ background: '#f3e8ff', padding: '20px', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
                   <h3 style={{ color: '#7c3aed', margin: '0 0 10px 0', fontSize: '1.1rem' }}>Total Verifications</h3>
                   <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#7c3aed', margin: '0' }}>{verificationStats.stats?.total_verified || 0}</p>
                   <p style={{ color: '#6b7280', margin: '5px 0 0 0', fontSize: '0.9rem' }}>Medical verifications</p>
                 </div>
               </div>
-              
+
               {/* Verification Chart */}
               <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '20px' }}>
                 {createVerificationChart()}
               </div>
-              
+
               <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
                 <h3 style={{ color: '#2d3a8c', margin: '0 0 15px 0' }}>Quick Actions</h3>
                 <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-                  <button 
+                  <button
                     style={{
                       background: '#2563eb',
                       color: '#fff',
@@ -352,7 +358,7 @@ const MRODashboard = () => {
                   >
                     Review Pending Requests
                   </button>
-                  <button 
+                  <button
                     style={{
                       background: '#22c55e',
                       color: '#fff',
@@ -367,7 +373,7 @@ const MRODashboard = () => {
                   >
                     View Active Donors
                   </button>
-                  <button 
+                  <button
                     style={{
                       background: '#f59e0b',
                       color: '#fff',
@@ -437,12 +443,14 @@ const MRODashboard = () => {
                     <th>FULL NAME</th>
                     <th>EMAIL</th>
                     <th>BLOOD GROUP</th>
+                    <th>STATUS</th>
+                    <th>REGISTERED ON</th>
                     <th>ACTION</th>
                   </tr>
                 </thead>
                 <tbody>
                   {donorRegistrations.length === 0 ? (
-                    <tr><td colSpan="5">No registered donors found.</td></tr>
+                    <tr><td colSpan="6">No registered donors found.</td></tr>
                   ) : (
                     donorRegistrations.map((donor, idx) => (
                       <tr key={donor.donor_id || idx}>
@@ -451,7 +459,23 @@ const MRODashboard = () => {
                         <td>{donor.email}</td>
                         <td>{donor.blood_group}</td>
                         <td>
-                          <button 
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '4px 12px',
+                            borderRadius: '12px',
+                            backgroundColor: donor.status === 'available' ? '#bbf7d0' : '#fecaca',
+                            color: donor.status === 'available' ? '#166534' : '#b91c1c',
+                            fontWeight: 500,
+                            fontSize: '0.95em',
+                            minWidth: '80px',
+                            textAlign: 'center'
+                          }}>
+                            {donor.status}
+                          </span>
+                        </td>
+                        <td>{donor.verified_time ? new Date(donor.verified_time).toLocaleDateString() : '-'}</td>
+                        <td>
+                          <button
                             style={{
                               background: '#22c55e',
                               color: '#fff',
@@ -548,8 +572,8 @@ const MRODashboard = () => {
                     Verification Date:
                     <input type="date" name="verificationDate" value={formData.verificationDate} onChange={handleInputChange} />
                   </label>
-                  <button type="button" className="btn-verify" style={{marginTop: '12px'}} onClick={handleSubmitDonorDetails}>Submit</button>
-                  {submitStatus && <div style={{marginTop: '10px', color: submitStatus.startsWith('Donor details saved') ? 'green' : 'red'}}>{submitStatus}</div>}
+                  <button type="button" className="btn-verify" style={{ marginTop: '12px' }} onClick={handleSubmitDonorDetails}>Submit</button>
+                  {submitStatus && <div style={{ marginTop: '10px', color: submitStatus.startsWith('Donor details saved') ? 'green' : 'red' }}>{submitStatus}</div>}
                 </form>
               </div>
             </div>
@@ -562,25 +586,25 @@ const MRODashboard = () => {
                 <form onSubmit={handleDonateSubmit}>
                   <label>
                     Full Name:
-                    <input type="text" value={donatePopupDonor.full_name} readOnly style={{backgroundColor: '#f3f4f6'}} />
+                    <input type="text" value={donatePopupDonor.full_name} readOnly style={{ backgroundColor: '#f3f4f6' }} />
                   </label>
                   <label>
                     Donor ID:
-                    <input type="text" value={donatePopupDonor.donor_id} readOnly style={{backgroundColor: '#f3f4f6'}} />
+                    <input type="text" value={donatePopupDonor.donor_id} readOnly style={{ backgroundColor: '#f3f4f6' }} />
                   </label>
                   <label>
                     Blood Type:
-                    <input type="text" name="bloodType" value={donateForm.bloodType} onChange={handleDonateFormChange} readOnly style={{backgroundColor: '#f3f4f6'}} />
+                    <input type="text" name="bloodType" value={donateForm.bloodType} onChange={handleDonateFormChange} readOnly style={{ backgroundColor: '#f3f4f6' }} />
                   </label>
                   <label>
-                    Donation Date:
-                    <input type="date" name="donationDate" value={donateForm.donationDate} onChange={handleDonateFormChange} readOnly style={{backgroundColor: '#f3f4f6'}} />
+                    Donation Date & Time:
+                    <input type="text" value={new Date().toLocaleString()} readOnly style={{ backgroundColor: '#f3f4f6' }} />
                   </label>
                   <label>
                     Volume:
                     <input type="text" name="volume" value={donateForm.volume} onChange={handleDonateFormChange} placeholder="Enter volume (e.g. 450ml)" required />
                   </label>
-                  <button type="submit" className="btn-donate" style={{marginTop: '12px'}}>Submit</button>
+                  <button type="submit" className="btn-donate" style={{ marginTop: '12px' }}>Submit</button>
                 </form>
               </div>
             </div>
@@ -591,4 +615,4 @@ const MRODashboard = () => {
   );
 };
 
-export default MRODashboard; 
+export default MRODashboard;
