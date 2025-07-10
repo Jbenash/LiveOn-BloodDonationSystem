@@ -192,7 +192,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 0px 20px 60px 40px;
+  padding:0px 20px 60px 40px;
 }
 
 .hero-background {
@@ -210,7 +210,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image:
+  background-image: 
     linear-gradient(rgba(59, 130, 246, 0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
   background-size: 50px 50px;
@@ -218,13 +218,8 @@
 }
 
 @keyframes gridMove {
-  0% {
-    transform: translate(0, 0);
-  }
-
-  100% {
-    transform: translate(50px, 50px);
-  }
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 50px); }
 }
 
 .hero-particles {
@@ -234,20 +229,13 @@
   right: 0;
   bottom: 0;
   background: radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(29, 78, 216, 0.05) 0%, transparent 50%);
+              radial-gradient(circle at 80% 20%, rgba(29, 78, 216, 0.05) 0%, transparent 50%);
   animation: particleFloat 20s ease-in-out infinite;
 }
 
 @keyframes particleFloat {
-
-  0%,
-  100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-
-  50% {
-    transform: translateY(-10px) rotate(90deg);
-  }
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(90deg); }
 }
 
 .hero-glow {
@@ -262,17 +250,8 @@
 }
 
 @keyframes glowPulse {
-
-  0%,
-  100% {
-    opacity: 0.2;
-    transform: translate(-50%, -50%) scale(1);
-  }
-
-  50% {
-    opacity: 0.4;
-    transform: translate(-50%, -50%) scale(1.05);
-  }
+  0%, 100% { opacity: 0.2; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.4; transform: translate(-50%, -50%) scale(1.05); }
 }
 
 .hero-content {
@@ -444,15 +423,8 @@
 }
 
 @keyframes float {
-
-  0%,
-  100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-
-  50% {
-    transform: translateY(-15px) rotate(2deg);
-  }
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(2deg); }
 }
 
 .card-icon {
@@ -717,15 +689,8 @@
 }
 
 @keyframes pulse {
-
-  0%,
-  100% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.05);
-  }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 .impact-icon {
@@ -1049,16 +1014,16 @@
     gap: 60px;
     text-align: center;
   }
-
+  
   .hero-title {
     font-size: 3rem;
   }
-
+  
   .contact-grid {
     grid-template-columns: 1fr;
     gap: 60px;
   }
-
+  
   .footer-copyright {
     flex-direction: column;
     gap: 10px;
@@ -1069,49 +1034,49 @@
   .nav-links {
     display: none;
   }
-
+  
   .mobile-menu-btn {
     display: block;
   }
-
+  
   .mobile-menu {
     display: block;
   }
-
+  
   .hero-title {
     font-size: 2.5rem;
   }
-
+  
   .hero-stats {
     flex-direction: column;
     gap: 20px;
   }
-
+  
   .hero-buttons {
     flex-direction: column;
     align-items: center;
   }
-
+  
   .hero-btn {
     width: 100%;
     max-width: 300px;
   }
-
+  
   .section-title {
     font-size: 2.5rem;
   }
-
+  
   .features-grid,
   .impact-grid,
   .testimonials-grid {
     grid-template-columns: 1fr;
     gap: 30px;
   }
-
+  
   .nav-container {
     padding: 0 20px;
   }
-
+  
   .homepage-hero,
   .features-section,
   .how-it-works-section,
@@ -1126,25 +1091,25 @@
   .hero-title {
     font-size: 2rem;
   }
-
+  
   .hero-subtitle {
     font-size: 1.1rem;
   }
-
+  
   .section-title {
     font-size: 2rem;
   }
-
+  
   .hero-visual {
     height: 300px;
   }
-
+  
   .floating-card {
     padding: 15px;
     font-size: 0.9rem;
   }
-
+  
   .card-icon {
     font-size: 1.5rem;
   }
-}
+} 
