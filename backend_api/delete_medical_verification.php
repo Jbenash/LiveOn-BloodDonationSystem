@@ -78,8 +78,8 @@ try {
     }
     $stmt2->close();
 
-    // Update users table status to 'pending'
-    $sql3 = "UPDATE users SET status = 'pending' WHERE user_id = ?";
+    // Update users table status to 'inactive'
+    $sql3 = "UPDATE users SET status = 'inactive' WHERE user_id = ?";
     $stmt3 = $conn->prepare($sql3);
     if (!$stmt3) {
         throw new Exception("Prepare failed for user update: " . $conn->error);

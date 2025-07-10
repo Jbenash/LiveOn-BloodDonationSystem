@@ -27,6 +27,7 @@ const MRODashboard = () => {
   const [donationLogs, setDonationLogs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [verificationStats, setVerificationStats] = useState({ verificationData: [], stats: {} });
+  const [donationTimestamp, setDonationTimestamp] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -147,11 +148,12 @@ const MRODashboard = () => {
   const handleOpenDonatePopup = (donor) => {
     setDonatePopupDonor(donor);
     setShowDonatePopup(true);
-    // Prefill form with donor details and current date/time
-    const currentDateTime = new Date().toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
+    // Set the timestamp when popup opens
+    const now = new Date();
+    setDonationTimestamp(now.toISOString().slice(0, 19).replace('T', ' ')); // MySQL DATETIME format
     setDonateForm({ 
       bloodType: donor.blood_group || '', 
-      donationDate: new Date().toISOString().split('T')[0], // Current date
+      donationDate: '', // not used anymore
       volume: '' 
     });
     console.log("donatePopupDonor:", donor);
@@ -167,32 +169,31 @@ const MRODashboard = () => {
   const handleDonateSubmit = async (e) => {
     e.preventDefault();
     if (!donatePopupDonor) return;
-    
+
+    // Get the current timestamp at submit time
+    const currentTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
     // Prepare data for backend
     const payload = {
       donor_id: donatePopupDonor.donor_id,
-      full_name: donatePopupDonor.full_name,
       blood_type: donateForm.bloodType,
-      donation_date: donateForm.donationDate,
+      donation_date: currentTimestamp, // use the current timestamp at submit
       volume: donateForm.volume
     };
-    
-    console.log('Donation payload:', payload); // Debug: check the payload
-    
+
     try {
       const response = await fetch('http://localhost/Liveonv2/backend_api/save_donation.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
       const data = await response.json();
-      
       if (data.success) {
         alert(`Donation saved successfully! Donation ID: ${data.donation_id}`);
         setShowDonatePopup(false);
         setDonatePopupDonor(null);
         setDonateForm({ bloodType: '', donationDate: '', volume: '' });
+        setDonationTimestamp('');
       } else {
         alert('Error: ' + (data.error || 'Failed to save donation'));
       }
@@ -201,11 +202,11 @@ const MRODashboard = () => {
     }
   };
 
-  // Filter donorRequests based on search term
+  // Filter donorRequests based on search term, role, and status
   const filteredDonorRequests = donorRequests.filter(donor =>
     donor.donor_fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     donor.donor_email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+).filter(donor => donor.status === 'inactive');
 
   // Function to create colorful bar chart
   const createVerificationChart = () => {
@@ -437,12 +438,14 @@ const MRODashboard = () => {
                     <th>FULL NAME</th>
                     <th>EMAIL</th>
                     <th>BLOOD GROUP</th>
+                    <th>STATUS</th>
+                    <th>REGISTERED ON</th>
                     <th>ACTION</th>
                   </tr>
                 </thead>
                 <tbody>
                   {donorRegistrations.length === 0 ? (
-                    <tr><td colSpan="5">No registered donors found.</td></tr>
+                    <tr><td colSpan="6">No registered donors found.</td></tr>
                   ) : (
                     donorRegistrations.map((donor, idx) => (
                       <tr key={donor.donor_id || idx}>
@@ -450,6 +453,22 @@ const MRODashboard = () => {
                         <td>{donor.full_name}</td>
                         <td>{donor.email}</td>
                         <td>{donor.blood_group}</td>
+                        <td>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '4px 12px',
+                            borderRadius: '12px',
+                            backgroundColor: donor.status === 'available' ? '#bbf7d0' : '#fecaca',
+                            color: donor.status === 'available' ? '#166534' : '#b91c1c',
+                            fontWeight: 500,
+                            fontSize: '0.95em',
+                            minWidth: '80px',
+                            textAlign: 'center'
+                          }}>
+                            {donor.status}
+                          </span>
+                        </td>
+                        <td>{donor.verified_time ? new Date(donor.verified_time).toLocaleDateString() : '-'}</td>
                         <td>
                           <button 
                             style={{
@@ -573,8 +592,8 @@ const MRODashboard = () => {
                     <input type="text" name="bloodType" value={donateForm.bloodType} onChange={handleDonateFormChange} readOnly style={{backgroundColor: '#f3f4f6'}} />
                   </label>
                   <label>
-                    Donation Date:
-                    <input type="date" name="donationDate" value={donateForm.donationDate} onChange={handleDonateFormChange} readOnly style={{backgroundColor: '#f3f4f6'}} />
+                    Donation Date & Time:
+                    <input type="text" value={donationTimestamp ? new Date(donationTimestamp).toLocaleString() : ''} readOnly style={{backgroundColor: '#f3f4f6'}} />
                   </label>
                   <label>
                     Volume:

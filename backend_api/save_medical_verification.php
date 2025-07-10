@@ -96,6 +96,18 @@ try {
     }
     $stmt3->close();
 
+    // Update donors table status to 'available'
+    $sql4 = "UPDATE donors SET status = 'available' WHERE donor_id = ?";
+    $stmt4 = $conn->prepare($sql4);
+    if (!$stmt4) {
+        throw new Exception("Prepare failed for donor update: " . $conn->error);
+    }
+    $stmt4->bind_param('s', $donor_id);
+    if (!$stmt4->execute()) {
+        throw new Exception("Donor update failed: " . $stmt4->error);
+    }
+    $stmt4->close();
+
     // Commit transaction
     $conn->commit();
     

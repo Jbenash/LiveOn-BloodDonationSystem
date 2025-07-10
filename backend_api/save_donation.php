@@ -27,7 +27,7 @@ if (!$input) {
 }
 
 // Validate required fields
-$required_fields = ['donor_id', 'full_name', 'blood_type', 'donation_date', 'volume'];
+$required_fields = ['donor_id', 'blood_type', 'donation_date', 'volume'];
 foreach ($required_fields as $field) {
     if (!isset($input[$field]) || empty($input[$field])) {
         http_response_code(400);
@@ -50,18 +50,19 @@ try {
     $donation_id = 'DON' . date('YmdHis') . rand(100, 999);
     
     // Prepare SQL statement
-    $sql = "INSERT INTO donations (donation_id, donor_id, full_name, blood_type, donation_date, volume, created_at) 
-            VALUES (:donation_id, :donor_id, :full_name, :blood_type, :donation_date, :volume, NOW())";
+    $sql = "INSERT INTO donations (donation_id, donor_id, blood_type, donation_date, units_donated, hospital_id) 
+            VALUES (:donation_id, :donor_id, :blood_type, :donation_date, :units_donated, :hospital_id)";
     
     $stmt = $pdo->prepare($sql);
     
     // Bind parameters
     $stmt->bindParam(':donation_id', $donation_id);
     $stmt->bindParam(':donor_id', $input['donor_id']);
-    $stmt->bindParam(':full_name', $input['full_name']);
     $stmt->bindParam(':blood_type', $input['blood_type']);
     $stmt->bindParam(':donation_date', $input['donation_date']);
-    $stmt->bindParam(':volume', $input['volume']);
+    $stmt->bindParam(':units_donated', $input['volume']);
+    $hospital_id = 'HS002'; // Use the correct hospital_id from your hospitals table
+    $stmt->bindParam(':hospital_id', $hospital_id);
     
     // Execute the statement
     $stmt->execute();
