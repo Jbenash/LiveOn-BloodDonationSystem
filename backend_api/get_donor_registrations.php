@@ -1,7 +1,8 @@
 <?php
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Methods: GET, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -20,11 +21,11 @@ if ($conn->connect_error) {
 }
 
 $sql = "SELECT d.donor_id, u.name AS full_name, u.email, d.blood_type AS blood_group, 
-        d.address, d.city, d.last_donation_date, d.lives_saved, d.status, mv.verification_date AS verified_time
+        d.address, d.city, d.last_donation_date, d.lives_saved, d.status
 FROM donors d
 INNER JOIN users u ON d.user_id = u.user_id
 INNER JOIN medical_verifications mv ON d.donor_id = mv.donor_id
-WHERE u.role = 'donor' AND u.status = 'active'
+WHERE u.role = 'donor'
 ORDER BY mv.verification_date DESC";
 $result = $conn->query($sql);
 

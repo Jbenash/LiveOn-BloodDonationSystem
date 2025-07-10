@@ -78,12 +78,12 @@ class DonorRegistration
     }
     public function registerUser($userId, $name, $email, $phone, $passwordHash)
     {
-        $stmt = $this->pdo->prepare("INSERT INTO users (user_id, name, email, phone, password_hash, role, status) VALUES (?, ?, ?, ?, ?, 'donor', 'pending')");
+        $stmt = $this->pdo->prepare("INSERT INTO users (user_id, name, email, phone, password_hash, role, status) VALUES (?, ?, ?, ?, ?, 'donor', 'inactive')");
         $stmt->execute([$userId, $name, $email, $phone, $passwordHash]);
     }
     public function registerDonor($donorId, $userId, $dob, $address, $city)
     {
-        $stmt = $this->pdo->prepare("INSERT INTO donors (donor_id, user_id, dob, address, city, status) VALUES (?, ?, ?, ?, ?, 'pending')");
+        $stmt = $this->pdo->prepare("INSERT INTO donors (donor_id, user_id, dob, address, city, status) VALUES (?, ?, ?, ?, ?, 'not available')");
         $stmt->execute([$donorId, $userId, $dob, $address, $city]);
     }
 }

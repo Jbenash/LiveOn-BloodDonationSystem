@@ -79,7 +79,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
           hospitalId: formData.hospitalId,
         };
         
-        const response = await fetch('http://localhost/Liveonv2/backend_api/register_donor.php', {
+        const response = await fetch('http://localhost/liveonv2/backend_api/register_donor.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestData),
@@ -102,7 +102,6 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     }
   };
 
-
   const handleSubmitStep2 = async (e) => {
     e.preventDefault();
     if (!formData.otp.trim()) {
@@ -111,7 +110,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     }
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/verify_otp.php', {
+      const response = await fetch('http://localhost/liveonv2/backend_api/verify_otp.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -140,7 +139,6 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     setIsSubmitting(false);
   };
 
-
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose && onClose();
@@ -163,164 +161,247 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
       tabIndex={-1}
     >
       <div className="registration-modal">
+        <div className="modal-background">
+          <div className="modal-grid"></div>
+          <div className="modal-particles"></div>
+        </div>
+        
         <button className="modal-close-btn" onClick={onClose}>
           <span>&times;</span>
         </button>
+        
         <div className="registration-modal-content">
+          <div className="registration-header">
+            <div className="header-icon">
+              <span className="icon-symbol">💉</span>
+            </div>
+            <h2 className="registration-title">
+              <span className="title-line">Join the</span>
+              <span className="title-highlight">Donation</span>
+            </h2>
+            <p className="registration-subtitle">
+              Become a donor and help save lives in your community
+            </p>
+          </div>
+
           <div className="registration-container">
             <div className="registration-card">
-              <h2>Register</h2>
               {step === 1 && (
                 <form onSubmit={handleSubmitStep1} className="registration-form">
-                  <div className="form-group">
-                    <label htmlFor="fullName">Full Name</label>
-                    <input
-                      type="text"
-                      id="fullName"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                      className="form-input"
-                      required
-                    />
-                    {errors.fullName && <div className="form-error">{errors.fullName}</div>}
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="fullName">Full Name</label>
+                      <input
+                        type="text"
+                        id="fullName"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleChange}
+                        className="form-input"
+                        placeholder="Enter your full name"
+                        required
+                      />
+                      {errors.fullName && <div className="form-error">{errors.fullName}</div>}
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="email">Email Address</label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className="form-input"
+                        placeholder="Enter your email"
+                        required
+                      />
+                      {errors.email && <div className="form-error">{errors.email}</div>}
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="email">Email</label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="form-input"
-                      required
-                    />
-                    {errors.email && <div className="form-error">{errors.email}</div>}
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="dob">Date of Birth</label>
+                      <input
+                        type="date"
+                        id="dob"
+                        name="dob"
+                        value={formData.dob}
+                        onChange={handleChange}
+                        className="form-input"
+                        required
+                      />
+                      {errors.dob && <div className="form-error">{errors.dob}</div>}
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="phone">Phone Number</label>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className="form-input"
+                        placeholder="Enter your phone number"
+                        required
+                      />
+                      {errors.phone && <div className="form-error">{errors.phone}</div>}
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="dob">Date of Birth</label>
-                    <input
-                      type="date"
-                      id="dob"
-                      name="dob"
-                      value={formData.dob}
-                      onChange={handleChange}
-                      className="form-input"
-                      required
-                    />
-                    {errors.dob && <div className="form-error">{errors.dob}</div>}
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="address">Address</label>
+                      <textarea
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        className="form-input address-textarea"
+                        placeholder="Enter your full address"
+                        rows="3"
+                        required
+                      />
+                      {errors.address && <div className="form-error">{errors.address}</div>}
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="city">City</label>
+                      <input
+                        type="text"
+                        id="city"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleChange}
+                        className="form-input"
+                        placeholder="Enter your city"
+                        required
+                      />
+                      {errors.city && <div className="form-error">{errors.city}</div>}
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="address">Address</label>
-                    <textarea
-                      id="address"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleChange}
-                      className="form-input address-textarea"
-                      required
-                      rows={3}
-                    />
-                    {errors.address && <div className="form-error">{errors.address}</div>}
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="hospitalId">Preferred Hospital</label>
+                      <select
+                        id="hospitalId"
+                        name="hospitalId"
+                        value={formData.hospitalId}
+                        onChange={handleChange}
+                        className="form-input"
+                        required
+                      >
+                        {hospitalOptions.map(option => (
+                          <option key={option.id} value={option.id}>
+                            {option.name}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.hospitalId && <div className="form-error">{errors.hospitalId}</div>}
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="city">City</label>
-                    <input
-                      type="text"
-                      id="city"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleChange}
-                      className="form-input"
-                      required
-                    />
-                    {errors.city && <div className="form-error">{errors.city}</div>}
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="password">Password</label>
+                      <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        className="form-input"
+                        placeholder="Create a password"
+                        required
+                      />
+                      {errors.password && <div className="form-error">{errors.password}</div>}
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="confirmPassword">Confirm Password</label>
+                      <input
+                        type="password"
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        className="form-input"
+                        placeholder="Confirm your password"
+                        required
+                      />
+                      {errors.confirmPassword && <div className="form-error">{errors.confirmPassword}</div>}
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="phone">Phone Number</label>
-                    <input
-                      type="text"
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="form-input"
-                      required
-                    />
-                    {errors.phone && <div className="form-error">{errors.phone}</div>}
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="hospitalId">Hospital</label>
-                    <select
-                      id="hospitalId"
-                      name="hospitalId"
-                      value={formData.hospitalId}
-                      onChange={handleChange}
-                      className="form-input"
-                      required
-                    >
-                      {hospitalOptions.map(h => (
-                        <option key={h.id} value={h.id}>{h.name}</option>
-                      ))}
-                    </select>
-                    {errors.hospitalId && <div className="form-error">{errors.hospitalId}</div>}
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="password">Password</label>
-                    <input
-                      type="password"
-                      id="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      className="form-input"
-                      required
-                    />
-                    {errors.password && <div className="form-error">{errors.password}</div>}
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="confirmPassword">Confirm Password</label>
-                    <input
-                      type="password"
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      className="form-input"
-                      required
-                    />
-                    {errors.confirmPassword && <div className="form-error">{errors.confirmPassword}</div>}
-                  </div>
-                  <button type="submit" className="registration-button" disabled={isSubmitting}>
-                    {isSubmitting ? 'Sending OTP...' : 'Send OTP'}
+
+                  <button 
+                    type="submit" 
+                    className="registration-button"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <span className="loading-spinner">
+                        <span className="spinner"></span>
+                        Processing...
+                      </span>
+                    ) : (
+                      <>
+                        <span className="btn-text">Create Account</span>
+                        <span className="btn-icon">→</span>
+                      </>
+                    )}
                   </button>
                 </form>
               )}
+
               {step === 2 && (
                 <form onSubmit={handleSubmitStep2} className="registration-form">
-                  <div className="form-group">
-                    <label htmlFor="otp">Enter OTP</label>
-                    <input
-                      type="text"
-                      id="otp"
-                      name="otp"
-                      value={formData.otp}
-                      onChange={handleChange}
-                      className="form-input"
-                      required
-                      maxLength={6}
-                      placeholder="Enter the 6-digit OTP"
-                    />
-                    {errors.otp && <div className="form-error">{errors.otp}</div>}
+                  <div className="otp-section">
+                    <div className="otp-icon">
+                      <span className="icon-symbol">📧</span>
+                    </div>
+                    <h3 className="otp-title">Verify Your Email</h3>
+                    <p className="otp-description">
+                      We've sent a verification code to <strong>{formData.email}</strong>
+                    </p>
+                    
+                    <div className="form-group">
+                      <label htmlFor="otp">Verification Code</label>
+                      <input
+                        type="text"
+                        id="otp"
+                        name="otp"
+                        value={formData.otp}
+                        onChange={handleChange}
+                        className="form-input otp-input"
+                        placeholder="Enter 6-digit code"
+                        maxLength="6"
+                        required
+                      />
+                      {errors.otp && <div className="form-error">{errors.otp}</div>}
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      className="registration-button"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <span className="loading-spinner">
+                          <span className="spinner"></span>
+                          Verifying...
+                        </span>
+                      ) : (
+                        <>
+                          <span className="btn-text">Verify Email</span>
+                          <span className="btn-icon">✓</span>
+                        </>
+                      )}
+                    </button>
                   </div>
-                  <button type="submit" className="registration-button" disabled={isSubmitting}>
-                    {isSubmitting ? 'Verifying...' : 'Confirm OTP'}
-                  </button>
                 </form>
-              )}
-              {otpSent && step === 2 && (
-                <div className="otp-info"></div>
               )}
             </div>
           </div>
