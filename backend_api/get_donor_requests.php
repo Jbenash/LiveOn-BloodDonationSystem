@@ -18,6 +18,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+class DonorRequestsHandler
+{
+    private $conn;
+
+    public function __construct($conn)
+    {
+        $this->conn = $conn;
+    }
+
+    public function handle()
+    {
+        // SQL query to fetch inactive donors with latest OTP (any status/expiry)
+        $sql = "
+            SELECT 
+                d.donor_id, 
+                u.name AS donor_fullname, 
+                u.email AS donor_email, 
+                latest_otp.otp_code AS otp_number,
+                u.status, 
+                u.role
+            FROM donors d
+            INNER JOIN users u ON d.user_id = u.user_id
+            LEFT JOIN (
+                SELECT o1.user_id, o1.otp_code
+                FROM otp_verification o1
+                INNER JOIN (
+                    SELECT user_id, MAX(created_at) AS latest_created
+                    FROM otp_verification
+                    GROUP BY user_id
+                ) latest ON o1.user_id = latest.user_id AND o1.created_at = latest.latest_created
+            ) AS latest_otp ON u.user_id = latest_otp.user_id
+            WHERE u.role = 'donor' AND u.status = 'inactive'
+        ";
+
+        $result = $this->conn->query($sql);
+
+        $donors = [];
+        if ($result && $result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $donors[] = $row;
+            }
+        }
+
+        $this->conn->close();
+        echo json_encode($donors);
+    }
+}
+
+// DB Connection
 $servername = "localhost";
 $username = "root";
 $password = "";
@@ -31,21 +80,5 @@ if ($conn->connect_error) {
     exit();
 }
 
-$sql = "SELECT d.donor_id, u.name AS donor_fullname, u.email AS donor_email, ov.otp_code AS otp_number,
-        u.status, u.role
-FROM donors d
-INNER JOIN users u ON d.user_id = u.user_id
-LEFT JOIN otp_verification ov ON u.user_id = ov.user_id
-WHERE u.role = 'donor' AND u.status = 'inactive'";
-$result = $conn->query($sql);
-
-$donors = [];
-if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $donors[] = $row;
-    }
-}
-
-$conn->close();
-
-echo json_encode($donors);
+$handler = new DonorRequestsHandler($conn);
+$handler->handle();

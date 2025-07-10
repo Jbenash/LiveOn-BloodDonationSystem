@@ -78,16 +78,16 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
           phone: formData.phone,
           hospitalId: formData.hospitalId,
         };
-
+        
         const response = await fetch('http://localhost/liveonv2/backend_api/register_donor.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestData),
           credentials: 'include'
         });
-
+        
         const result = await response.json();
-
+        
         if (result.success) {
           setOtpSent(true);
           setStep(2);
@@ -120,7 +120,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
         credentials: 'include'
       });
       const result = await response.json();
-
+      
       if (result.success) {
         setFormData({
           fullName: '', email: '', password: '', confirmPassword: '',
@@ -165,11 +165,11 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
           <div className="modal-grid"></div>
           <div className="modal-particles"></div>
         </div>
-
+        
         <button className="modal-close-btn" onClick={onClose}>
           <span>&times;</span>
         </button>
-
+        
         <div className="registration-modal-content">
           <div className="registration-header">
             <div className="header-icon">
@@ -203,7 +203,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       />
                       {errors.fullName && <div className="form-error">{errors.fullName}</div>}
                     </div>
-
+                    
                     <div className="form-group">
                       <label htmlFor="email">Email Address</label>
                       <input
@@ -234,7 +234,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       />
                       {errors.dob && <div className="form-error">{errors.dob}</div>}
                     </div>
-
+                    
                     <div className="form-group">
                       <label htmlFor="phone">Phone Number</label>
                       <input
@@ -266,7 +266,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       />
                       {errors.address && <div className="form-error">{errors.address}</div>}
                     </div>
-
+                    
                     <div className="form-group">
                       <label htmlFor="city">City</label>
                       <input
@@ -319,7 +319,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       />
                       {errors.password && <div className="form-error">{errors.password}</div>}
                     </div>
-
+                    
                     <div className="form-group">
                       <label htmlFor="confirmPassword">Confirm Password</label>
                       <input
@@ -336,8 +336,8 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
+                  <button 
+                    type="submit" 
                     className="registration-button"
                     disabled={isSubmitting}
                   >
@@ -366,7 +366,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                     <p className="otp-description">
                       We've sent a verification code to <strong>{formData.email}</strong>
                     </p>
-
+                    
                     <div className="form-group">
                       <label htmlFor="otp">Verification Code</label>
                       <input
@@ -383,8 +383,8 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       {errors.otp && <div className="form-error">{errors.otp}</div>}
                     </div>
 
-                    <button
-                      type="submit"
+                    <button 
+                      type="submit" 
                       className="registration-button"
                       disabled={isSubmitting}
                     >

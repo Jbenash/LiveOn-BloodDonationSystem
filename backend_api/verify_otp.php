@@ -37,7 +37,7 @@ class OTPVerifier
         $row = $stmt->fetch();
         if ($row && $row['otp_code'] === $enteredOtp && strtotime($row['expires_at']) > time()) {
             $updateStmt = $this->pdo->prepare(
-                "UPDATE otp_verification SET verified_at = NOW() WHERE user_id = ? AND otp_code = ?"
+                "UPDATE otp_verification SET verified = 1, verified_at = NOW() WHERE user_id = ? AND otp_code = ?"
             );
             $updateStmt->execute([$userId, $enteredOtp]);
             return ["success" => true];

@@ -15,13 +15,8 @@
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Modal Container */
@@ -63,7 +58,6 @@
     opacity: 0;
     transform: translateY(-30px) scale(0.95);
   }
-
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -88,7 +82,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image:
+  background-image: 
     linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
   background-size: 30px 30px;
@@ -96,13 +90,8 @@
 }
 
 @keyframes gridMove {
-  0% {
-    transform: translate(0, 0);
-  }
-
-  100% {
-    transform: translate(30px, 30px);
-  }
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(30px, 30px); }
 }
 
 .modal-particles {
@@ -112,20 +101,13 @@
   right: 0;
   bottom: 0;
   background: radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(29, 78, 216, 0.05) 0%, transparent 50%);
+              radial-gradient(circle at 80% 20%, rgba(29, 78, 216, 0.05) 0%, transparent 50%);
   animation: particleFloat 18s ease-in-out infinite;
 }
 
 @keyframes particleFloat {
-
-  0%,
-  100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-
-  50% {
-    transform: translateY(-8px) rotate(90deg);
-  }
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(90deg); }
 }
 
 /* Close Button */
@@ -215,7 +197,7 @@
 }
 
 .form-group {
-  margin-bottom: 0px;
+  margin-bottom: 36px;
   position: relative;
 }
 
@@ -331,13 +313,8 @@
 }
 
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Footer */
@@ -372,20 +349,16 @@
     width: 95%;
     max-width: 450px;
   }
-
   .login-modal-content {
     padding: 40px 20px;
   }
-
   .login-title {
     font-size: 2rem;
   }
-
   .form-input {
     padding: 16px 14px;
     font-size: 0.95rem;
   }
-
   .login-button {
     padding: 16px 0;
     font-size: 1rem;
@@ -396,20 +369,16 @@
   .login-modal-content {
     padding: 30px 10px;
   }
-
   .login-title {
     font-size: 1.5rem;
   }
-
   .login-subtitle {
     font-size: 0.95rem;
   }
-
   .form-input {
     padding: 12px 10px;
     font-size: 0.9rem;
   }
-
   .login-button {
     padding: 12px 0;
     font-size: 0.95rem;
@@ -418,8 +387,4 @@
 
 body.modal-open {
   overflow: hidden;
-}
-
-.login-form .form-group:first-child {
-  margin-bottom: 48px;
-}
+} 

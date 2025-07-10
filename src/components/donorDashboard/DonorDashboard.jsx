@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './DonorDashboard.css';
+import logo from '../../assets/logo.svg';
 
 const DonorDashboard = () => {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('http://localhost/Liveonv2/backend_api/donor_dashboard.php', {
+    fetch('http://localhost/liveonv2/backend_api/donor_dashboard.php', {
       credentials: 'include'
     })
       .then(res => res.json())
@@ -25,7 +26,7 @@ const DonorDashboard = () => {
   }, [navigate]);
 
   const handleLogout = () => {
-    fetch("http://localhost/Liveonv2/backend_api/logout.php", {
+    fetch("http://localhost/liveonv2/backend_api/logout.php", {
       method: 'POST',
       credentials: 'include'
     })
@@ -40,9 +41,18 @@ const DonorDashboard = () => {
   if (!user) return <div>Loading dashboard...</div>;
 
   return (
-    <div className="liveon-root">
-      <aside className="liveon-sidebar">
-        <div className="liveon-logo">LiveOn</div>
+    <div className="donor-dashboard-root">
+      {/* Animated Background */}
+      <div className="dashboard-background">
+        <div className="dashboard-grid"></div>
+        <div className="dashboard-particles"></div>
+      </div>
+
+      {/* Sidebar */}
+      <aside className="dashboard-sidebar">
+        <div className="dashboard-logo" onClick={() => navigate('/')}> 
+          <img src={logo} alt="LiveOn Logo" className="logo-svg" />
+        </div>
         <nav>
           <ul>
             <li className="active"><span className="icon dashboard" />Dashboard</li>
@@ -55,19 +65,22 @@ const DonorDashboard = () => {
         </nav>
       </aside>
 
-      <div className="liveon-main">
-        <header className="liveon-header">
-          <div className="liveon-user-info">
-            <img src={user.profilePic} alt="Profile" className="liveon-user-avatar" />
-            <span className="liveon-user-name">{user.name}</span>
+      {/* Main Content */}
+      <div className="dashboard-main">
+        <header className="dashboard-header glassy">
+          <div className="dashboard-header-row">
+            <span className="dashboard-title gradient-text">Donor Dashboard</span>
+            <div className="dashboard-user-info">
+              <img src={user.profilePic} alt="Profile" className="dashboard-user-avatar" />
+              <span className="dashboard-user-name">Welcome, {user.name}</span>
+            </div>
           </div>
         </header>
-        <div className="liveon-content">
-          <h2 className="liveon-title">Dashboard</h2>
-          <div className="liveon-dashboard-grid">
+        <div className="dashboard-content">
+          <div className="dashboard-stats-grid">
             {/* Profile Card */}
-            <div className="liveon-card profile-summary">
-              <div className="profile-summary-title">Donor Profile Summary</div>
+            <div className="dashboard-card glassy profile-summary animate-fadein">
+              <div className="profile-summary-title gradient-text">Profile Summary</div>
               <div className="profile-summary-details">
                 <img src={user.profilePic} alt="Profile" className="profile-avatar" />
                 <div className="profile-summary-text">
@@ -78,40 +91,68 @@ const DonorDashboard = () => {
                   <div><span className="label">Email:</span> {user.email}</div>
                 </div>
               </div>
-              <button className="liveon-btn">Edit Profile</button>
+              <button className="dashboard-btn primary">Edit Profile</button>
             </div>
 
             {/* Donation Stats */}
-            <div className="liveon-card donation-stats-2row">
-              <div className="donation-stats-title-2row">Donation Statistics</div>
-              <div className="donation-stats-grid-2x2">
-                <div className="donation-stat-2col">
-                  <div className="stat-value-2row stat-blue">{user.totalDonations}</div>
-                  <div className="stat-label-2row">Total Donations</div>
+            <div className="dashboard-card glassy donation-stats animate-fadein">
+              <div className="donation-stats-title gradient-text">Donation Statistics</div>
+              <div className="donation-stats-grid">
+                <div className="donation-stat">
+                  <div className="stat-value stat-blue">{user.totalDonations}</div>
+                  <div className="stat-label">Total Donations</div>
                 </div>
-                <div className="donation-stat-2col">
-                  <div className="stat-value-2row stat-blue">{user.lastDonation}</div>
-                  <div className="stat-label-2row">Last Donation</div>
+                <div className="donation-stat">
+                  <div className="stat-value stat-blue">{user.lastDonation}</div>
+                  <div className="stat-label">Last Donation</div>
                 </div>
-                <div className="donation-stat-2col">
-                  <div className="stat-value-2row stat-blue">{user.nextEligible}</div>
-                  <div className="stat-label-2row">Next Eligible</div>
+                <div className="donation-stat">
+                  <div className="stat-value stat-blue">{user.nextEligible}</div>
+                  <div className="stat-label">Next Eligible</div>
                 </div>
-                <div className="donation-stat-2col">
-                  <div className="stat-value-2row stat-green">{user.livesSaved}</div>
-                  <div className="stat-label-2row">Lives Saved</div>
+                <div className="donation-stat">
+                  <div className="stat-value stat-green">{user.livesSaved}</div>
+                  <div className="stat-label">Lives Saved</div>
                 </div>
               </div>
             </div>
 
             {/* Reward Section */}
-            <div className="liveon-card reward-stats">
-              <div className="reward-title">Reward Points & Ranking</div>
+            <div className="dashboard-card glassy reward-stats animate-fadein">
+              <div className="reward-title gradient-text">Reward Points & Ranking</div>
               <div className="reward-points stat-green">{user.points} Points</div>
               <div className="reward-rank">Rank: {user.rank}</div>
             </div>
           </div>
+
+          {/* Call to Action */}
+          <div className="dashboard-cta-card glassy animate-fadein">
+            <h3 className="cta-title gradient-text">Ready for your next donation?</h3>
+            <p className="cta-desc">Book your next appointment and keep saving lives!</p>
+            <button className="dashboard-btn primary">Book Next Donation</button>
+          </div>
         </div>
+        <footer className="dashboard-footer">
+          <div className="footer-content">
+            <div className="footer-logo">
+              <img src={logo} alt="LiveOn Logo" className="logo-svg" />
+              <span>LiveOn</span>
+            </div>
+            <p>Revolutionizing blood donation through technology</p>
+            <div className="footer-social-links">
+              <span className="social-icon">📱</span>
+              <span className="social-icon">💬</span>
+              <span className="social-icon">📷</span>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <div className="footer-line"></div>
+            <div className="footer-copyright">
+              <span>© 2024 LiveOn. All rights reserved.</span>
+              <span>Built with ❤️ for humanity</span>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   );

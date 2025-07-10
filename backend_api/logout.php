@@ -12,6 +12,15 @@ header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Content-Type: application/json");
 
-session_unset();
-session_destroy();
-echo json_encode(['success' => true]);
+class LogoutHandler
+{
+    public function handle()
+    {
+        session_unset();
+        session_destroy();
+        echo json_encode(['success' => true]);
+    }
+}
+
+$handler = new LogoutHandler();
+$handler->handle();

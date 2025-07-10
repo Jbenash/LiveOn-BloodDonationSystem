@@ -114,7 +114,7 @@ const HomePage = () => {
           <div className="hero-particles"></div>
           <div className="hero-glow"></div>
         </div>
-
+        
         <div className="hero-content">
           <div className="hero-text">
             <h1 className="hero-title">
@@ -149,7 +149,7 @@ const HomePage = () => {
               </button>
             </div>
           </div>
-
+          
           <div className="hero-visual">
             <div className="floating-card card-1">
               <div className="card-icon">💉</div>
@@ -173,7 +173,7 @@ const HomePage = () => {
           <h2 className="section-title">Advanced Features</h2>
           <p className="section-subtitle">Powered by cutting-edge technology</p>
         </div>
-
+        
         <div className="features-grid">
           <div className="feature-card">
             <div className="feature-icon">
@@ -184,7 +184,7 @@ const HomePage = () => {
             <p>Advanced algorithms match donors with hospitals based on blood type, location, and urgency</p>
             <div className="feature-highlight">99.9% Accuracy</div>
           </div>
-
+          
           <div className="feature-card">
             <div className="feature-icon">
               <div className="icon-bg"></div>
@@ -194,7 +194,7 @@ const HomePage = () => {
             <p>Monitor donation status, hospital requests, and impact metrics in real-time</p>
             <div className="feature-highlight">Instant Updates</div>
           </div>
-
+          
           <div className="feature-card">
             <div className="feature-icon">
               <div className="icon-bg"></div>
@@ -204,7 +204,7 @@ const HomePage = () => {
             <p>Immutable records and transparent tracking using blockchain technology</p>
             <div className="feature-highlight">100% Secure</div>
           </div>
-
+          
           <div className="feature-card">
             <div className="feature-icon">
               <div className="icon-bg"></div>
@@ -223,7 +223,7 @@ const HomePage = () => {
           <h2 className="section-title">How It Works</h2>
           <p className="section-subtitle">Simple steps to save lives</p>
         </div>
-
+        
         <div className="process-timeline">
           <div className="timeline-step">
             <div className="step-number">01</div>
@@ -233,7 +233,7 @@ const HomePage = () => {
             </div>
             <div className="step-connector"></div>
           </div>
-
+          
           <div className="timeline-step">
             <div className="step-number">02</div>
             <div className="step-content">
@@ -242,7 +242,7 @@ const HomePage = () => {
             </div>
             <div className="step-connector"></div>
           </div>
-
+          
           <div className="timeline-step">
             <div className="step-number">03</div>
             <div className="step-content">
@@ -251,7 +251,7 @@ const HomePage = () => {
             </div>
             <div className="step-connector"></div>
           </div>
-
+          
           <div className="timeline-step">
             <div className="step-number">04</div>
             <div className="step-content">
@@ -268,7 +268,7 @@ const HomePage = () => {
           <h2 className="section-title">Why Blood Donation Matters</h2>
           <p className="section-subtitle">Every drop counts in the fight for life</p>
         </div>
-
+        
         <div className="impact-grid">
           <div className="impact-card">
             <div className="impact-visual">
@@ -279,7 +279,7 @@ const HomePage = () => {
             <p>A single donation can save up to three lives in emergency situations</p>
             <div className="impact-stat">3 Lives</div>
           </div>
-
+          
           <div className="impact-card">
             <div className="impact-visual">
               <div className="pulse-circle"></div>
@@ -289,7 +289,7 @@ const HomePage = () => {
             <p>Blood is needed every 2 seconds for emergencies and surgeries</p>
             <div className="impact-stat">Every 2s</div>
           </div>
-
+          
           <div className="impact-card">
             <div className="impact-visual">
               <div className="pulse-circle"></div>
@@ -308,7 +308,7 @@ const HomePage = () => {
           <h2 className="section-title">Success Stories</h2>
           <p className="section-subtitle">Real people, real impact</p>
         </div>
-
+        
         <div className="testimonials-grid">
           <div className="testimonial-card">
             <div className="testimonial-avatar">
@@ -323,7 +323,7 @@ const HomePage = () => {
               <span>Regular Donor</span>
             </div>
           </div>
-
+          
           <div className="testimonial-card">
             <div className="testimonial-avatar">
               <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Dr. Michael Rodriguez" />
@@ -337,7 +337,7 @@ const HomePage = () => {
               <span>Emergency Medicine</span>
             </div>
           </div>
-
+          
           <div className="testimonial-card">
             <div className="testimonial-avatar">
               <img src="https://randomuser.me/api/portraits/women/65.jpg" alt="Emily White" />
@@ -359,13 +359,13 @@ const HomePage = () => {
         <div className="contact-background">
           <div className="contact-grid"></div>
         </div>
-
+        
         <div className="contact-content">
           <div className="section-header">
             <h2 className="section-title">Get In Touch</h2>
             <p className="section-subtitle">Ready to join the revolution?</p>
           </div>
-
+          
           <div className="contact-grid">
             <div className="contact-info">
               <div className="contact-item">
@@ -375,7 +375,7 @@ const HomePage = () => {
                   <p>contact@liveon.org</p>
                 </div>
               </div>
-
+              
               <div className="contact-item">
                 <div className="contact-icon">📞</div>
                 <div className="contact-details">
@@ -383,7 +383,7 @@ const HomePage = () => {
                   <p>1-800-LIVE-ON</p>
                 </div>
               </div>
-
+              
               <div className="contact-item">
                 <div className="contact-icon">📍</div>
                 <div className="contact-details">
@@ -392,7 +392,7 @@ const HomePage = () => {
                 </div>
               </div>
             </div>
-
+            
             <div className="contact-cta">
               <h3>Ready to Make a Difference?</h3>
               <p>Join thousands of donors saving lives every day</p>
@@ -418,7 +418,7 @@ const HomePage = () => {
               <span className="social-icon">📷</span>
             </div>
           </div>
-
+          
           <div className="footer-section">
             <h4>Platform</h4>
             <ul>
@@ -428,7 +428,7 @@ const HomePage = () => {
               <li onClick={() => handleNavLinkClick('testimonials')}>Success Stories</li>
             </ul>
           </div>
-
+          
           <div className="footer-section">
             <h4>Support</h4>
             <ul>
@@ -438,7 +438,7 @@ const HomePage = () => {
               <li>Contact Us</li>
             </ul>
           </div>
-
+          
           <div className="footer-section">
             <h4>Connect</h4>
             <p>contact@liveon.org</p>
@@ -446,7 +446,7 @@ const HomePage = () => {
             <p>123 Innovation Drive</p>
           </div>
         </div>
-
+        
         <div className="footer-bottom">
           <div className="footer-line"></div>
           <div className="footer-copyright">
