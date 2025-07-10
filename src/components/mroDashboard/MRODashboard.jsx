@@ -27,6 +27,7 @@ const MRODashboard = () => {
   const [donationLogs, setDonationLogs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [verificationStats, setVerificationStats] = useState({ verificationData: [], stats: {} });
+  const [donationTimestamp, setDonationTimestamp] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -155,12 +156,13 @@ const MRODashboard = () => {
   const handleOpenDonatePopup = (donor) => {
     setDonatePopupDonor(donor);
     setShowDonatePopup(true);
-    // Prefill form with donor details and current date/time
-    const currentDateTime = new Date().toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
-    setDonateForm({
-      bloodType: donor.blood_group || '',
-      donationDate: new Date().toISOString().split('T')[0], // Current date
-      volume: ''
+    // Set the timestamp when popup opens
+    const now = new Date();
+    setDonationTimestamp(now.toISOString().slice(0, 19).replace('T', ' ')); // MySQL DATETIME format
+    setDonateForm({ 
+      bloodType: donor.blood_group || '', 
+      donationDate: '', // not used anymore
+      volume: '' 
     });
     console.log("donatePopupDonor:", donor);
   };
@@ -176,14 +178,14 @@ const MRODashboard = () => {
     e.preventDefault();
     if (!donatePopupDonor) return;
 
-    // Get the current timestamp in MySQL DATETIME format
+    // Get the current timestamp at submit time
     const currentTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
     // Prepare data for backend
     const payload = {
       donor_id: donatePopupDonor.donor_id,
       blood_type: donateForm.bloodType,
-      donation_date: currentTimestamp, // send current timestamp
+      donation_date: currentTimestamp, // use the current timestamp at submit
       volume: donateForm.volume
     };
 
@@ -199,6 +201,7 @@ const MRODashboard = () => {
         setShowDonatePopup(false);
         setDonatePopupDonor(null);
         setDonateForm({ bloodType: '', donationDate: '', volume: '' });
+        setDonationTimestamp('');
       } else {
         alert('Error: ' + (data.error || 'Failed to save donation'));
       }
@@ -475,7 +478,7 @@ const MRODashboard = () => {
                         </td>
                         <td>{donor.verified_time ? new Date(donor.verified_time).toLocaleDateString() : '-'}</td>
                         <td>
-                          <button
+                          <button 
                             style={{
                               background: '#22c55e',
                               color: '#fff',
@@ -598,7 +601,7 @@ const MRODashboard = () => {
                   </label>
                   <label>
                     Donation Date & Time:
-                    <input type="text" value={new Date().toLocaleString()} readOnly style={{ backgroundColor: '#f3f4f6' }} />
+                    <input type="text" value={donationTimestamp ? new Date(donationTimestamp).toLocaleString() : ''} readOnly style={{backgroundColor: '#f3f4f6'}} />
                   </label>
                   <label>
                     Volume:
