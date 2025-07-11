@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import "./MRODashboard.css";
+import { useNavigate } from 'react-router-dom';
 
 const MRODashboard = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("Overview");
   const [showPopup, setShowPopup] = useState(false);
   const [popupDonor, setPopupDonor] = useState(null);
@@ -138,6 +140,29 @@ const MRODashboard = () => {
       const data = await response.json();
       if (data.success) {
         setSubmitStatus('Donor details saved successfully!');
+        // Send verification email to donor
+        const emailPayload = {
+          donor_id: popupDonor.donor_id,
+          full_name: popupDonor.fullName || popupDonor.donor_fullname || '',
+          blood_group: popupDonor.blood_group || '',
+          email: popupDonor.email || popupDonor.donor_email || ''
+        };
+        fetch('http://localhost/Liveonv2/backend_api/send_verification_email.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(emailPayload)
+        })
+        .then(res => res.json())
+        .then(emailRes => {
+          if (emailRes.success) {
+            setSubmitStatus('Donor details saved and email sent!');
+          } else {
+            setSubmitStatus('Donor details saved, but email failed: ' + (emailRes.error || 'Unknown error'));
+          }
+        })
+        .catch(err => {
+          setSubmitStatus('Donor details saved, but email failed: ' + err.message);
+        });
         setDonorRequests(prev => prev.filter(donor => donor.donor_id !== popupDonor.donor_id));
         setTimeout(() => {
           setShowPopup(false);
@@ -211,10 +236,32 @@ const MRODashboard = () => {
   };
 
   // Filter donorRequests based on search term, role, and status
-  const filteredDonorRequests = donorRequests.filter(donor =>
-    donor.donor_fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    donor.donor_email.toLowerCase().includes(searchTerm.toLowerCase())
-  ).filter(donor => donor.status === 'inactive');
+  const filteredDonorRequests = donorRequests.filter(donor => {
+    const term = searchTerm.toLowerCase();
+    return (
+      (donor.donor_id && donor.donor_id.toLowerCase().includes(term)) ||
+      (donor.donor_fullname && donor.donor_fullname.toLowerCase().includes(term)) ||
+      (donor.donor_email && donor.donor_email.toLowerCase().includes(term)) ||
+      (donor.otp_number && donor.otp_number.toLowerCase().includes(term))
+    );
+  }).filter(donor => donor.status === 'inactive');
+
+  // Filter donorRegistrations based on donor_id, full_name, email, or blood_group
+  const filteredDonorRegistrations = donorRegistrations.filter(donor => {
+    const term = searchTerm.toLowerCase();
+    return (
+      donor.donor_id.toLowerCase().includes(term) ||
+      donor.full_name.toLowerCase().includes(term) ||
+      (donor.email && donor.email.toLowerCase().includes(term)) ||
+      (donor.blood_group && donor.blood_group.toLowerCase().includes(term))
+    );
+  });
+
+  // Filter donationLogs based on donor_id or full_name
+  const filteredDonationLogs = donationLogs.filter(log =>
+    (log.donor_id && log.donor_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (log.full_name && log.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   // Function to create colorful bar chart
   const createVerificationChart = () => {
@@ -283,7 +330,7 @@ const MRODashboard = () => {
   return (
     <div className="mro-dashboard-container">
       <aside className="sidebar" style={{ width: '140px' }}>
-        <div className="logo">LiveOn</div>
+        <div className="logo" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>LiveOn</div>
         <nav>
           <ul>
             <li className={activeSection === "Overview" ? "active" : ""} onClick={() => setActiveSection("Overview")}>Overview</li>
@@ -426,7 +473,8 @@ const MRODashboard = () => {
                             donor_id: donor.donor_id,
                             fullName: donor.donor_fullname,
                             email: donor.donor_email,
-                            otp: donor.otp_number
+                            otp: donor.otp_number,
+                            blood_group: donor.blood_group // add blood_group for email
                           })}>Next</button>
                         </td>
                       </tr>
@@ -455,7 +503,7 @@ const MRODashboard = () => {
                   {donorRegistrations.length === 0 ? (
                     <tr><td colSpan="6">No registered donors found.</td></tr>
                   ) : (
-                    donorRegistrations.map((donor, idx) => (
+                    filteredDonorRegistrations.map((donor, idx) => (
                       <tr key={donor.donor_id || idx}>
                         <td>{donor.donor_id}</td>
                         <td>{donor.full_name}</td>
@@ -476,23 +524,24 @@ const MRODashboard = () => {
                             {donor.status}
                           </span>
                         </td>
-                        <td>{donor.verified_time ? new Date(donor.verified_time).toLocaleDateString() : '-'}</td>
+                        <td>{donor.verification_date ? new Date(donor.verification_date).toLocaleDateString() : '-'}</td>
                         <td>
                           <button 
                             style={{
-                              background: '#22c55e',
-                              color: '#fff',
+                              background: donor.status === 'available' ? '#22c55e' : '#d1d5db',
+                              color: donor.status === 'available' ? '#fff' : '#6b7280',
                               border: 'none',
                               borderRadius: '6px',
                               padding: '6px 12px',
                               fontSize: '0.9rem',
-                              cursor: 'pointer',
+                              cursor: donor.status === 'available' ? 'pointer' : 'not-allowed',
                               fontWeight: '500',
                               transition: 'background 0.2s'
                             }}
-                            onMouseOver={(e) => e.target.style.background = '#16a34a'}
-                            onMouseOut={(e) => e.target.style.background = '#22c55e'}
-                            onClick={() => handleOpenDonatePopup(donor)}
+                            disabled={donor.status !== 'available'}
+                            onMouseOver={donor.status === 'available' ? (e) => e.target.style.background = '#16a34a' : undefined}
+                            onMouseOut={donor.status === 'available' ? (e) => e.target.style.background = '#22c55e' : undefined}
+                            onClick={donor.status === 'available' ? () => handleOpenDonatePopup(donor) : undefined}
                           >
                             Donate
                           </button>
@@ -522,13 +571,13 @@ const MRODashboard = () => {
                   {donationLogs.length === 0 ? (
                     <tr><td colSpan="6">No donation logs found.</td></tr>
                   ) : (
-                    donationLogs.map((log, idx) => (
+                    filteredDonationLogs.map((log, idx) => (
                       <tr key={log.donation_id || idx}>
                         <td>{log.donation_id}</td>
                         <td>{log.donor_id}</td>
                         <td>{log.full_name}</td>
                         <td>{log.blood_type}</td>
-                        <td>{log.volume}</td>
+                        <td>{log.units_donated}</td>
                         <td>{log.donation_date}</td>
                       </tr>
                     ))

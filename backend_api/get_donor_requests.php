@@ -32,6 +32,7 @@ if ($conn->connect_error) {
 }
 
 $sql = "SELECT d.donor_id, u.name AS donor_fullname, u.email AS donor_email, ov.otp_code AS otp_number,
+        d.blood_type AS blood_group,
         u.status, u.role
 FROM donors d
 INNER JOIN users u ON d.user_id = u.user_id
