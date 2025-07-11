@@ -71,7 +71,35 @@ try {
     
     // Execute the statement
     $stmt->execute();
+
+    // Update donors table status to 'not available'
+    $sql2 = "UPDATE donors SET status = 'not available' WHERE donor_id = :donor_id";
+    $stmt2 = $pdo->prepare($sql2);
+    $stmt2->bindParam(':donor_id', $input['donor_id']);
+    $stmt2->execute();
+
+    // Update donors table last_donation_date to current timestamp
+    $sql3 = "UPDATE donors SET last_donation_date = NOW() WHERE donor_id = :donor_id";
+    $stmt3 = $pdo->prepare($sql3);
+    $stmt3->bindParam(':donor_id', $input['donor_id']);
+    $stmt3->execute();
+
+    // Schedule a background PHP process to set status back to 'available' after 1 minute
+    $donorIdShell = escapeshellarg($input['donor_id']);
+    $phpPath = PHP_BINARY;
+    $script = __DIR__ . '/update_donor_status_available.php';
     
+    if (strtoupper(PHP_OS_FAMILY) === 'WINDOWS') {
+        // Windows: use ping for delay and start for background
+        $fullCmd = 'start /B cmd /C "ping 127.0.0.1 -n 301 > nul && ' . $phpPath . ' ' . $script . ' ' . $donorIdShell . ' > nul 2>&1"';
+        pclose(popen($fullCmd, 'r'));
+    } else {
+        // Linux/Unix: use sleep for delay and & for background
+        $cmd = "$phpPath $script $donorIdShell > /dev/null 2>&1 &";
+        $fullCmd = "(sleep 120; $cmd) > /dev/null 2>&1 &";
+        exec($fullCmd);
+    }
+
     // Return success response
     echo json_encode([
         'success' => true,

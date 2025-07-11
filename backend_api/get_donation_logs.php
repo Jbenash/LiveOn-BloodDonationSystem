@@ -35,9 +35,11 @@ class DonationLogsHandler
 
         try {
             // Prepare SQL statement to get donation logs
-            $sql = "SELECT donation_id, donor_id, blood_type, units_donated, donation_date 
-                    FROM donations 
-                    ORDER BY donation_date DESC";
+            $sql = "SELECT d.donation_id, d.donor_id, u.name AS full_name, d.blood_type, d.units_donated, d.donation_date
+                    FROM donations d
+                    INNER JOIN donors dn ON d.donor_id = dn.donor_id
+                    INNER JOIN users u ON dn.user_id = u.user_id
+                    ORDER BY d.donation_date DESC";
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute();
