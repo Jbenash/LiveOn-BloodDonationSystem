@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 04, 2025 at 10:27 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- Generation Time: Jul 12, 2025 at 03:58 PM
+-- Server version: 10.4.28-MariaDB
+-- PHP Version: 8.2.4
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -50,7 +50,7 @@ INSERT INTO `admin_logs` (`log_id`, `admin_id`, `action`, `target_table`, `targe
 --
 
 CREATE TABLE `blood_inventory` (
-  `inventory_id` int(11) NOT NULL,
+  `blood_id` varchar(10) NOT NULL,
   `hospital_id` varchar(10) DEFAULT NULL,
   `blood_type` enum('A+','A-','B+','B-','AB+','AB-','O+','O-') NOT NULL,
   `units_available` int(11) DEFAULT 0,
@@ -61,10 +61,10 @@ CREATE TABLE `blood_inventory` (
 -- Dumping data for table `blood_inventory`
 --
 
-INSERT INTO `blood_inventory` (`inventory_id`, `hospital_id`, `blood_type`, `units_available`, `last_updated`) VALUES
-(7, 'HS001', 'A+', 10, '2025-07-04 08:13:16'),
-(8, 'HS001', 'O+', 12, '2025-07-04 08:13:16'),
-(9, 'HS001', 'B+', 8, '2025-07-04 08:13:16');
+INSERT INTO `blood_inventory` (`blood_id`, `hospital_id`, `blood_type`, `units_available`, `last_updated`) VALUES
+('4', 'HS001', 'A+', 20, '2025-07-03 18:21:09'),
+('5', 'HS001', 'O+', 15, '2025-07-03 18:21:09'),
+('6', 'HS002', 'B-', 10, '2025-07-03 18:21:09');
 
 -- --------------------------------------------------------
 
@@ -81,6 +81,42 @@ CREATE TABLE `donations` (
   `units_donated` int(11) DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `donations`
+--
+
+INSERT INTO `donations` (`donation_id`, `donor_id`, `hospital_id`, `blood_type`, `donation_date`, `units_donated`) VALUES
+(11, 'DN686d589f', 'HS002', 'A+', NULL, 2),
+(38, 'DN68703e38', 'HS002', 'A+', '2025-07-10', 44),
+(39, 'DN686d589f', 'HS002', 'A+', '2025-07-11', 55),
+(40, 'DN68711744', 'HS002', 'A+', '2025-07-11', 400);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `donation_requests`
+--
+
+CREATE TABLE `donation_requests` (
+  `request_id` varchar(10) NOT NULL,
+  `hospital_id` varchar(10) DEFAULT NULL,
+  `blood_type` enum('A+','A-','B+','B-','AB+','AB-','O+','O-') DEFAULT NULL,
+  `reason` text DEFAULT NULL,
+  `status` enum('pending','fulfilled','cancelled') DEFAULT 'pending',
+  `request_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `donor_id` varchar(10) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `donation_requests`
+--
+
+INSERT INTO `donation_requests` (`request_id`, `hospital_id`, `blood_type`, `reason`, `status`, `request_date`, `donor_id`) VALUES
+('DR001', 'HS001', 'O+', 'Accident emergency case requiring urgent blood', 'pending', '2025-07-03 18:34:34', NULL),
+('DR002', 'HS002', 'A-', 'Surgery scheduled for tomorrow', 'pending', '2025-07-03 18:34:34', NULL),
+('DR003', 'HS001', 'B+', 'Patient with anemia requires transfusion', 'fulfilled', '2025-07-02 18:34:34', NULL),
+('DR004', 'HS002', 'AB-', 'Rare blood needed for child in ICU', 'pending', '2025-07-03 18:34:34', NULL);
+
 -- --------------------------------------------------------
 
 --
@@ -91,23 +127,29 @@ CREATE TABLE `donors` (
   `donor_id` varchar(10) NOT NULL,
   `user_id` varchar(10) DEFAULT NULL,
   `dob` date DEFAULT NULL,
-  `blood_type` enum('A+','A-','B+','B-','AB+','AB-','O+','O-') NOT NULL,
+  `blood_type` varchar(5) DEFAULT NULL,
   `address` text DEFAULT NULL,
   `city` varchar(100) DEFAULT NULL,
   `last_donation_date` date DEFAULT NULL,
   `donation_eligibility` date DEFAULT NULL,
   `lives_saved` int(11) DEFAULT 0,
-  `status` enum('pending','approved') DEFAULT 'pending'
+  `status` enum('available','not available') DEFAULT 'not available',
+  `donor_image` longblob DEFAULT NULL,
+  `donor_card` longblob DEFAULT NULL,
+  `preferred_hospital_id` varchar(10) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `donors`
 --
 
-INSERT INTO `donors` (`donor_id`, `user_id`, `dob`, `blood_type`, `address`, `city`, `last_donation_date`, `donation_eligibility`, `lives_saved`, `status`) VALUES
-('DN001', 'US001', '1990-05-10', 'O+', '123 Main Street', 'Colombo', '2025-01-01', '2025-07-01', 3, 'pending'),
-('DN68669c89', 'US68669c89', '2002-02-22', 'A+', 'Vavuniya', 'Vavuniya', NULL, NULL, 0, 'pending'),
-('DN6866a3e1', 'US6866a3e1', '2002-02-22', 'A+', 'Vavuniya', 'Vavuniya', NULL, NULL, 0, 'pending');
+INSERT INTO `donors` (`donor_id`, `user_id`, `dob`, `blood_type`, `address`, `city`, `last_donation_date`, `donation_eligibility`, `lives_saved`, `status`, `donor_image`, `donor_card`, `preferred_hospital_id`) VALUES
+('DN001', 'US001', '1990-05-10', 'O+', '123 Main Street', 'Colombo', '2025-01-01', '2025-07-01', 3, 'available', NULL, NULL, NULL),
+('DN686a6923', 'US686a6923', '2025-07-18', 'B-', 'Trinco', 'trinco', '2025-07-10', NULL, 0, 'not available', NULL, NULL, NULL),
+('DN686d589f', 'US686d589f', '2025-07-18', 'B-', 'vavuniya', 'jaffna', '2025-07-11', NULL, 0, 'available', NULL, 0x433a5c78616d70705c6874646f63735c4c6976656f6e76325c6261636b656e645f6170692f75706c6f6164732f646f6e6f725f63617264732f646f6e6f725f636172645f444e36383664353839665f323032352d30372d31325f30392d33322d33342e706466, NULL),
+('DN68703e38', 'US68703e38', '2025-07-17', 'A+', 'kopay', 'kopay', '2025-07-11', NULL, 0, 'not available', NULL, NULL, NULL),
+('DN68711744', 'US68711744', '2025-07-17', 'A+', 'neliyady', 'neliyady', '2025-07-11', NULL, 0, 'not available', NULL, NULL, NULL),
+('DN68722f60', 'US68722f60', '2025-07-25', 'AB-', 'vaddukoddai', 'vaddukoddai', NULL, NULL, 0, 'available', NULL, 0x433a5c78616d70705c6874646f63735c4c6976656f6e76325c6261636b656e645f6170692f75706c6f6164732f646f6e6f725f63617264732f646f6e6f725f636172645f444e36383732326636305f323032352d30372d31325f31312d35312d31302e706466, NULL);
 
 -- --------------------------------------------------------
 
@@ -142,7 +184,7 @@ CREATE TABLE `emergency_requests` (
   `hospital_id` varchar(10) DEFAULT NULL,
   `blood_type` enum('A+','A-','B+','B-','AB+','AB-','O+','O-') DEFAULT NULL,
   `required_units` int(11) DEFAULT NULL,
-  `status` enum('pending','fulfilled') DEFAULT 'pending',
+  `status` enum('critical','normal') DEFAULT 'normal',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -151,7 +193,21 @@ CREATE TABLE `emergency_requests` (
 --
 
 INSERT INTO `emergency_requests` (`emergency_id`, `hospital_id`, `blood_type`, `required_units`, `status`, `created_at`) VALUES
-(2, 'HS001', 'O+', 5, 'pending', '2025-07-04 08:16:31');
+(1, 'HS001', 'O+', 5, '', '2025-07-03 18:36:20');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `feedback`
+--
+
+CREATE TABLE `feedback` (
+  `feedback_id` varchar(10) NOT NULL,
+  `user_id` varchar(10) DEFAULT NULL,
+  `role` enum('donor','hospital','mro','admin') NOT NULL,
+  `message` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -173,7 +229,35 @@ CREATE TABLE `hospitals` (
 --
 
 INSERT INTO `hospitals` (`hospital_id`, `name`, `location`, `contact_email`, `contact_phone`, `user_id`) VALUES
-('HS001', 'National Hospital', 'Colombo', 'hospital@example.com', '0112345678', 'US003');
+('HS001', 'National Hospital', 'Colombo', 'contact@nhsl.lk', '0112345678', 'US003'),
+('HS002', 'Kandy General Hospital', 'Kandy', 'info@kgh.lk', '0812345678', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `medical_verifications`
+--
+
+CREATE TABLE `medical_verifications` (
+  `verification_id` varchar(10) NOT NULL,
+  `donor_id` varchar(10) DEFAULT NULL,
+  `age` int(11) DEFAULT NULL,
+  `mro_id` varchar(10) DEFAULT NULL,
+  `height_cm` decimal(5,2) DEFAULT NULL,
+  `weight_kg` decimal(5,2) DEFAULT NULL,
+  `medical_history` text DEFAULT NULL,
+  `doctor_notes` text DEFAULT NULL,
+  `verification_date` timestamp NOT NULL DEFAULT current_timestamp()
+) ;
+
+--
+-- Dumping data for table `medical_verifications`
+--
+
+INSERT INTO `medical_verifications` (`verification_id`, `donor_id`, `age`, `mro_id`, `height_cm`, `weight_kg`, `medical_history`, `doctor_notes`, `verification_date`) VALUES
+('MV00e915eb', 'DN68722f60', 24, 'MRO001', 170.00, 70.00, 'good', 'good', '2025-07-11 18:30:00'),
+('MV7a905803', 'DN68711744', NULL, 'MRO001', 170.00, 70.00, 'good', 'good', '2025-07-10 18:30:00'),
+('MVf91ba910', 'DN686d589f', NULL, 'MRO001', 170.00, 70.00, 'good', 'good', '2025-07-11 18:30:00');
 
 -- --------------------------------------------------------
 
@@ -241,8 +325,12 @@ CREATE TABLE `otp_verification` (
 --
 
 INSERT INTO `otp_verification` (`otp_id`, `user_id`, `otp_code`, `expires_at`, `verified`, `created_at`, `verified_at`) VALUES
-(4, 'US68669c89', '307665', '2025-07-03 17:16:49', 127, '2025-07-03 15:06:49', NULL),
-(5, 'US6866a3e1', '342208', '2025-07-03 17:48:09', 127, '2025-07-03 15:38:09', NULL);
+(10, 'US686a6923', '980635', '2025-07-06 14:26:35', 0, '2025-07-06 12:16:35', '2025-07-06 17:46:57'),
+(20, 'US686ab46f', '805702', '2025-07-06 19:47:51', 0, '2025-07-06 17:37:51', '2025-07-06 23:08:14'),
+(21, 'US686d589f', '581049', '2025-07-08 19:52:55', 0, '2025-07-08 17:42:55', '2025-07-08 23:13:19'),
+(24, 'US68703e38', '132420', '2025-07-11 00:37:04', 1, '2025-07-10 22:27:04', '2025-07-11 03:57:28'),
+(25, 'US68711744', '538653', '2025-07-11 16:03:08', 1, '2025-07-11 13:53:08', '2025-07-11 19:24:07'),
+(27, 'US68722f60', '339019', '2025-07-12 11:58:16', 1, '2025-07-12 09:48:16', '2025-07-12 15:18:33');
 
 -- --------------------------------------------------------
 
@@ -278,7 +366,7 @@ CREATE TABLE `users` (
   `phone` varchar(20) DEFAULT NULL,
   `password_hash` varchar(255) NOT NULL,
   `role` enum('donor','mro','hospital','admin') NOT NULL,
-  `status` enum('pending','active','inactive') DEFAULT 'pending'
+  `status` enum('active','inactive') DEFAULT 'inactive'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -286,14 +374,18 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`user_id`, `name`, `email`, `phone`, `password_hash`, `role`, `status`) VALUES
-('US001', 'Donor One', 'donor1@example.com', '0771234567', '$2y$10$JRi8cOu0JhEk5DRcwOz.4.m3dIWAgxcbxqeb8Ast9/nqlYvrerbCW', 'donor', 'pending'),
-('US002', 'MRO Officer', 'mro1@example.com', '0778765432', '$2y$10$JRi8cOu0JhEk5DRcwOz.4.m3dIWAgxcbxqeb8Ast9/nqlYvrerbCW', 'mro', 'pending'),
-('US003', 'Hospital Staff', 'hospital@example.com', '0779999999', '$2y$10$STWatxDko2klw111CgtlSuRAfj0b8nDakibhHQ145DhjwJAJHWFte', 'hospital', 'active'),
+('US001', 'Donor One', 'donor1@example.com', '0771234567', '$2y$10$JRi8cOu0JhEk5DRcwOz.4.m3dIWAgxcbxqeb8Ast9/nqlYvrerbCW', 'donor', 'inactive'),
+('US002', 'MRO Officer', 'mro1@example.com', '0778765432', '$2y$10$JRi8cOu0JhEk5DRcwOz.4.m3dIWAgxcbxqeb8Ast9/nqlYvrerbCW', 'mro', 'active'),
+('US003', 'National Hospital', 'hospital@example.com', '0779999999', '$2y$10$JRi8cOu0JhEk5DRcwOz.4.m3dIWAgxcbxqeb8Ast9/nqlYvrerbCW', 'hospital', 'active'),
 ('US004', 'Admin User', 'admin@liveon.lk', '0770000000', '$2y$10$JRi8cOu0JhEk5DRcwOz.4.m3dIWAgxcbxqeb8Ast9/nqlYvrerbCW', 'admin', 'active'),
 ('US005', 'Admin User', 'admin123@liveon.lk', '0770000000', '$2y$10$uGnE0dhpLSE7FqfnhdNZPuWiXdKReWApkd90S1DM54qWwz2kLiapGi', 'admin', 'active'),
 ('US006', 'Admin User', 'admin234@liveon.lk', '0770000000', '$2y$10$JRi8cOu0JhEk5DRcwOz.4.m3dIWAgxcbxqeb8Ast9/nqlYvrerbCW', 'admin', 'active'),
-('US68669c89', 'Ben Asher', 'mbenash961030@gmail.com', 'dfsdf', '$2y$10$5D.z48ocUGFZm4W9cgFsj.JQTJN.SM6u6XlS74b96eMB4J8qbCUDa', 'donor', 'pending'),
-('US6866a3e1', 'Ben Asher', 'jbenash0729@gmail.com', '4546547', '$2y$10$mePS9scLI0wj5m9k1pddSOstH1i7vaHV3j7kzYfcS.4smc1kRaZAO', 'donor', 'pending');
+('US686a6923', 'nilaxsan', 'nilaksh2001@gmail.com', '0776104689', '$2y$10$BSRlvXgaK74oq2Mvn72E5ODQHWsOv1l4rLPJIb3yEx2tR6iq4eINm', 'donor', 'inactive'),
+('US686ab46f', 'jayakulan', 'cst22109@std.uwu.ac.lk', '0776104689', '$2y$10$3HgtG7oYkzuhtyTzn2UTk.WZTJSNREdRTbP4wERx8Rd1AcXIj7c3K', 'donor', 'active'),
+('US686d589f', 'Ben', 'cst22075@std.uwu.ac.lk', '0776104689', '$2y$10$1NObhIKpex8XCVqeCa2y4.4bogtGHmJkCa7.Qp/wnaJ/g5ssm7dMS', 'donor', 'active'),
+('US68703e38', 'Vishnu', 'cst22098@std.uwu.ac.lk', '0778799422', '$2y$10$aIdhDU/VwXNMSvOTSjiAH./iXJwdt24d1zroKhBomPSZqUZoHaQji', 'donor', 'active'),
+('US68711744', 'abinath', 'abinath157@gmail.com', '0741814245', '$2y$10$md0ER0hkvd1V9bZ6bHdC4.p6iqiNnEGOLQECmY6rrAoK515L5xkVa', 'donor', 'active'),
+('US68722f60', 'lavakeesasn', 'lavakeesh@gmail.com', '0776104689', '$2y$10$zXmnlgbbziLvUVVZYaNVFuv38BJOhxsqeCgQe54s3qQ.m1eEo0NBu', 'donor', 'active');
 
 --
 -- Indexes for dumped tables
@@ -310,7 +402,7 @@ ALTER TABLE `admin_logs`
 -- Indexes for table `blood_inventory`
 --
 ALTER TABLE `blood_inventory`
-  ADD PRIMARY KEY (`inventory_id`),
+  ADD PRIMARY KEY (`blood_id`),
   ADD KEY `hospital_id` (`hospital_id`);
 
 --
@@ -322,11 +414,20 @@ ALTER TABLE `donations`
   ADD KEY `hospital_id` (`hospital_id`);
 
 --
+-- Indexes for table `donation_requests`
+--
+ALTER TABLE `donation_requests`
+  ADD PRIMARY KEY (`request_id`),
+  ADD KEY `hospital_id` (`hospital_id`),
+  ADD KEY `fk_donation_request_donor` (`donor_id`);
+
+--
 -- Indexes for table `donors`
 --
 ALTER TABLE `donors`
   ADD PRIMARY KEY (`donor_id`),
-  ADD KEY `fk_donors_user` (`user_id`);
+  ADD KEY `fk_donors_user` (`user_id`),
+  ADD KEY `fk_preferred_hospital` (`preferred_hospital_id`);
 
 --
 -- Indexes for table `educational_content`
@@ -342,11 +443,26 @@ ALTER TABLE `emergency_requests`
   ADD KEY `hospital_id` (`hospital_id`);
 
 --
+-- Indexes for table `feedback`
+--
+ALTER TABLE `feedback`
+  ADD PRIMARY KEY (`feedback_id`),
+  ADD KEY `fk_feedback_user` (`user_id`);
+
+--
 -- Indexes for table `hospitals`
 --
 ALTER TABLE `hospitals`
   ADD PRIMARY KEY (`hospital_id`),
-  ADD KEY `fk_hospital_user` (`user_id`);
+  ADD KEY `fk_hospitals_user` (`user_id`);
+
+--
+-- Indexes for table `medical_verifications`
+--
+ALTER TABLE `medical_verifications`
+  ADD PRIMARY KEY (`verification_id`),
+  ADD KEY `donor_id` (`donor_id`),
+  ADD KEY `mro_id` (`mro_id`);
 
 --
 -- Indexes for table `mro_officers`
@@ -395,16 +511,10 @@ ALTER TABLE `admin_logs`
   MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
--- AUTO_INCREMENT for table `blood_inventory`
---
-ALTER TABLE `blood_inventory`
-  MODIFY `inventory_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
-
---
 -- AUTO_INCREMENT for table `donations`
 --
 ALTER TABLE `donations`
-  MODIFY `donation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `donation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT for table `educational_content`
@@ -416,7 +526,7 @@ ALTER TABLE `educational_content`
 -- AUTO_INCREMENT for table `emergency_requests`
 --
 ALTER TABLE `emergency_requests`
-  MODIFY `emergency_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `emergency_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `notifications`
@@ -428,7 +538,7 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT for table `otp_verification`
 --
 ALTER TABLE `otp_verification`
-  MODIFY `otp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `otp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT for table `rewards`
@@ -460,10 +570,18 @@ ALTER TABLE `donations`
   ADD CONSTRAINT `donations_ibfk_2` FOREIGN KEY (`hospital_id`) REFERENCES `hospitals` (`hospital_id`);
 
 --
+-- Constraints for table `donation_requests`
+--
+ALTER TABLE `donation_requests`
+  ADD CONSTRAINT `donation_requests_ibfk_1` FOREIGN KEY (`hospital_id`) REFERENCES `hospitals` (`hospital_id`),
+  ADD CONSTRAINT `fk_donation_request_donor` FOREIGN KEY (`donor_id`) REFERENCES `donors` (`donor_id`) ON DELETE SET NULL;
+
+--
 -- Constraints for table `donors`
 --
 ALTER TABLE `donors`
-  ADD CONSTRAINT `fk_donors_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_donors_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_preferred_hospital` FOREIGN KEY (`preferred_hospital_id`) REFERENCES `hospitals` (`hospital_id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `emergency_requests`
@@ -472,10 +590,23 @@ ALTER TABLE `emergency_requests`
   ADD CONSTRAINT `emergency_requests_ibfk_1` FOREIGN KEY (`hospital_id`) REFERENCES `hospitals` (`hospital_id`);
 
 --
+-- Constraints for table `feedback`
+--
+ALTER TABLE `feedback`
+  ADD CONSTRAINT `fk_feedback_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `hospitals`
 --
 ALTER TABLE `hospitals`
-  ADD CONSTRAINT `fk_hospital_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_hospitals_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `medical_verifications`
+--
+ALTER TABLE `medical_verifications`
+  ADD CONSTRAINT `medical_verifications_ibfk_1` FOREIGN KEY (`donor_id`) REFERENCES `donors` (`donor_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `medical_verifications_ibfk_2` FOREIGN KEY (`mro_id`) REFERENCES `mro_officers` (`mro_id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `mro_officers`

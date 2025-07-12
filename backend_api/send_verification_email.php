@@ -61,135 +61,37 @@ try {
     $mail->setFrom('mbenash961030@gmail.com', 'LiveOn Team');
     $mail->addAddress($input['email'], $input['full_name']);
 
-    // Generate PDF donor card using Dompdf
-    $html = '
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-        <style>
-            body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
-            .card {
-                width: 85.6mm; /* Credit card width */
-                height: 54mm; /* Credit card height */
-                border: 4px solid #dc3545;
-                border-radius: 15px;
-                background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-                position: relative;
-                overflow: hidden;
-                box-shadow: 0 8px 16px rgba(220, 53, 69, 0.3);
-            }
-            .header {
-                background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-                color: white;
-                padding: 15px;
-                text-align: center;
-                font-size: 22px;
-                font-weight: bold;
-                border-radius: 11px 11px 0 0;
-                position: relative;
-            }
-            .logo {
-                position: absolute;
-                right: 15px;
-                top: 50%;
-                transform: translateY(-50%);
-                font-size: 45px;
-                color: #dc3545;
-                opacity: 0.3;
-            }
-            .logo:before {
-                content: "";
-                position: absolute;
-                bottom: -8px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 0;
-                height: 0;
-                border-left: 6px solid transparent;
-                border-right: 6px solid transparent;
-                border-top: 12px solid #dc3545;
-            }
-            .content {
-                padding: 20px;
-                font-size: 16px;
-            }
-            .info-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 12px;
-                border-bottom: 2px solid #f0f0f0;
-                padding-bottom: 8px;
-            }
-            .label {
-                font-weight: bold;
-                color: #333;
-                min-width: 100px;
-                font-size: 16px;
-            }
-            .value {
-                color: #dc3545;
-                text-align: right;
-                flex: 1;
-                font-weight: bold;
-                font-size: 18px;
-            }
-            .footer {
-                position: absolute;
-                bottom: 10px;
-                right: 15px;
-                font-size: 10px;
-                color: #666;
-                font-weight: bold;
-            }
-            .card-number {
-                position: absolute;
-                bottom: 35px;
-                left: 20px;
-                font-size: 14px;
-                color: #666;
-                font-weight: bold;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <div class="header">
-                DONOR CARD
-                <div class="logo"><i class="fas fa-tint"></i></div>
-            </div>
-            <div class="content">
-                <div class="info-row">
-                    <span class="label">Donor ID:</span>
-                    <span class="value">' . htmlspecialchars($input['donor_id']) . '</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Name:</span>
-                    <span class="value">' . htmlspecialchars($input['full_name']) . '</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Blood Group:</span>
-                    <span class="value">' . htmlspecialchars($input['blood_group']) . '</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Issued:</span>
-                    <span class="value">' . date('d/m/Y') . '</span>
-                </div>
-            </div>
-            <div class="card-number">CARD NO: ' . strtoupper(substr($input['donor_id'], 0, 8)) . '</div>
-            <div class="footer">
-                LiveOn Blood Donation System
-            </div>
-        </div>
-    </body>
-    </html>
-    ';
-    $dompdf = new \Dompdf\Dompdf();
-    $dompdf->loadHtml($html);
-    $dompdf->setPaper('A5', 'landscape');
-    $dompdf->render();
-    $pdfOutput = $dompdf->output();
-    $mail->addStringAttachment($pdfOutput, 'DonorCard.pdf');
+    // Fetch donor_card PDF file path from donors table
+    $servername = "localhost";
+    $username = "root";
+    $password = "";
+    $dbname = "liveon_db";
+
+    // Fetch donor_card PDF file path from donors table
+    $conn = new mysqli($servername, $username, $password, $dbname);
+    if ($conn->connect_error) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Database connection error: ' . $conn->connect_error]);
+        exit();
+    }
+    $donor_id = $input['donor_id'];
+    $sql = "SELECT donor_card FROM donors WHERE donor_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param('s', $donor_id);
+    $stmt->execute();
+    $stmt->bind_result($donor_card_path);
+    $stmt->fetch();
+    $stmt->close();
+    $conn->close();
+
+    if (!$donor_card_path || !file_exists($donor_card_path)) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Donor card PDF not found for donor_id: ' . $donor_id]);
+        exit();
+    }
+
+    // Attach the existing donor card PDF file
+    $mail->addAttachment($donor_card_path, 'DonorCard.pdf');
 
     $mail->isHTML(true);
     $mail->Subject = 'Your Donor Verification Details';
