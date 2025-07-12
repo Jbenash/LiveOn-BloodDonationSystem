@@ -305,6 +305,30 @@
   background: #1742a2;
 }
 
+.dashboard-btn.disabled {
+  background: #f3f4f6;
+  /* much lighter gray */
+  color: #b0b4ba;
+  /* very light text */
+  border: none;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 1;
+  pointer-events: none;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: none;
+  outline: none;
+  filter: grayscale(0.7);
+}
+
+.dashboard-btn.disabled:hover {
+  background: #f3f4f6;
+  color: #b0b4ba;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 .emergency-warning {
   background: #fef3c7;
   color: #b45309;
@@ -674,4 +698,54 @@
   gap: 1.2rem;
   margin-top: 1.2rem;
   justify-content: flex-end;
+}
+
+.donor-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  margin: 1.5rem 0;
+}
+
+.profile-summary-card {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border-radius: 18px;
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.07);
+  padding: 1.2rem 2rem;
+  gap: 1.5rem;
+  min-width: 320px;
+}
+
+.profile-summary-card .profile-avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #3b82f6;
+  margin-right: 20px;
+}
+
+.profile-summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 1.13rem;
+  color: #1e293b;
+}
+
+.profile-summary-text .label {
+  color: #2563eb;
+  font-weight: 600;
+  margin-right: 0.5em;
+}
+
+.modal-content.donor-popup h3 {
+  color: #2563eb;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 1.2rem;
 }
