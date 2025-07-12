@@ -45,13 +45,20 @@ class DonorDashboard
         $points = $totalDonations * 100;
         $rank = $totalDonations > 10 ? 'Gold Donor' : ($totalDonations >= 5 ? 'Silver Donor' : 'Bronze Donor');
 
+        // Fetch age from the latest medical_verifications record for this donor
+        $stmt = $this->pdo->prepare("SELECT age FROM medical_verifications WHERE donor_id = ? ORDER BY verification_date DESC LIMIT 1");
+        $stmt->execute([$donor['donor_id']]);
+        $med = $stmt->fetch(PDO::FETCH_ASSOC);
+        $age = $med ? $med['age'] : null;
+
         $response = [
+            'donorId' => $donor['donor_id'],
             'name' => $donor['name'],
             'bloodType' => $donor['blood_type'],
-            'age' => date_diff(date_create($donor['dob']), date_create('today'))->y,
+            'age' => $age,
             'location' => $donor['city'],
             'email' => $donor['email'],
-            'profilePic' => 'https://randomuser.me/api/portraits/men/1.jpg',
+            'profilePic' => !empty($donor['donor_image']) ? ('http://localhost/liveonv2/backend_api/' . $donor['donor_image']) : 'https://randomuser.me/api/portraits/men/1.jpg',
             'totalDonations' => $totalDonations,
             'lastDonation' => $lastDonation,
             'nextEligible' => $nextEligible,

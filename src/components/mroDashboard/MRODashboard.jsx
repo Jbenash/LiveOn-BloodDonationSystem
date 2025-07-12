@@ -12,7 +12,8 @@ const MRODashboard = () => {
     weight: '',
     medicalHistory: '',
     doctorsNote: '',
-    verificationDate: new Date().toISOString().split('T')[0] // Today's date as default
+    verificationDate: new Date().toISOString().split('T')[0], // Today's date as default
+    bloodGroup: ''
   });
   const [donorRequests, setDonorRequests] = useState([]);
   const [donorRegistrations, setDonorRegistrations] = useState([]);
@@ -128,7 +129,9 @@ const MRODashboard = () => {
       weight_kg: formData.weight,
       medical_history: formData.medicalHistory,
       doctor_notes: formData.doctorsNote,
-      verification_date: formData.verificationDate
+      verification_date: formData.verificationDate,
+      blood_group: formData.bloodGroup,
+      full_name: popupDonor.fullName || popupDonor.donor_fullname || ''
     };
     console.log('payload:', payload); // Debug: check the payload being sent
     try {
@@ -167,7 +170,7 @@ const MRODashboard = () => {
         setTimeout(() => {
           setShowPopup(false);
           setPopupDonor(null);
-          setFormData({ height: '', weight: '', medicalHistory: '', doctorsNote: '', verificationDate: new Date().toISOString().split('T')[0] });
+          setFormData({ height: '', weight: '', medicalHistory: '', doctorsNote: '', verificationDate: new Date().toISOString().split('T')[0], bloodGroup: '' });
           setSubmitStatus("");
         }, 1500);
       } else {
@@ -623,6 +626,20 @@ const MRODashboard = () => {
                   <label>
                     Verification Date:
                     <input type="date" name="verificationDate" value={formData.verificationDate} onChange={handleInputChange} />
+                  </label>
+                  <label>
+                    Blood Group:
+                    <select name="bloodGroup" value={formData.bloodGroup} onChange={handleInputChange} required>
+                      <option value="">Select Blood Group</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
                   </label>
                   <button type="button" className="btn-verify" style={{ marginTop: '12px' }} onClick={handleSubmitDonorDetails}>Submit</button>
                   {submitStatus && <div style={{ marginTop: '10px', color: submitStatus.startsWith('Donor details saved') ? 'green' : 'red' }}>{submitStatus}</div>}

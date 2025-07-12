@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/vendor/autoload.php';
+use Dompdf\Dompdf;
+
 $allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origin, $allowedOrigins)) {
@@ -39,6 +42,7 @@ $weight_kg = $data['weight_kg'] ?? null;
 $medical_history = $data['medical_history'] ?? null;
 $doctor_notes = $data['doctor_notes'] ?? null;
 $verification_date = $data['verification_date'] ?? null;
+$blood_group = $data['blood_group'] ?? null;
 
 if (!$donor_id) {
     http_response_code(400);
@@ -101,17 +105,164 @@ try {
     }
     $stmt3->close();
 
-    // Update donors table status to 'available'
-    $sql4 = "UPDATE donors SET status = 'available' WHERE donor_id = ?";
+    // Update donors table status to 'available' and blood_type
+    $sql4 = "UPDATE donors SET status = 'available', blood_type = ? WHERE donor_id = ?";
     $stmt4 = $conn->prepare($sql4);
     if (!$stmt4) {
         throw new Exception("Prepare failed for donor update: " . $conn->error);
     }
-    $stmt4->bind_param('s', $donor_id);
+    $stmt4->bind_param('ss', $blood_group, $donor_id);
     if (!$stmt4->execute()) {
         throw new Exception("Donor update failed: " . $stmt4->error);
     }
     $stmt4->close();
+
+    // Generate donor card PDF
+    $dompdf = new Dompdf();
+    $html = '<!DOCTYPE html>
+    <html>
+    <head>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+            }
+            .card {
+                width: 85.6mm; /* Credit card width */
+                height: 54mm;   /* Credit card height */
+                border: 4px solid #dc3545;
+                border-radius: 15px;
+                background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+                position: relative;
+                overflow: hidden;
+                box-shadow: 0 8px 16px rgba(220, 53, 69, 0.3);
+            }
+            .header {
+                background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+                color: white;
+                padding: 15px;
+                text-align: center;
+                font-size: 22px;
+                font-weight: bold;
+                border-radius: 11px 11px 0 0;
+                position: relative;
+            }
+            .logo {
+                position: absolute;
+                right: 15px;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 45px;
+                color: #dc3545;
+                opacity: 0.3;
+            }
+            .content {
+                padding: 20px;
+                font-size: 16px;
+            }
+            .info-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 12px;
+                border-bottom: 2px solid #f0f0f0;
+                padding-bottom: 8px;
+            }
+            .label {
+                font-weight: bold;
+                color: #333;
+                min-width: 100px;
+                font-size: 16px;
+            }
+            .value {
+                color: #dc3545;
+                text-align: right;
+                flex: 1;
+                font-weight: bold;
+                font-size: 18px;
+            }
+            .footer {
+                position: absolute;
+                bottom: 10px;
+                right: 15px;
+                font-size: 10px;
+                color: #666;
+                font-weight: bold;
+            }
+            .card-number {
+                position: absolute;
+                bottom: 35px;
+                left: 20px;
+                font-size: 14px;
+                color: #666;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+    <div class="card">
+        <div class="header">
+            DONOR CARD
+            <div class="logo"><i class="fas fa-tint"></i></div>
+        </div>
+        <div class="content">
+            <div class="info-row">
+                <span class="label">Donor ID:</span>
+                <span class="value">' . htmlspecialchars($donor_id) . '</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Name:</span>
+                <span class="value">' . htmlspecialchars($data['full_name'] ?? '') . '</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Blood Group:</span>
+                <span class="value">' . htmlspecialchars($blood_group) . '</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Issued:</span>
+                <span class="value">' . date('d/m/Y') . '</span>
+            </div>
+        </div>
+        <div class="card-number">CARD NO: ' . strtoupper(substr($donor_id, 0, 8)) . '</div>
+        <div class="footer">
+            LiveOn Blood Donation System
+        </div>
+    </div>
+    </body>
+    </html>';
+    
+    $dompdf->loadHtml($html);
+    $dompdf->setPaper('A5', 'landscape');
+    $dompdf->render();
+    $pdfOutput = $dompdf->output();
+
+    // Create uploads directory if it doesn't exist
+    $uploadDir = __DIR__ . '/uploads/donor_cards/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+    }
+
+    // Generate unique filename
+    $filename = 'donor_card_' . $donor_id . '_' . date('Y-m-d_H-i-s') . '.pdf';
+    $filepath = $uploadDir . $filename;
+
+    // Save PDF as file
+    if (file_put_contents($filepath, $pdfOutput) === false) {
+        throw new Exception("Failed to save PDF file");
+    }
+
+    // Save PDF file path to donors table
+    $sql5 = "UPDATE donors SET donor_card = ? WHERE donor_id = ?";
+    $stmt5 = $conn->prepare($sql5);
+    if (!$stmt5) {
+        throw new Exception("Prepare failed for PDF update: " . $conn->error);
+    }
+    $stmt5->bind_param('ss', $filepath, $donor_id);
+    if (!$stmt5->execute()) {
+        throw new Exception("PDF update failed: " . $stmt5->error);
+    }
+    $stmt5->close();
 
     // Commit transaction
     $conn->commit();
