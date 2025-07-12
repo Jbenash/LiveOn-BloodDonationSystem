@@ -21,6 +21,8 @@ const HospitalDashboard = () => {
   const [donationReason, setDonationReason] = useState('');
   const [donationError, setDonationError] = useState('');
   const [showDonationRequestSentPopup, setShowDonationRequestSentPopup] = useState(false);
+  const [selectedBloodType, setSelectedBloodType] = useState(null);
+  const [showDonorPopup, setShowDonorPopup] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,6 +80,9 @@ const HospitalDashboard = () => {
         navigate('/');
       });
   };
+
+  // Helper to filter donors by blood type
+  const donorsByBloodType = (type) => donors.filter(d => d.bloodType === type);
 
   if (!hospital) return <div>Loading dashboard...</div>;
 
@@ -142,6 +147,7 @@ const HospitalDashboard = () => {
                         <th>Blood Type</th>
                         <th>Contact Info</th>
                         <th>Location</th>
+                        <th>Preferred Hospital</th>
                         <th>Last Donation</th>
                         <th>Status</th>
                         <th>Action</th>
@@ -155,16 +161,18 @@ const HospitalDashboard = () => {
                             <td>{donor.bloodType}</td>
                             <td>{donor.contact}</td>
                             <td>{donor.location}</td>
+                            <td>{donor.preferredHospitalName || donor.preferredHospitalId || 'Not specified'}</td>
                             <td>{donor.lastDonation || 'N/A'}</td>
                             <td>
-                              <span className={`status ${donor.status === 'Available' ? 'available' : 'unavailable'}`}>
-                                {donor.status}
+                              <span className={`status ${donor.status === 'available' ? 'available' : 'unavailable'}`}>
+                                {donor.status === 'available' ? 'Available' : 'Not Available'}
                               </span>
                             </td>
                             <td>
                               <button
-                                className="dashboard-btn primary"
+                                className={`dashboard-btn ${donor.status === 'available' ? 'primary' : 'disabled'}`}
                                 onClick={() => handleRequest(donor.donor_id)}
+                                disabled={donor.status !== 'available'}
                               >
                                 Request Donation
                               </button>
@@ -172,7 +180,7 @@ const HospitalDashboard = () => {
                           </tr>
                         ))
                       ) : (
-                        <tr><td colSpan="7">No donors available</td></tr>
+                        <tr><td colSpan="8">No donors available</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -195,7 +203,14 @@ const HospitalDashboard = () => {
                             return (
                               <div className="inventory-item" key={idx}>
                                 <span className="blood-type">{item.type}</span>
-                                <div className="inventory-bar-container">
+                                <div
+                                  className={`inventory-bar-container clickable`}
+                                  onClick={() => {
+                                    setSelectedBloodType(item.type);
+                                    setShowDonorPopup(true);
+                                  }}
+                                  style={{ cursor: 'pointer' }}
+                                >
                                   <div className={`inventory-bar ${levelClass}`} style={{ width: `${width}%` }}>
                                     <span className="inventory-bar-label">{item.units}</span>
                                   </div>
@@ -257,10 +272,16 @@ const HospitalDashboard = () => {
                           <td>{donor.location}</td>
                           <td>{donor.lastDonation || 'N/A'}</td>
                           <td>
-                            <span className={`status ${donor.status === 'Available' ? 'available' : 'unavailable'}`}>{donor.status}</span>
+                            <span className={`status ${donor.status === 'available' ? 'available' : 'unavailable'}`}>
+                              {donor.status === 'available' ? 'Available' : 'Not Available'}
+                            </span>
                           </td>
                           <td>
-                            <button className="dashboard-btn primary" onClick={() => handleRequest(donor.donor_id)}>
+                            <button
+                              className={`dashboard-btn ${donor.status === 'available' ? 'primary' : 'disabled'}`}
+                              onClick={() => handleRequest(donor.donor_id)}
+                              disabled={donor.status !== 'available'}
+                            >
                               Request Donation
                             </button>
                           </td>
@@ -286,7 +307,14 @@ const HospitalDashboard = () => {
                       return (
                         <div className="inventory-item" key={idx}>
                           <span className="blood-type">{item.type}</span>
-                          <div className="inventory-bar-container">
+                          <div
+                            className="inventory-bar-container clickable"
+                            onClick={() => {
+                              setSelectedBloodType(item.type);
+                              setShowDonorPopup(true);
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          >
                             <div className={`inventory-bar ${levelClass}`} style={{ width: `${width}%` }}>
                               <span className="inventory-bar-label">{item.units}</span>
                             </div>
@@ -512,6 +540,40 @@ const HospitalDashboard = () => {
                 OK
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Donor Popup Modal */}
+      {showDonorPopup && (
+        <div className="modal-overlay" onClick={() => setShowDonorPopup(false)}>
+          <div className="modal-content donor-popup" onClick={e => e.stopPropagation()}>
+            <h3>Donors with Blood Type: {selectedBloodType}</h3>
+            <div className="donor-cards-list">
+              {donorsByBloodType(selectedBloodType).length > 0 ? (
+                donorsByBloodType(selectedBloodType).map((donor, idx) => (
+                  <div className="profile-summary-card" key={idx}>
+                    <img
+                      src={donor.profilePic || userImg}
+                      alt={donor.name}
+                      className="profile-avatar"
+                      style={{ width: 70, height: 70, borderRadius: '50%', objectFit: 'cover', border: '2px solid #3b82f6', marginRight: 20 }}
+                    />
+                    <div className="profile-summary-text">
+                      <div><span className="label">Donor ID:</span> {donor.donor_id || '-'}</div>
+                      <div><span className="label">Name:</span> {donor.name}</div>
+                      <div><span className="label">Blood Type:</span> {donor.bloodType}</div>
+                      <div><span className="label">Age:</span> {donor.age || '-'}</div>
+                      <div><span className="label">Location:</span> {donor.location}</div>
+                      <div><span className="label">Email:</span> {donor.email || '-'}</div>
+                      <div><span className="label">Phone:</span> {donor.contact || '-'}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ padding: '1.5rem' }}>No donors found for this blood type.</div>
+              )}
+            </div>
+            <button className="dashboard-btn primary" onClick={() => setShowDonorPopup(false)} style={{ marginTop: '1.5rem' }}>Close</button>
           </div>
         </div>
       )}
