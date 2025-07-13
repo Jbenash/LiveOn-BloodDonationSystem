@@ -43,6 +43,7 @@ $medical_history = $data['medical_history'] ?? null;
 $doctor_notes = $data['doctor_notes'] ?? null;
 $verification_date = $data['verification_date'] ?? null;
 $blood_group = $data['blood_group'] ?? null;
+$age = $data['age'] ?? null;
 
 if (!$donor_id) {
     http_response_code(400);
@@ -58,12 +59,12 @@ try {
     $verification_id = 'MV' . substr(uniqid(), -8);
 
     // Insert into medical_verifications table
-    $sql = "INSERT INTO medical_verifications (verification_id, donor_id, mro_id, height_cm, weight_kg, medical_history, doctor_notes, verification_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO medical_verifications (verification_id, donor_id, mro_id, height_cm, weight_kg, medical_history, doctor_notes, verification_date, age) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         throw new Exception("Prepare failed: " . $conn->error);
     }
-    $stmt->bind_param('ssssssss', $verification_id, $donor_id, $mro_id, $height_cm, $weight_kg, $medical_history, $doctor_notes, $verification_date);
+    $stmt->bind_param('sssssssss', $verification_id, $donor_id, $mro_id, $height_cm, $weight_kg, $medical_history, $doctor_notes, $verification_date, $age);
 
     if (!$stmt->execute()) {
         throw new Exception("Insert failed: " . $stmt->error);

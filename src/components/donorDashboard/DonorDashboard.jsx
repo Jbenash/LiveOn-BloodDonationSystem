@@ -76,7 +76,7 @@ const DonorDashboard = () => {
           <div className="dashboard-header-row">
             <span className="dashboard-title gradient-text">Donor Dashboard</span>
             <div className="dashboard-user-info">
-              <img src={user.profilePic} alt="Profile" className="dashboard-user-avatar" />
+              <img src={user.profilePic} alt="Profile" className="dashboard-user-avatar" style={{ cursor: 'pointer' }} onClick={() => setActiveSection('profile')} />
               <span className="dashboard-user-name">Welcome, {user.name}</span>
             </div>
           </div>
@@ -153,7 +153,13 @@ const DonorDashboard = () => {
                       <div className="stat-label">Total Donations</div>
                     </div>
                     <div className="donation-stat">
-                      <div className="stat-value stat-blue">{user.lastDonation}</div>
+                      <div className="stat-value stat-blue">{
+                        user.lastDonation ?
+                          (new Date(user.lastDonation).toString() !== 'Invalid Date'
+                            ? new Date(user.lastDonation).toLocaleDateString()
+                            : user.lastDonation.slice(0, 10))
+                          : 'N/A'
+                      }</div>
                       <div className="stat-label">Last Donation</div>
                     </div>
                     <div className="donation-stat">
@@ -184,27 +190,45 @@ const DonorDashboard = () => {
             </>
           )}
           {activeSection === 'donations' && (
-            <div className="dashboard-stats-grid">
-              {/* Donation Stats Only */}
-              <div className="dashboard-card glassy donation-stats animate-fadein" style={{ gridColumn: '1 / span 3' }}>
-                <div className="donation-stats-title gradient-text">Donation Statistics</div>
-                <div className="donation-stats-grid">
-                  <div className="donation-stat">
-                    <div className="stat-value stat-blue">{user.totalDonations}</div>
-                    <div className="stat-label">Total Donations</div>
+            <div style={{ maxWidth: 700, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
+              {/* Total Donations */}
+              <div className="dashboard-card glassy donation-stat-card animate-fadein" style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                <span style={{ background: '#dc3545', color: '#fff', borderRadius: '50%', width: 54, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, boxShadow: '0 2px 8px rgba(220,53,69,0.13)' }}>🩸</span>
+                <div>
+                  <div className="donation-stats-title gradient-text">Total Donations</div>
+                  <div className="stat-value stat-blue" style={{ fontSize: '2.2rem', marginTop: 10 }}>{user.totalDonations}</div>
+                </div>
+              </div>
+              {/* Last Donation */}
+              <div className="dashboard-card glassy donation-stat-card animate-fadein" style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                <span style={{ background: '#3b82f6', color: '#fff', borderRadius: '50%', width: 54, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, boxShadow: '0 2px 8px rgba(59,130,246,0.13)' }}>📅</span>
+                <div>
+                  <div className="donation-stats-title gradient-text">Last Donation</div>
+                  <div className="stat-value stat-blue" style={{ fontSize: '2.2rem', marginTop: 10 }}>
+                    {
+                      user.lastDonation ?
+                        (new Date(user.lastDonation).toString() !== 'Invalid Date'
+                          ? new Date(user.lastDonation).toLocaleDateString()
+                          : user.lastDonation.slice(0, 10))
+                        : 'N/A'
+                    }
                   </div>
-                  <div className="donation-stat">
-                    <div className="stat-value stat-blue">{user.lastDonation}</div>
-                    <div className="stat-label">Last Donation</div>
-                  </div>
-                  <div className="donation-stat">
-                    <div className="stat-value stat-blue">{user.nextEligible}</div>
-                    <div className="stat-label">Next Eligible</div>
-                  </div>
-                  <div className="donation-stat">
-                    <div className="stat-value stat-green">{user.livesSaved}</div>
-                    <div className="stat-label">Lives Saved</div>
-                  </div>
+                </div>
+              </div>
+              {/* Next Eligible */}
+              <div className="dashboard-card glassy donation-stat-card animate-fadein" style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                <span style={{ background: '#f59e42', color: '#fff', borderRadius: '50%', width: 54, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, boxShadow: '0 2px 8px rgba(245,158,66,0.13)' }}>⏳</span>
+                <div>
+                  <div className="donation-stats-title gradient-text">Next Eligible</div>
+                  <div className="stat-value stat-blue" style={{ fontSize: '2.2rem', marginTop: 10 }}>{user.nextEligible}</div>
+                </div>
+              </div>
+              {/* Lives Saved */}
+              <div className="dashboard-card glassy donation-stat-card animate-fadein" style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                <span style={{ background: '#10b981', color: '#fff', borderRadius: '50%', width: 54, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, boxShadow: '0 2px 8px rgba(16,185,129,0.13)' }}>❤️</span>
+                <div>
+                  <div className="donation-stats-title gradient-text">Lives Saved</div>
+                  <div className="stat-value stat-green" style={{ fontSize: '2.2rem', marginTop: 10 }}>{user.livesSaved}</div>
                 </div>
               </div>
             </div>

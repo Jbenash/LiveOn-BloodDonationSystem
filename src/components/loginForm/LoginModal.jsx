@@ -12,6 +12,7 @@ const LoginModal = ({ isOpen, onClose }) => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showRequestSent, setShowRequestSent] = useState(false);
   const [showEmailRequired, setShowEmailRequired] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,6 +25,7 @@ const LoginModal = ({ isOpen, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage("");
 
     try {
       const response = await fetch("http://localhost/liveonv2/backend_api/user_login.php", {
@@ -51,12 +53,12 @@ const LoginModal = ({ isOpen, onClose }) => {
         }
 
       } else {
-        alert(data.message || "Login Failed");
+        setErrorMessage(data.message || "Login Failed");
       }
 
     } catch (error) {
       console.error('Login error:', error);
-      alert('Login failed. Please try again.');
+      setErrorMessage('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -124,6 +126,11 @@ const LoginModal = ({ isOpen, onClose }) => {
           <div className="login-container">
             <div className="login-card">
               <form onSubmit={handleSubmit} className="login-form">
+                {errorMessage && (
+                  <div style={{ color: '#dc3545', background: '#fff0f1', border: '1px solid #f5c2c7', borderRadius: 8, padding: '12px 18px', marginBottom: 18, fontWeight: 500, textAlign: 'center' }}>
+                    {errorMessage}
+                  </div>
+                )}
                 <div className="form-group">
                   <label htmlFor="username">Email Address</label>
                   <input

@@ -13,7 +13,8 @@ const MRODashboard = () => {
     medicalHistory: '',
     doctorsNote: '',
     verificationDate: new Date().toISOString().split('T')[0], // Today's date as default
-    bloodGroup: ''
+    bloodGroup: '',
+    age: ''
   });
   const [donorRequests, setDonorRequests] = useState([]);
   const [donorRegistrations, setDonorRegistrations] = useState([]);
@@ -31,6 +32,16 @@ const MRODashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [verificationStats, setVerificationStats] = useState({ verificationData: [], stats: {} });
   const [donationTimestamp, setDonationTimestamp] = useState('');
+
+  // Auth check: redirect to home if not logged in as MRO
+  useEffect(() => {
+    fetch("http://localhost/Liveonv2/backend_api/get_donor_requests.php", { credentials: 'include' })
+      .then(res => {
+        if (res.status === 401) {
+          navigate('/');
+        }
+      });
+  }, [navigate]);
 
   useEffect(() => {
     setLoading(true);
@@ -131,6 +142,7 @@ const MRODashboard = () => {
       doctor_notes: formData.doctorsNote,
       verification_date: formData.verificationDate,
       blood_group: formData.bloodGroup,
+      age: formData.age,
       full_name: popupDonor.fullName || popupDonor.donor_fullname || ''
     };
     console.log('payload:', payload); // Debug: check the payload being sent
@@ -170,7 +182,7 @@ const MRODashboard = () => {
         setTimeout(() => {
           setShowPopup(false);
           setPopupDonor(null);
-          setFormData({ height: '', weight: '', medicalHistory: '', doctorsNote: '', verificationDate: new Date().toISOString().split('T')[0], bloodGroup: '' });
+          setFormData({ height: '', weight: '', medicalHistory: '', doctorsNote: '', verificationDate: new Date().toISOString().split('T')[0], bloodGroup: '', age: '' });
           setSubmitStatus("");
         }, 1500);
       } else {
@@ -184,12 +196,11 @@ const MRODashboard = () => {
   const handleOpenDonatePopup = (donor) => {
     setDonatePopupDonor(donor);
     setShowDonatePopup(true);
-    // Set the timestamp when popup opens
+    // Set the timestamp when popup opens (with milliseconds)
     const now = new Date();
-    setDonationTimestamp(now.toISOString().slice(0, 19).replace('T', ' ')); // MySQL DATETIME format
+    setDonationTimestamp(now.toISOString()); // ISO string with ms
     setDonateForm({ 
       bloodType: donor.blood_group || '', 
-      donationDate: '', // not used anymore
       volume: '' 
     });
     console.log("donatePopupDonor:", donor);
@@ -206,14 +217,14 @@ const MRODashboard = () => {
     e.preventDefault();
     if (!donatePopupDonor) return;
 
-    // Get the current timestamp at submit time
-    const currentTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    // Always use the timestamp from popup open
+    const donationDateTime = donationTimestamp;
 
     // Prepare data for backend
     const payload = {
       donor_id: donatePopupDonor.donor_id,
       blood_type: donateForm.bloodType,
-      donation_date: currentTimestamp, // use the current timestamp at submit
+      donation_date: donationDateTime, // send the exact timestamp
       volume: donateForm.volume
     };
 
@@ -225,6 +236,18 @@ const MRODashboard = () => {
       });
       const data = await response.json();
       if (data.success) {
+        // Immediately set donor status to 'not available'
+        await fetch('http://localhost/Liveonv2/backend_api/update_donor_status.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ donor_id: donatePopupDonor.donor_id, status: 'not available' })
+        });
+        // Trigger delayed status reset (after 2 minutes)
+        await fetch('http://localhost/Liveonv2/backend_api/schedule_status_available.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ donor_id: donatePopupDonor.donor_id, delay_seconds: 120 })
+        });
         alert(`Donation saved successfully! Donation ID: ${data.donation_id}`);
         setShowDonatePopup(false);
         setDonatePopupDonor(null);
@@ -330,18 +353,77 @@ const MRODashboard = () => {
     );
   };
 
+  // Add logout handler
+  const handleLogout = async () => {
+    try {
+      await fetch("http://localhost/Liveonv2/backend_api/logout.php", {
+        method: 'POST',
+        credentials: 'include',
+      });
+      navigate('/');
+    } catch (error) {
+      alert('Logout failed');
+    }
+  };
+
   return (
     <div className="mro-dashboard-container">
-      <aside className="sidebar" style={{ width: '140px' }}>
-        <div className="logo" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>LiveOn</div>
-        <nav>
-          <ul>
-            <li className={activeSection === "Overview" ? "active" : ""} onClick={() => setActiveSection("Overview")}>Overview</li>
-            <li className={activeSection === "Donor Requests" ? "active" : ""} onClick={() => setActiveSection("Donor Requests")}>Donor Requests</li>
-            <li className={activeSection === "Donor Registration Logs" ? "active" : ""} onClick={() => setActiveSection("Donor Registration Logs")}>Donor Registration Logs</li>
-            <li className={activeSection === "Donation Logs" ? "active" : ""} onClick={() => setActiveSection("Donation Logs")}>Donation Logs</li>
-          </ul>
-        </nav>
+      <aside className="sidebar" style={{ width: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100vh' }}>
+        <div style={{ width: '100%' }}>
+          <div className="logo" style={{ cursor: 'pointer', fontSize: '1.6rem', padding: '18px 0' }} onClick={() => navigate('/')}>LiveOn</div>
+          <nav>
+            <ul style={{ padding: 0, margin: 0 }}>
+              <li className={activeSection === "Overview" ? "active" : ""} onClick={() => setActiveSection("Overview")}
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s' }}>Overview</li>
+              <li className={activeSection === "Donor Requests" ? "active" : ""} onClick={() => setActiveSection("Donor Requests")}
+                  style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexDirection: 'row' }}>
+                Donor Requests
+                {filteredDonorRequests.length > 0 && (
+                  <span style={{
+                    background: '#dc2626',
+                    color: '#fff',
+                    borderRadius: '50%',
+                    minWidth: 26,
+                    height: 26,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 15,
+                    fontWeight: 700,
+                    boxShadow: '0 2px 8px rgba(220,38,38,0.13)'
+                  }}>{filteredDonorRequests.length}</span>
+                )}
+              </li>
+              <li className={activeSection === "Donor Registration Logs" ? "active" : ""} onClick={() => setActiveSection("Donor Registration Logs")}
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s' }}>Donor Registration Logs</li>
+              <li className={activeSection === "Donation Logs" ? "active" : ""} onClick={() => setActiveSection("Donation Logs")}
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s' }}>Donation Logs</li>
+            </ul>
+          </nav>
+        </div>
+        <button
+          onClick={handleLogout}
+          style={{
+            width: '90%',
+            margin: '0 auto 24px auto',
+            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 10,
+            padding: '14px 0',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(220,38,38,0.13)',
+            transition: 'background 0.2s',
+          }}
+        >
+          <span style={{ fontSize: 20, display: 'flex', alignItems: 'center' }}>⎋</span> Logout
+        </button>
       </aside>
       <main className="dashboard-main" style={{ display: 'flex', gap: '24px' }}>
         <div style={{ flex: 2 }}>
@@ -641,6 +723,10 @@ const MRODashboard = () => {
                       <option value="O-">O-</option>
                     </select>
                   </label>
+                  <label>
+                    Age:
+                    <input type="number" name="age" value={formData.age} onChange={handleInputChange} placeholder="Enter age" />
+                  </label>
                   <button type="button" className="btn-verify" style={{ marginTop: '12px' }} onClick={handleSubmitDonorDetails}>Submit</button>
                   {submitStatus && <div style={{ marginTop: '10px', color: submitStatus.startsWith('Donor details saved') ? 'green' : 'red' }}>{submitStatus}</div>}
                 </form>
@@ -667,7 +753,7 @@ const MRODashboard = () => {
                   </label>
                   <label>
                     Donation Date & Time:
-                    <input type="text" value={donationTimestamp ? new Date(donationTimestamp).toLocaleString() : ''} readOnly style={{backgroundColor: '#f3f4f6'}} />
+                    <input type="text" value={donationTimestamp ? new Date(donationTimestamp).toLocaleString('en-GB', { hour12: false }) : ''} readOnly style={{backgroundColor: '#f3f4f6'}} />
                   </label>
                   <label>
                     Volume:

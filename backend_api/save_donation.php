@@ -78,9 +78,14 @@ try {
     $stmt2->bindParam(':donor_id', $input['donor_id']);
     $stmt2->execute();
 
-    // Update donors table last_donation_date to current timestamp
-    $sql3 = "UPDATE donors SET last_donation_date = NOW() WHERE donor_id = :donor_id";
+    // Convert UTC donation_date to Asia/Colombo local time with milliseconds
+    $date = new DateTime($input['donation_date'], new DateTimeZone('UTC'));
+    $date->setTimezone(new DateTimeZone('Asia/Colombo'));
+    $localDatetime = $date->format('Y-m-d H:i:s.v');
+    // Update donors table last_donation_date to the value provided by the frontend (with ms)
+    $sql3 = "UPDATE donors SET last_donation_date = :donation_date WHERE donor_id = :donor_id";
     $stmt3 = $pdo->prepare($sql3);
+    $stmt3->bindParam(':donation_date', $localDatetime);
     $stmt3->bindParam(':donor_id', $input['donor_id']);
     $stmt3->execute();
 

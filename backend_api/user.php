@@ -18,11 +18,16 @@ class User
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password_hash'])) {
-            return [
-                'user_id' => $user['user_id'],
-                'name' => $user['name'],
-                'role' => $user['role'], // Assuming you have a role field
-            ];
+            if ($user['status'] === 'active') {
+                return [
+                    'user_id' => $user['user_id'],
+                    'name' => $user['name'],
+                    'role' => $user['role'],
+                ];
+            } else {
+                // Return a special value for pending/inactive status
+                return ['pending' => true, 'status' => $user['status']];
+            }
         } else {
             return false;
         }

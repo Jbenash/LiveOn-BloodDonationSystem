@@ -50,6 +50,10 @@ $loginManager = new LoginManager($conn);
 $user = $loginManager->login($username, $password);
 
 if ($user) {
+    if (isset($user['pending']) && $user['pending'] === true) {
+        echo json_encode(["success" => false, "message" => "Your registration is pending approval."]);
+        exit();
+    }
     $_SESSION['user_id'] = $user['user_id'];
     $_SESSION['role'] = $user['role'];
     $_SESSION['name'] = $user['name'];
