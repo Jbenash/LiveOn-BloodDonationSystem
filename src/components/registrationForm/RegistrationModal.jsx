@@ -5,14 +5,6 @@ const bloodTypes = [
   '', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
 ];
 
-const hospitalOptions = [
-  { id: '', name: 'Select hospital' },
-  { id: 'hosp1', name: 'City Hospital' },
-  { id: 'hosp2', name: 'General Hospital' },
-  { id: 'hosp3', name: 'St. Mary\'s Hospital' },
-  { id: 'hosp4', name: 'Red Cross Clinic' },
-];
-
 const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -30,10 +22,19 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [hospitals, setHospitals] = useState([]);
 
   useEffect(() => {
     if (isOpen) {
       document.body.classList.add('modal-open');
+      // Fetch hospitals when modal opens
+      fetch('http://localhost/liveonv2/backend_api/get_hospitals.php', {
+        credentials: 'include'
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) setHospitals(data.hospitals);
+        });
     } else {
       document.body.classList.remove('modal-open');
     }
@@ -78,16 +79,16 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
           phone: formData.phone,
           hospitalId: formData.hospitalId,
         };
-        
+
         const response = await fetch('http://localhost/liveonv2/backend_api/register_donor.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestData),
           credentials: 'include'
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
           setOtpSent(true);
           setStep(2);
@@ -120,7 +121,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
         credentials: 'include'
       });
       const result = await response.json();
-      
+
       if (result.success) {
         setFormData({
           fullName: '', email: '', password: '', confirmPassword: '',
@@ -165,11 +166,11 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
           <div className="modal-grid"></div>
           <div className="modal-particles"></div>
         </div>
-        
+
         <button className="modal-close-btn" onClick={onClose}>
           <span>&times;</span>
         </button>
-        
+
         <div className="registration-modal-content">
           <div className="registration-header">
             <div className="header-icon">
@@ -203,7 +204,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       />
                       {errors.fullName && <div className="form-error">{errors.fullName}</div>}
                     </div>
-                    
+
                     <div className="form-group">
                       <label htmlFor="email">Email Address</label>
                       <input
@@ -234,7 +235,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       />
                       {errors.dob && <div className="form-error">{errors.dob}</div>}
                     </div>
-                    
+
                     <div className="form-group">
                       <label htmlFor="phone">Phone Number</label>
                       <input
@@ -266,7 +267,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       />
                       {errors.address && <div className="form-error">{errors.address}</div>}
                     </div>
-                    
+
                     <div className="form-group">
                       <label htmlFor="city">City</label>
                       <input
@@ -294,9 +295,10 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                         className="form-input"
                         required
                       >
-                        {hospitalOptions.map(option => (
-                          <option key={option.id} value={option.id}>
-                            {option.name}
+                        <option value="">Select hospital</option>
+                        {hospitals.map(h => (
+                          <option key={h.hospital_id} value={h.hospital_id}>
+                            {h.name} ({h.location})
                           </option>
                         ))}
                       </select>
@@ -319,7 +321,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       />
                       {errors.password && <div className="form-error">{errors.password}</div>}
                     </div>
-                    
+
                     <div className="form-group">
                       <label htmlFor="confirmPassword">Confirm Password</label>
                       <input
@@ -336,8 +338,8 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                     </div>
                   </div>
 
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="registration-button"
                     disabled={isSubmitting}
                   >
@@ -366,7 +368,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                     <p className="otp-description">
                       We've sent a verification code to <strong>{formData.email}</strong>
                     </p>
-                    
+
                     <div className="form-group">
                       <label htmlFor="otp">Verification Code</label>
                       <input
@@ -383,8 +385,8 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       {errors.otp && <div className="form-error">{errors.otp}</div>}
                     </div>
 
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       className="registration-button"
                       disabled={isSubmitting}
                     >
