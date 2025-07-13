@@ -34,14 +34,15 @@ class DonorDashboard
             exit();
         }
 
-        $stmt = $this->pdo->prepare("SELECT COUNT(*) AS total, MAX(donation_date) AS last FROM donations WHERE donor_id = ?");
-        $stmt->execute([$this->donorId]);
+        // Count total donations from donations table for this donor
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) AS total FROM donations WHERE donor_id = ?");
+        $stmt->execute([$donor['donor_id']]);
         $stats = $stmt->fetch();
-
         $totalDonations = $stats['total'];
-        $lastDonation = $stats['last'] ?? 'N/A';
+
+        $lastDonation = !empty($donor['last_donation_date']) ? $donor['last_donation_date'] : 'N/A';
         $nextEligible = $lastDonation !== 'N/A' ? date('Y-m-d', strtotime($lastDonation . ' +6 months')) : 'First Donation';
-        $livesSaved = $totalDonations * 3;
+        $livesSaved = isset($donor['lives_saved']) ? $donor['lives_saved'] : 0;
         $points = $totalDonations * 100;
         $rank = $totalDonations > 10 ? 'Gold Donor' : ($totalDonations >= 5 ? 'Silver Donor' : 'Bronze Donor');
 
