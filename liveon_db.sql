@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 12, 2025 at 03:58 PM
+-- Generation Time: Jul 13, 2025 at 02:49 PM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -89,7 +89,11 @@ INSERT INTO `donations` (`donation_id`, `donor_id`, `hospital_id`, `blood_type`,
 (11, 'DN686d589f', 'HS002', 'A+', NULL, 2),
 (38, 'DN68703e38', 'HS002', 'A+', '2025-07-10', 44),
 (39, 'DN686d589f', 'HS002', 'A+', '2025-07-11', 55),
-(40, 'DN68711744', 'HS002', 'A+', '2025-07-11', 400);
+(40, 'DN68711744', 'HS002', 'A+', '2025-07-11', 400),
+(41, 'DN686d589f', 'HS002', 'B-', '2025-07-12', 78),
+(42, 'DN68722f60', 'HS002', 'A-', '2025-07-13', 400),
+(43, 'DN68722f60', 'HS002', 'A-', '2025-07-13', 1),
+(44, 'DN68727a8c', 'HS002', 'B+', '2025-07-13', 400);
 
 -- --------------------------------------------------------
 
@@ -146,10 +150,11 @@ CREATE TABLE `donors` (
 INSERT INTO `donors` (`donor_id`, `user_id`, `dob`, `blood_type`, `address`, `city`, `last_donation_date`, `donation_eligibility`, `lives_saved`, `status`, `donor_image`, `donor_card`, `preferred_hospital_id`) VALUES
 ('DN001', 'US001', '1990-05-10', 'O+', '123 Main Street', 'Colombo', '2025-01-01', '2025-07-01', 3, 'available', NULL, NULL, NULL),
 ('DN686a6923', 'US686a6923', '2025-07-18', 'B-', 'Trinco', 'trinco', '2025-07-10', NULL, 0, 'not available', NULL, NULL, NULL),
-('DN686d589f', 'US686d589f', '2025-07-18', 'B-', 'vavuniya', 'jaffna', '2025-07-11', NULL, 0, 'available', NULL, 0x433a5c78616d70705c6874646f63735c4c6976656f6e76325c6261636b656e645f6170692f75706c6f6164732f646f6e6f725f63617264732f646f6e6f725f636172645f444e36383664353839665f323032352d30372d31325f30392d33322d33342e706466, NULL),
-('DN68703e38', 'US68703e38', '2025-07-17', 'A+', 'kopay', 'kopay', '2025-07-11', NULL, 0, 'not available', NULL, NULL, NULL),
+('DN686d589f', 'US686d589f', '2025-07-18', 'B+', 'vavuniya', 'jaffna vavuniya', '2025-07-12', NULL, 0, 'not available', 0x75706c6f6164732f646f6e6f725f696d616765732f646f6e6f725f444e36383664353839665f313735323335323534322e6a7067, 0x433a5c78616d70705c6874646f63735c4c6976656f6e76325c6261636b656e645f6170692f75706c6f6164732f646f6e6f725f63617264732f646f6e6f725f636172645f444e36383664353839665f323032352d30372d31325f30392d33322d33342e706466, NULL),
+('DN68703e38', 'US68703e38', '2025-07-17', 'B-', 'kopay', 'kopay', '2025-07-11', NULL, 0, 'available', 0x75706c6f6164732f646f6e6f725f696d616765732f646f6e6f725f444e36383730336533385f313735323332393830352e6a7067, 0x433a5c78616d70705c6874646f63735c4c6976656f6e76325c6261636b656e645f6170692f75706c6f6164732f646f6e6f725f63617264732f646f6e6f725f636172645f444e36383730336533385f323032352d30372d31325f31382d32392d32302e706466, NULL),
 ('DN68711744', 'US68711744', '2025-07-17', 'A+', 'neliyady', 'neliyady', '2025-07-11', NULL, 0, 'not available', NULL, NULL, NULL),
-('DN68722f60', 'US68722f60', '2025-07-25', 'AB-', 'vaddukoddai', 'vaddukoddai', NULL, NULL, 0, 'available', NULL, 0x433a5c78616d70705c6874646f63735c4c6976656f6e76325c6261636b656e645f6170692f75706c6f6164732f646f6e6f725f63617264732f646f6e6f725f636172645f444e36383732326636305f323032352d30372d31325f31312d35312d31302e706466, NULL);
+('DN68722f60', 'US68722f60', '2025-07-25', 'A-', 'vaddukoddai', 'vaddukoddai', '2025-07-13', NULL, 10, 'not available', 0x75706c6f6164732f646f6e6f725f696d616765732f646f6e6f725f444e36383732326636305f313735323332393035372e6a7067, 0x433a5c78616d70705c6874646f63735c4c6976656f6e76325c6261636b656e645f6170692f75706c6f6164732f646f6e6f725f63617264732f646f6e6f725f636172645f444e36383732326636305f323032352d30372d31325f31312d35312d31302e706466, NULL),
+('DN68727a8c', 'US68727a8c', '2025-07-31', 'B+', 'jaffna', 'jaffna', '2025-07-13', NULL, 20, 'not available', 0x75706c6f6164732f646f6e6f725f696d616765732f646f6e6f725f444e36383732376138635f313735323333373636352e6a7067, 0x433a5c78616d70705c6874646f63735c4c6976656f6e76325c6261636b656e645f6170692f75706c6f6164732f646f6e6f725f63617264732f646f6e6f725f636172645f444e36383732376138635f323032352d30372d31325f31382d32362d35382e706466, NULL);
 
 -- --------------------------------------------------------
 
@@ -209,6 +214,13 @@ CREATE TABLE `feedback` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `feedback`
+--
+
+INSERT INTO `feedback` (`feedback_id`, `user_id`, `role`, `message`, `created_at`) VALUES
+('', 'US68722f60', 'donor', 'wwwww', '2025-07-13 12:49:11');
+
 -- --------------------------------------------------------
 
 --
@@ -255,9 +267,11 @@ CREATE TABLE `medical_verifications` (
 --
 
 INSERT INTO `medical_verifications` (`verification_id`, `donor_id`, `age`, `mro_id`, `height_cm`, `weight_kg`, `medical_history`, `doctor_notes`, `verification_date`) VALUES
-('MV00e915eb', 'DN68722f60', 24, 'MRO001', 170.00, 70.00, 'good', 'good', '2025-07-11 18:30:00'),
+('MV00e915eb', 'DN68722f60', 25, 'MRO001', 170.00, 70.00, 'good', 'good', '2025-07-11 18:30:00'),
 ('MV7a905803', 'DN68711744', NULL, 'MRO001', 170.00, 70.00, 'good', 'good', '2025-07-10 18:30:00'),
-('MVf91ba910', 'DN686d589f', NULL, 'MRO001', 170.00, 70.00, 'good', 'good', '2025-07-11 18:30:00');
+('MVcd1d0573', 'DN68727a8c', 23, 'MRO001', 170.00, 70.00, 'good', 'good', '2025-07-11 18:30:00'),
+('MVd60012c0', 'DN68703e38', NULL, 'MRO001', 170.00, 70.00, 'a', 'a', '2025-07-11 18:30:00'),
+('MVf91ba910', 'DN686d589f', 47, 'MRO001', 170.00, 70.00, 'good', 'good', '2025-07-11 18:30:00');
 
 -- --------------------------------------------------------
 
@@ -326,11 +340,11 @@ CREATE TABLE `otp_verification` (
 
 INSERT INTO `otp_verification` (`otp_id`, `user_id`, `otp_code`, `expires_at`, `verified`, `created_at`, `verified_at`) VALUES
 (10, 'US686a6923', '980635', '2025-07-06 14:26:35', 0, '2025-07-06 12:16:35', '2025-07-06 17:46:57'),
-(20, 'US686ab46f', '805702', '2025-07-06 19:47:51', 0, '2025-07-06 17:37:51', '2025-07-06 23:08:14'),
 (21, 'US686d589f', '581049', '2025-07-08 19:52:55', 0, '2025-07-08 17:42:55', '2025-07-08 23:13:19'),
 (24, 'US68703e38', '132420', '2025-07-11 00:37:04', 1, '2025-07-10 22:27:04', '2025-07-11 03:57:28'),
 (25, 'US68711744', '538653', '2025-07-11 16:03:08', 1, '2025-07-11 13:53:08', '2025-07-11 19:24:07'),
-(27, 'US68722f60', '339019', '2025-07-12 11:58:16', 1, '2025-07-12 09:48:16', '2025-07-12 15:18:33');
+(27, 'US68722f60', '339019', '2025-07-12 11:58:16', 1, '2025-07-12 09:48:16', '2025-07-12 15:18:33'),
+(28, 'US68727a8c', '978853', '2025-07-12 17:19:00', 0, '2025-07-12 15:09:00', NULL);
 
 -- --------------------------------------------------------
 
@@ -381,11 +395,11 @@ INSERT INTO `users` (`user_id`, `name`, `email`, `phone`, `password_hash`, `role
 ('US005', 'Admin User', 'admin123@liveon.lk', '0770000000', '$2y$10$uGnE0dhpLSE7FqfnhdNZPuWiXdKReWApkd90S1DM54qWwz2kLiapGi', 'admin', 'active'),
 ('US006', 'Admin User', 'admin234@liveon.lk', '0770000000', '$2y$10$JRi8cOu0JhEk5DRcwOz.4.m3dIWAgxcbxqeb8Ast9/nqlYvrerbCW', 'admin', 'active'),
 ('US686a6923', 'nilaxsan', 'nilaksh2001@gmail.com', '0776104689', '$2y$10$BSRlvXgaK74oq2Mvn72E5ODQHWsOv1l4rLPJIb3yEx2tR6iq4eINm', 'donor', 'inactive'),
-('US686ab46f', 'jayakulan', 'cst22109@std.uwu.ac.lk', '0776104689', '$2y$10$3HgtG7oYkzuhtyTzn2UTk.WZTJSNREdRTbP4wERx8Rd1AcXIj7c3K', 'donor', 'active'),
-('US686d589f', 'Ben', 'cst22075@std.uwu.ac.lk', '0776104689', '$2y$10$1NObhIKpex8XCVqeCa2y4.4bogtGHmJkCa7.Qp/wnaJ/g5ssm7dMS', 'donor', 'active'),
+('US686d589f', 'Ben asar', 'cst22075@std.uwu.ac.lk', '0776104689', '$2y$10$1NObhIKpex8XCVqeCa2y4.4bogtGHmJkCa7.Qp/wnaJ/g5ssm7dMS', 'donor', 'active'),
 ('US68703e38', 'Vishnu', 'cst22098@std.uwu.ac.lk', '0778799422', '$2y$10$aIdhDU/VwXNMSvOTSjiAH./iXJwdt24d1zroKhBomPSZqUZoHaQji', 'donor', 'active'),
 ('US68711744', 'abinath', 'abinath157@gmail.com', '0741814245', '$2y$10$md0ER0hkvd1V9bZ6bHdC4.p6iqiNnEGOLQECmY6rrAoK515L5xkVa', 'donor', 'active'),
-('US68722f60', 'lavakeesasn', 'lavakeesh@gmail.com', '0776104689', '$2y$10$zXmnlgbbziLvUVVZYaNVFuv38BJOhxsqeCgQe54s3qQ.m1eEo0NBu', 'donor', 'active');
+('US68722f60', 'lavakeesan', 'lavakeesh@gmail.com', '0776104689', '$2y$10$zXmnlgbbziLvUVVZYaNVFuv38BJOhxsqeCgQe54s3qQ.m1eEo0NBu', 'donor', 'active'),
+('US68727a8c', 'Abiramy', 'abinathan1123@gmail.com', '0778200752', '$2y$10$l6yBPRV.svOcQa3.kW/1wuqyVfowXUejIWjsuTkNsNr6n.UAo7Yp2', 'donor', 'active');
 
 --
 -- Indexes for dumped tables
@@ -514,7 +528,7 @@ ALTER TABLE `admin_logs`
 -- AUTO_INCREMENT for table `donations`
 --
 ALTER TABLE `donations`
-  MODIFY `donation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `donation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
 
 --
 -- AUTO_INCREMENT for table `educational_content`
@@ -538,7 +552,7 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT for table `otp_verification`
 --
 ALTER TABLE `otp_verification`
-  MODIFY `otp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `otp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT for table `rewards`

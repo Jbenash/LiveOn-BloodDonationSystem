@@ -142,20 +142,6 @@ const DonorDashboard = () => {
                       <div><span className="label">Email:</span> {user.email}</div>
                     </div>
                   </div>
-                  <button className="dashboard-btn primary"
-                    onClick={() => {
-                      setEditForm({
-                        donorId: user.donorId,
-                        name: user.name,
-                        bloodType: user.bloodType,
-                        age: user.age,
-                        location: user.location,
-                        email: user.email,
-                        profilePic: user.profilePic
-                      });
-                      setShowEditProfile(true);
-                    }}
-                  >Edit Profile</button>
                 </div>
 
                 {/* Donation Stats */}
@@ -196,6 +182,85 @@ const DonorDashboard = () => {
                 <button className="dashboard-btn primary">Book Next Donation</button>
               </div>
             </>
+          )}
+          {activeSection === 'donations' && (
+            <div className="dashboard-stats-grid">
+              {/* Donation Stats Only */}
+              <div className="dashboard-card glassy donation-stats animate-fadein" style={{ gridColumn: '1 / span 3' }}>
+                <div className="donation-stats-title gradient-text">Donation Statistics</div>
+                <div className="donation-stats-grid">
+                  <div className="donation-stat">
+                    <div className="stat-value stat-blue">{user.totalDonations}</div>
+                    <div className="stat-label">Total Donations</div>
+                  </div>
+                  <div className="donation-stat">
+                    <div className="stat-value stat-blue">{user.lastDonation}</div>
+                    <div className="stat-label">Last Donation</div>
+                  </div>
+                  <div className="donation-stat">
+                    <div className="stat-value stat-blue">{user.nextEligible}</div>
+                    <div className="stat-label">Next Eligible</div>
+                  </div>
+                  <div className="donation-stat">
+                    <div className="stat-value stat-green">{user.livesSaved}</div>
+                    <div className="stat-label">Lives Saved</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {activeSection === 'rewards' && (
+            <div className="dashboard-stats-grid">
+              {/* Reward Points & Ranking Only */}
+              <div className="dashboard-card glassy reward-stats animate-fadein" style={{ gridColumn: '1 / span 3' }}>
+                <div className="reward-title gradient-text">Reward Points & Ranking</div>
+                <div className="reward-points stat-green">{user.points} Points</div>
+                <div className="reward-rank">Rank: {user.rank}</div>
+              </div>
+            </div>
+          )}
+          {activeSection === 'feedback' && (
+            <div className="dashboard-stats-grid" style={{ justifyContent: 'center' }}>
+              <div className="dashboard-card glassy animate-fadein" style={{ gridColumn: '1 / span 3', maxWidth: 500, margin: '0 auto' }}>
+                <div className="feedback-title gradient-text" style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 18 }}>Submit Feedback</div>
+                <form
+                  onSubmit={async e => {
+                    e.preventDefault();
+                    const feedback = e.target.elements.feedback.value.trim();
+                    if (!feedback) {
+                      alert('Please enter your feedback.');
+                      return;
+                    }
+                    try {
+                      const res = await fetch('http://localhost/liveonv2/backend_api/submit_feedback.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ donorId: user.donorId, feedback }),
+                        credentials: 'include',
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        alert('Thank you for your feedback!');
+                        e.target.reset();
+                      } else {
+                        alert(data.message || 'Failed to submit feedback');
+                      }
+                    } catch (err) {
+                      alert('Error submitting feedback');
+                    }
+                  }}
+                  style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
+                >
+                  <textarea
+                    name="feedback"
+                    rows={5}
+                    placeholder="Enter your feedback here..."
+                    style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '12px', fontSize: '1.08rem', resize: 'vertical', minHeight: 100 }}
+                  />
+                  <button type="submit" className="dashboard-btn primary" style={{ fontSize: '1.08rem', padding: '12px 0' }}>Submit Feedback</button>
+                </form>
+              </div>
+            </div>
           )}
           {/* Add similar blocks for Donations, Rewards, Feedback, etc. if needed */}
         </div>
