@@ -6,9 +6,9 @@
   }
   
   .sidebar {
-    width: 160px;
-    min-width: 140px;
-    background: #c7d2fe;
+    width: 240px;
+    min-width: 240px;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
     padding: 32px 0 0 0;
     display: flex;
     flex-direction: column;
@@ -19,16 +19,10 @@
     transition: background 0.2s, width 0.3s;
   }
   
-  /* Highlight the entire sidebar on nav item hover and increase width */
-  .sidebar:hover {
-    background: #b4c3f7;
-    width: 200px;
-  }
-  
   .logo {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     font-weight: bold;
-    color: #2d3a8c;
+    color: #fff;
     margin-left: 32px;
     margin-bottom: 40px;
   }
@@ -40,18 +34,23 @@
   }
   
   .sidebar nav ul li {
-    padding: 14px 32px;
-    font-size: 1rem;
-    color: #2d3a8c;
+    padding: 18px 0 18px 18px;
+    font-size: 1.18rem;
+    color: #cbd5e1;
     cursor: pointer;
-    border-radius: 8px 0 0 8px;
+    border-radius: 10px;
     margin-bottom: 8px;
-    transition: background 0.2s;
-  }
+    transition: background 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 6px;
+}
   
   .sidebar nav ul li.active, .sidebar nav ul li:hover {
-    background: #e0e7ff;
-    color: #2d3a8c;
+    background: #3b82f6;
+    color: #fff;
     font-weight: 600;
   }
   
