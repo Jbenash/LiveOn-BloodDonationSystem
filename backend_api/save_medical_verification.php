@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
+
 use Dompdf\Dompdf;
 
 $allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
@@ -79,16 +80,16 @@ try {
         throw new Exception("Prepare failed for user lookup: " . $conn->error);
     }
     $stmt2->bind_param('s', $donor_id);
-    
+
     if (!$stmt2->execute()) {
         throw new Exception("User lookup failed: " . $stmt2->error);
     }
-    
+
     $result = $stmt2->get_result();
     if ($result->num_rows === 0) {
         throw new Exception("Donor not found");
     }
-    
+
     $row = $result->fetch_assoc();
     $user_id = $row['user_id'];
     $stmt2->close();
@@ -100,7 +101,7 @@ try {
         throw new Exception("Prepare failed for user update: " . $conn->error);
     }
     $stmt3->bind_param('s', $user_id);
-    
+
     if (!$stmt3->execute()) {
         throw new Exception("User update failed: " . $stmt3->error);
     }
@@ -119,11 +120,15 @@ try {
     $stmt4->close();
 
     // Generate donor card PDF
+    // Make sure Dompdf is properly imported
+    use Dompdf\Dompdf;
+
     $dompdf = new Dompdf();
     $html = '<!DOCTYPE html>
     <html>
     <head>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <!-- Font Awesome CDN for icons (may not work in PDF rendering) -->
+        <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"> -->
         <style>
             body {
                 margin: 0;
@@ -232,7 +237,7 @@ try {
     </div>
     </body>
     </html>';
-    
+
     $dompdf->loadHtml($html);
     $dompdf->setPaper('A5', 'landscape');
     $dompdf->render();
@@ -267,9 +272,8 @@ try {
 
     // Commit transaction
     $conn->commit();
-    
-    echo json_encode(["success" => true, "verification_id" => $verification_id, "user_status_updated" => true]);
 
+    echo json_encode(["success" => true, "verification_id" => $verification_id, "user_status_updated" => true]);
 } catch (Exception $e) {
     // Rollback transaction on error
     $conn->rollback();
@@ -277,4 +281,4 @@ try {
     echo json_encode(["error" => $e->getMessage()]);
 }
 
-$conn->close(); 
+$conn->close();
