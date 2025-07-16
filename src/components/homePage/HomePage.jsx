@@ -154,11 +154,6 @@ const HomePage = () => {
 
       {/* Hero Section */}
       <section id="hero" className="homepage-hero">
-        <div className="hero-background">
-          <div className="hero-grid"></div>
-          <div className="hero-particles"></div>
-          <div className="hero-glow"></div>
-        </div>
         
         <div className="hero-content">
           <div className="hero-text">
@@ -240,68 +235,68 @@ const HomePage = () => {
         </div>
       </section>
       {howItWorksPopupStep === 'register' && (
-        <div className="howitworks-popup">
-          <div className="howitworks-popup-content">
+        <div className="howitworks-popup" onClick={closeHowItWorksPopup}>
+          <div className="howitworks-popup-content" onClick={e => e.stopPropagation()}>
             <button className="howitworks-popup-close" onClick={closeHowItWorksPopup}>×</button>
             <div className="howitworks-popup-body">
               <div style={{fontSize: '2rem', marginBottom: 8}}>💙</div>
-              <h4 style={{margin: '0 0 12px 0', color: '#fff'}}>Welcome to LiveOn — Start Your Donation Journey</h4>
-              <ul style={{color: '#e0e7ef', paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left'}}>
+              <h4>Welcome to LiveOn — Start Your Donation Journey</h4>
+              <ul style={{paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left'}}>
                 <li>Fill in your details through the ‘Become a Donor’ form.</li>
                 <li>An OTP will be sent to your registered email.</li>
                 <li>Enter the OTP to verify your identity.</li>
                 <li>Once verified, visit the Medical Registration Officer (MRO) at your selected hospital to complete the process.</li>
               </ul>
-              <div style={{marginTop: 16, color: '#fff', fontWeight: 500}}>Thank you for choosing to save lives. You're a hero in action! 🩸</div>
+              <div style={{marginTop: 16, fontWeight: 500}}>Thank you for choosing to save lives. You're a hero in action! 🩸</div>
             </div>
           </div>
         </div>
       )}
       {howItWorksPopupStep === 'verify' && (
-        <div className="howitworks-popup">
-          <div className="howitworks-popup-content">
+        <div className="howitworks-popup" onClick={closeHowItWorksPopup}>
+          <div className="howitworks-popup-content" onClick={e => e.stopPropagation()}>
             <button className="howitworks-popup-close" onClick={closeHowItWorksPopup}>×</button>
             <div className="howitworks-popup-body">
               <div style={{fontSize: '2rem', marginBottom: 8}}>🔍</div>
-              <h4 style={{margin: '0 0 12px 0', color: '#fff'}}>Verify – At the Hospital</h4>
-              <div style={{color: '#e0e7ef', marginBottom: 8, fontWeight: 600}}>Verify Your Identity with the MRO</div>
-              <ul style={{color: '#e0e7ef', paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left'}}>
+              <h4>Verify – At the Hospital</h4>
+              <div style={{marginBottom: 8, fontWeight: 600}}>Verify Your Identity with the MRO</div>
+              <ul style={{paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left'}}>
                 <li>Visit the Medical Registration Officer (MRO).</li>
                 <li>Share your OTP, which serves as your donor token.</li>
                 <li>The MRO will collect basic medical details and perform eligibility checks.</li>
                 <li>After confirmation, your donor record will be added to the system.</li>
               </ul>
-              <div style={{marginTop: 16, color: '#fff', fontWeight: 500}}>Thank you for taking the next step toward a life-saving act.</div>
+              <div style={{marginTop: 16, fontWeight: 500}}>Thank you for taking the next step toward a life-saving act.</div>
             </div>
           </div>
         </div>
       )}
       {howItWorksPopupStep === 'donate' && (
-        <div className="howitworks-popup">
-          <div className="howitworks-popup-content">
+        <div className="howitworks-popup" onClick={closeHowItWorksPopup}>
+          <div className="howitworks-popup-content" onClick={e => e.stopPropagation()}>
             <button className="howitworks-popup-close" onClick={closeHowItWorksPopup}>×</button>
             <div className="howitworks-popup-body">
               <div style={{fontSize: '2rem', marginBottom: 8}}>❤️</div>
-              <h4 style={{margin: '0 0 12px 0', color: '#fff'}}>Donate – Save a Life</h4>
-              <div style={{color: '#e0e7ef', marginBottom: 8, fontWeight: 600}}>Time to Donate and Make a Difference</div>
-              <ul style={{color: '#e0e7ef', paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left'}}>
+              <h4>Donate – Save a Life</h4>
+              <div style={{marginBottom: 8, fontWeight: 600}}>Time to Donate and Make a Difference</div>
+              <ul style={{paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left'}}>
                 <li>Once verified: You can now donate blood manually at the hospital.</li>
                 <li>Staffs will safely collect and handle your donation.</li>
                 <li>This act of kindness is recorded and appreciated by LiveOn.</li>
               </ul>
-              <div style={{marginTop: 16, color: '#fff', fontWeight: 500}}>Your one unit of blood can save multiple lives. Thank you!</div>
+              <div style={{marginTop: 16, fontWeight: 500}}>Your one unit of blood can save multiple lives. Thank you!</div>
             </div>
           </div>
         </div>
       )}
       {howItWorksPopupStep === 'track' && (
-        <div className="howitworks-popup">
-          <div className="howitworks-popup-content">
+        <div className="howitworks-popup" onClick={closeHowItWorksPopup}>
+          <div className="howitworks-popup-content" onClick={e => e.stopPropagation()}>
             <button className="howitworks-popup-close" onClick={closeHowItWorksPopup}>×</button>
             <div className="howitworks-popup-body">
               <div style={{fontSize: '2rem', marginBottom: 8}}>📍</div>
-              <h4 style={{margin: '0 0 12px 0', color: '#fff'}}>Track Your Donation Journey Anytime</h4>
-              <ul style={{color: '#e0e7ef', paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left'}}>
+              <h4>Track Your Donation Journey Anytime</h4>
+              <ul style={{paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left'}}>
                 <li>From your dashboard: View your donation history, including past dates.</li>
                 <li>See a count of how many lives you’ve helped save.</li>
                 <li>Get updates and future reminders for donation events.</li>
@@ -488,8 +483,8 @@ const HomePage = () => {
       <MroVerificationPopup isOpen={showMroPopup} onClose={() => setShowMroPopup(false)} />
 
       {showArticle && (
-        <div className="article-overlay">
-          <div className="article-sheet">
+        <div className="article-overlay" onClick={() => setShowArticle(false)}>
+          <div className="article-sheet" onClick={e => e.stopPropagation()}>
             <button className="close-article-btn" onClick={() => setShowArticle(false)}>✖</button>
             <h2 style={{fontWeight: 700, fontSize: '1.3rem', marginBottom: 8}}><span role="img" aria-label="blood">🩸</span> 1. What is Blood Donation?</h2>
             <div style={{fontWeight: 500, fontStyle: 'italic', marginBottom: 8}}>A Simple Act That Creates a Lifesaving Chain</div>
@@ -530,8 +525,8 @@ const HomePage = () => {
         </div>
       )}
       {showMythsArticle && (
-        <div className="article-overlay">
-          <div className="article-sheet">
+        <div className="article-overlay" onClick={() => setShowMythsArticle(false)}>
+          <div className="article-sheet" onClick={e => e.stopPropagation()}>
             <button className="close-article-btn" onClick={() => setShowMythsArticle(false)}>✖</button>
             <div style={{fontWeight: 700, fontSize: '1.2rem', marginBottom: 12, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8}}>
               <span role="img" aria-label="lightbulb">💡</span> Myths vs Facts About Blood Donation
@@ -579,8 +574,8 @@ const HomePage = () => {
         </div>
       )}
       {showWhoArticle && (
-        <div className="article-overlay">
-          <div className="article-sheet">
+        <div className="article-overlay" onClick={() => setShowWhoArticle(false)}>
+          <div className="article-sheet" onClick={e => e.stopPropagation()}>
             <button className="close-article-btn" onClick={() => setShowWhoArticle(false)}>✖</button>
             <div style={{fontWeight: 700, fontSize: '1.2rem', marginBottom: 12, color: '#2563eb', display: 'flex', alignItems: 'center', gap: 8}}>
               <span role="img" aria-label="globe">🌍</span> Who Can Donate Blood?
