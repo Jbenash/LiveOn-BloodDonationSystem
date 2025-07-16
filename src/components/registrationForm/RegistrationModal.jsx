@@ -5,6 +5,10 @@ const bloodTypes = [
   '', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
 ];
 
+const sriLankaDistricts = [
+  '', 'Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo', 'Galle', 'Gampaha', 'Hambantota', 'Jaffna', 'Kalutara', 'Kandy', 'Kegalle', 'Kilinochchi', 'Kurunegala', 'Mannar', 'Matale', 'Matara', 'Monaragala', 'Mullaitivu', 'Nuwara Eliya', 'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
+];
+
 const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -14,7 +18,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     confirmPassword: '',
     dob: '',
     address: '',
-    city: '',
+    district: '',
     phone: '',
     otp: '',
     hospitalId: '',
@@ -53,7 +57,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.email)) errs.email = 'Invalid email';
     if (!formData.dob) errs.dob = 'Date of birth is required';
     if (!formData.address.trim()) errs.address = 'Address is required';
-    if (!formData.city.trim()) errs.city = 'City is required';
+    if (!formData.district) errs.district = 'District is required';
     if (!formData.phone.trim()) errs.phone = 'Phone number is required';
     if (!formData.password) errs.password = 'Password is required';
     else if (formData.password.length < 6) errs.password = 'Password must be at least 6 characters';
@@ -75,7 +79,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
           password: formData.password,
           dob: formData.dob,
           address: formData.address,
-          city: formData.city,
+          district: formData.district,
           phone: formData.phone,
           hospitalId: formData.hospitalId,
         };
@@ -125,7 +129,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
       if (result.success) {
         setFormData({
           fullName: '', email: '', password: '', confirmPassword: '',
-          dob: '', address: '', city: '', otp: '', hospitalId: '',
+          dob: '', address: '', district: '', otp: '', hospitalId: '',
         });
         setStep(1);
         setOtpSent(false);
@@ -269,18 +273,20 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                     </div>
 
                     <div className="form-group">
-                      <label htmlFor="city">City</label>
-                      <input
-                        type="text"
-                        id="city"
-                        name="city"
-                        value={formData.city}
+                      <label htmlFor="district">District</label>
+                      <select
+                        id="district"
+                        name="district"
+                        value={formData.district}
                         onChange={handleChange}
                         className="form-input"
-                        placeholder="Enter your city"
                         required
-                      />
-                      {errors.city && <div className="form-error">{errors.city}</div>}
+                      >
+                        {sriLankaDistricts.map(d => (
+                          <option key={d} value={d}>{d ? d : 'Select district'}</option>
+                        ))}
+                      </select>
+                      {errors.district && <div className="form-error">{errors.district}</div>}
                     </div>
                   </div>
 
