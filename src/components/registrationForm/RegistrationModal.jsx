@@ -79,7 +79,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
           password: formData.password,
           dob: formData.dob,
           address: formData.address,
-          district: formData.district,
+          city: formData.district, // send as 'city' to backend
           phone: formData.phone,
           hospitalId: formData.hospitalId,
         };

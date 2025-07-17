@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./MRODashboard.css";
 import { useNavigate } from 'react-router-dom';
+import { FaUserFriends, FaClipboardList, FaUserCheck, FaCheckCircle } from 'react-icons/fa';
+import logo from '../../assets/logo.svg';
 
 const MRODashboard = () => {
   const navigate = useNavigate();
@@ -32,6 +34,9 @@ const MRODashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [verificationStats, setVerificationStats] = useState({ verificationData: [], stats: {} });
   const [donationTimestamp, setDonationTimestamp] = useState('');
+  const [hospitalName, setHospitalName] = useState("");
+  const [hospitalNameLoading, setHospitalNameLoading] = useState(true);
+  const [hospitalNameError, setHospitalNameError] = useState(null);
 
   // Auth check: redirect to home if not logged in as MRO
   useEffect(() => {
@@ -108,6 +113,24 @@ const MRODashboard = () => {
       })
       .catch((err) => {
         console.error("Error fetching donation logs:", err);
+      });
+  }, []);
+
+  useEffect(() => {
+    // Fetch hospital name for MRO
+    fetch("http://localhost/Liveonv2/backend_api/get_mro_hospital.php", { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setHospitalName(data.hospital_name);
+        } else {
+          setHospitalNameError(data.error || "Failed to load hospital name");
+        }
+        setHospitalNameLoading(false);
+      })
+      .catch(err => {
+        setHospitalNameError("Failed to load hospital name");
+        setHospitalNameLoading(false);
       });
   }, []);
 
@@ -366,38 +389,65 @@ const MRODashboard = () => {
     }
   };
 
+  const overviewCards = [
+    {
+      label: 'Total Donors',
+      value: donorRequests.length + donorRegistrations.length,
+      icon: <FaUserFriends size={32} color="#2563eb" />,
+      bg: 'linear-gradient(135deg, #dbeafe 0%, #2563eb 100%)',
+      color: '#1e293b',
+    },
+    {
+      label: 'Pending Requests',
+      value: donorRequests.length,
+      icon: <FaClipboardList size={32} color="#f59e42" />,
+      bg: 'linear-gradient(135deg, #fef3c7 0%, #f59e42 100%)',
+      color: '#92400e',
+    },
+    {
+      label: 'Active Donors',
+      value: donorRegistrations.length,
+      icon: <FaUserCheck size={32} color="#22c55e" />,
+      bg: 'linear-gradient(135deg, #dcfce7 0%, #22c55e 100%)',
+      color: '#166534',
+    },
+    {
+      label: 'Total Verifications',
+      value: verificationStats.stats?.total_verified || 0,
+      icon: <FaCheckCircle size={32} color="#7c3aed" />,
+      bg: 'linear-gradient(135deg, #ede9fe 0%, #7c3aed 100%)',
+      color: '#7c3aed',
+    },
+  ];
+
   return (
     <div className="mro-dashboard-container">
       <aside className="sidebar" style={{ width: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100vh' }}>
         <div style={{ width: '100%' }}>
-          <div className="logo" style={{ cursor: 'pointer', fontSize: '1.6rem', padding: '18px 0' }} onClick={() => navigate('/')}>LiveOn</div>
+          <div className="logo" style={{ cursor: 'pointer', padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginLeft: 32 }} onClick={() => navigate('/') }>
+            <img src={logo} alt="LiveOn Logo" style={{ height: 120, width: 'auto', display: 'block' }} />
+          </div>
           <nav>
             <ul style={{ padding: 0, margin: 0 }}>
               <li className={activeSection === "Overview" ? "active" : ""} onClick={() => setActiveSection("Overview")}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s' }}>Overview</li>
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+                <span className="sidebar-label">Overview</span>
+              </li>
               <li className={activeSection === "Donor Requests" ? "active" : ""} onClick={() => setActiveSection("Donor Requests")}
-                  style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexDirection: 'row' }}>
-                Donor Requests
+                  style={{ position: 'relative', display: 'flex', alignItems: 'center', fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s' }}>
+                <span className="sidebar-label">Donor Requests</span>
                 {filteredDonorRequests.length > 0 && (
-                  <span style={{
-                    background: '#dc2626',
-                    color: '#fff',
-                    borderRadius: '50%',
-                    minWidth: 26,
-                    height: 26,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 15,
-                    fontWeight: 700,
-                    boxShadow: '0 2px 8px rgba(220,38,38,0.13)'
-                  }}>{filteredDonorRequests.length}</span>
+                  <span className="sidebar-badge" style={{ background: '#dc2626', color: '#fff', borderRadius: '50%', minWidth: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, marginLeft: 12 }}>{filteredDonorRequests.length}</span>
                 )}
               </li>
               <li className={activeSection === "Donor Registration Logs" ? "active" : ""} onClick={() => setActiveSection("Donor Registration Logs")}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s' }}>Donor Registration Logs</li>
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+                <span className="sidebar-label">Donor Registration Logs</span>
+              </li>
               <li className={activeSection === "Donation Logs" ? "active" : ""} onClick={() => setActiveSection("Donation Logs")}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s' }}>Donation Logs</li>
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+                <span className="sidebar-label">Donation Logs</span>
+              </li>
             </ul>
           </nav>
         </div>
@@ -427,67 +477,64 @@ const MRODashboard = () => {
       </aside>
       <main className="dashboard-main" style={{ display: 'flex', gap: '24px' }}>
         <div style={{ flex: 2 }}>
-          <header className="dashboard-header">
-            <h1>MRO Dashboard</h1>
-            {activeSection !== "Overview" && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input className="search-bar" type="text" placeholder="Search donor names..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                <button className="btn-search" type="button" aria-label="Search">
-                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="9" cy="9" r="7" stroke="white" strokeWidth="2" />
-                    <line x1="14.2929" y1="14.7071" x2="18" y2="18.4142" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </div>
-            )}
-          </header>
+          {/* Dashboard Header: MRO Dashboard ... Hospital Name */}
+          <div className="dashboard-section" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 36, padding: '28px 32px' }}>
+            <h1 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#222', margin: 0 }}>MRO Dashboard</h1>
+            <div style={{ fontSize: '1.15rem', fontWeight: 600, color: '#2563eb', marginLeft: 24, whiteSpace: 'nowrap' }}>
+              {hospitalNameLoading ? (
+                <span>Loading hospital name...</span>
+              ) : hospitalNameError ? (
+                <span style={{ color: '#f87171' }}>{hospitalNameError}</span>
+              ) : (
+                <span>🏥 {hospitalName}</span>
+              )}
+            </div>
+          </div>
+          {/* Section Tabs */}
+          <div style={{ display: 'flex', gap: 16, marginBottom: 32 }}>
+            {/* Removed section tabs navigation bar */}
+          </div>
+
           {activeSection === "Overview" && (
-            <section className="dashboard-section">
-              <h2>Dashboard Overview</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-                <div style={{ background: '#e0e7ff', padding: '20px', borderRadius: '12px', border: '1px solid #c7d2fe' }}>
-                  <h3 style={{ color: '#2d3a8c', margin: '0 0 10px 0', fontSize: '1.1rem' }}>Total Donors</h3>
-                  <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#2d3a8c', margin: '0' }}>{donorRequests.length + donorRegistrations.length}</p>
-                  <p style={{ color: '#6b7280', margin: '5px 0 0 0', fontSize: '0.9rem' }}>Registered in system</p>
-                </div>
-
-                <div style={{ background: '#fef3c7', padding: '20px', borderRadius: '12px', border: '1px solid #fde68a' }}>
-                  <h3 style={{ color: '#92400e', margin: '0 0 10px 0', fontSize: '1.1rem' }}>Pending Requests</h3>
-                  <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#92400e', margin: '0' }}>{donorRequests.length}</p>
-                  <p style={{ color: '#6b7280', margin: '5px 0 0 0', fontSize: '0.9rem' }}>Awaiting verification</p>
-                </div>
-
-                <div style={{ background: '#dcfce7', padding: '20px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
-                  <h3 style={{ color: '#166534', margin: '0 0 10px 0', fontSize: '1.1rem' }}>Active Donors</h3>
-                  <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#166534', margin: '0' }}>{donorRegistrations.length}</p>
-                  <p style={{ color: '#6b7280', margin: '5px 0 0 0', fontSize: '0.9rem' }}>Verified and active</p>
-                </div>
-
-                <div style={{ background: '#f3e8ff', padding: '20px', borderRadius: '12px', border: '1px solid #e9d5ff' }}>
-                  <h3 style={{ color: '#7c3aed', margin: '0 0 10px 0', fontSize: '1.1rem' }}>Total Verifications</h3>
-                  <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#7c3aed', margin: '0' }}>{verificationStats.stats?.total_verified || 0}</p>
-                  <p style={{ color: '#6b7280', margin: '5px 0 0 0', fontSize: '0.9rem' }}>Medical verifications</p>
-                </div>
+            <section className="dashboard-section" style={{ background: 'transparent', boxShadow: 'none', padding: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '28px', marginBottom: '36px' }}>
+                {overviewCards.map(card => (
+                  <div key={card.label} style={{
+                    background: card.bg,
+                    color: card.color,
+                    borderRadius: '18px',
+                    boxShadow: '0 4px 24px rgba(30,41,59,0.10)',
+                    padding: '32px 24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    minHeight: 140,
+                  }}>
+                    <div style={{ marginBottom: 16 }}>{card.icon}</div>
+                    <div style={{ fontSize: '2.2rem', fontWeight: 800, marginBottom: 8 }}>{card.value}</div>
+                    <div style={{ fontSize: '1.08rem', fontWeight: 600 }}>{card.label}</div>
+                  </div>
+                ))}
               </div>
-
               {/* Verification Chart */}
-              <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '20px' }}>
+              <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 8px rgba(30,41,59,0.04)', marginBottom: '24px' }}>
                 {createVerificationChart()}
               </div>
-
-              <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-                <h3 style={{ color: '#2d3a8c', margin: '0 0 15px 0' }}>Quick Actions</h3>
-                <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+              <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 8px rgba(30,41,59,0.04)' }}>
+                <h3 style={{ color: '#2563eb', margin: '0 0 18px 0', fontWeight: 700 }}>Quick Actions</h3>
+                <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap' }}>
                   <button
                     style={{
-                      background: '#2563eb',
+                      background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
                       color: '#fff',
                       border: 'none',
-                      borderRadius: '8px',
-                      padding: '10px 20px',
+                      borderRadius: 10,
+                      padding: '12px 28px',
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      boxShadow: '0 2px 8px rgba(37,99,235,0.13)',
                       cursor: 'pointer',
-                      fontWeight: '500',
-                      fontSize: '0.9rem'
+                      transition: 'background 0.2s',
                     }}
                     onClick={() => setActiveSection("Donor Requests")}
                   >
@@ -495,14 +542,16 @@ const MRODashboard = () => {
                   </button>
                   <button
                     style={{
-                      background: '#22c55e',
+                      background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                       color: '#fff',
                       border: 'none',
-                      borderRadius: '8px',
-                      padding: '10px 20px',
+                      borderRadius: 10,
+                      padding: '12px 28px',
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      boxShadow: '0 2px 8px rgba(34,197,94,0.13)',
                       cursor: 'pointer',
-                      fontWeight: '500',
-                      fontSize: '0.9rem'
+                      transition: 'background 0.2s',
                     }}
                     onClick={() => setActiveSection("Donor Registration Logs")}
                   >
@@ -510,14 +559,16 @@ const MRODashboard = () => {
                   </button>
                   <button
                     style={{
-                      background: '#f59e0b',
+                      background: 'linear-gradient(135deg, #f59e42 0%, #fbbf24 100%)',
                       color: '#fff',
                       border: 'none',
-                      borderRadius: '8px',
-                      padding: '10px 20px',
+                      borderRadius: 10,
+                      padding: '12px 28px',
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      boxShadow: '0 2px 8px rgba(251,191,36,0.13)',
                       cursor: 'pointer',
-                      fontWeight: '500',
-                      fontSize: '0.9rem'
+                      transition: 'background 0.2s',
                     }}
                     onClick={() => setActiveSection("Donation Logs")}
                   >

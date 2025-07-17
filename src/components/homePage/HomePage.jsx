@@ -31,6 +31,17 @@ const HomePage = () => {
   const [showArticle, setShowArticle] = useState(false);
   const [showMythsArticle, setShowMythsArticle] = useState(false);
   const [showWhoArticle, setShowWhoArticle] = useState(false);
+  const [successStories, setSuccessStories] = useState([]);
+  const [storyIdx, setStoryIdx] = useState(0);
+  const [loadingStories, setLoadingStories] = useState(true);
+  const [storiesError, setStoriesError] = useState(null);
+  const [showStoryPopup, setShowStoryPopup] = useState(false);
+  const [popupStory, setPopupStory] = useState(null);
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [loadingFeedbacks, setLoadingFeedbacks] = useState(true);
+  const [feedbacksError, setFeedbacksError] = useState(null);
+  const [donorFeedbackIdx, setDonorFeedbackIdx] = useState(0);
+  const [hospitalFeedbackIdx, setHospitalFeedbackIdx] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -54,6 +65,50 @@ const HomePage = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    // Fetch success stories
+    fetch('http://localhost/Liveonv2/backend_api/get_success_stories.php')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setSuccessStories(data.stories);
+        } else {
+          setStoriesError('Failed to load stories');
+        }
+        setLoadingStories(false);
+      })
+      .catch(() => {
+        setStoriesError('Failed to load stories');
+        setLoadingStories(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    // Fetch feedbacks
+    fetch('http://localhost/Liveon/backend_api/get_feedbacks.php')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setFeedbacks(data.feedbacks);
+        } else {
+          setFeedbacksError('Failed to load feedbacks');
+        }
+        setLoadingFeedbacks(false);
+      })
+      .catch(() => {
+        setFeedbacksError('Failed to load feedbacks');
+        setLoadingFeedbacks(false);
+      });
+  }, []);
+
+  // Filter feedbacks by role
+  const donorFeedbacks = feedbacks.filter(fb => fb.role === 'donor');
+  const hospitalFeedbacks = feedbacks.filter(fb => fb.role === 'hospital' || fb.role === 'mro');
+  const nextDonorFeedback = () => setDonorFeedbackIdx((donorFeedbackIdx + 1) % donorFeedbacks.length);
+  const prevDonorFeedback = () => setDonorFeedbackIdx((donorFeedbackIdx - 1 + donorFeedbacks.length) % donorFeedbacks.length);
+  const nextHospitalFeedback = () => setHospitalFeedbackIdx((hospitalFeedbackIdx + 1) % hospitalFeedbacks.length);
+  const prevHospitalFeedback = () => setHospitalFeedbackIdx((hospitalFeedbackIdx - 1 + hospitalFeedbacks.length) % hospitalFeedbacks.length);
 
   const handleLogoClick = () => {
     navigate('/');
@@ -100,22 +155,12 @@ const HomePage = () => {
   const handleHowItWorksPopup = (step) => setHowItWorksPopupStep(step);
   const closeHowItWorksPopup = () => setHowItWorksPopupStep(null);
 
-  const donorFeedbacks = [
-    { message: "LiveOn made my donation experience seamless and rewarding!", author: "Priya S., Donor" },
-    { message: "I love tracking the lives I've helped save. The reminders keep me consistent.", author: "Rahul K., Donor" },
-    { message: "The reward system motivates me to donate more often!", author: "Aisha M., Donor" }
-  ];
-  const hospitalFeedbacks = [
-    { message: "LiveOn's platform has improved our donor management tremendously.", author: "Dr. Mehta, MRO" },
-    { message: "The secure system gives us and our donors peace of mind.", author: "Nurse Lata, Hospital Staff" },
-    { message: "Real-time updates help us respond quickly to urgent needs.", author: "Dr. Singh, Hospital Admin" }
-  ];
-  const [donorFeedbackIdx, setDonorFeedbackIdx] = useState(0);
-  const [hospitalFeedbackIdx, setHospitalFeedbackIdx] = useState(0);
-  const nextDonorFeedback = () => setDonorFeedbackIdx((donorFeedbackIdx + 1) % donorFeedbacks.length);
-  const prevDonorFeedback = () => setDonorFeedbackIdx((donorFeedbackIdx - 1 + donorFeedbacks.length) % donorFeedbacks.length);
-  const nextHospitalFeedback = () => setHospitalFeedbackIdx((hospitalFeedbackIdx + 1) % hospitalFeedbacks.length);
-  const prevHospitalFeedback = () => setHospitalFeedbackIdx((hospitalFeedbackIdx - 1 + hospitalFeedbacks.length) % hospitalFeedbacks.length);
+  const nextStory = () => {
+    setStoryIdx((prev) => (successStories.length ? (prev + 1) % successStories.length : 0));
+  };
+  const prevStory = () => {
+    setStoryIdx((prev) => (successStories.length ? (prev - 1 + successStories.length) % successStories.length : 0));
+  };
 
   return (
     <div className="homepage-root">
@@ -383,15 +428,45 @@ const HomePage = () => {
           <p className="section-subtitle">Stories that inspire and save lives</p>
         </div>
         <div className="success-story-card-wrapper">
-          <button className="story-arrow story-arrow-left">&#8592;</button>
-          <div className="success-story-card">
-            {/* Placeholder for story content, update later */}
-            <div className="story-card-title">Story Title Here</div>
-            <div className="story-card-desc">Story content will go here. You can update this with real stories later.</div>
+          <button className="story-arrow story-arrow-left" onClick={prevStory}>&#8592;</button>
+          <div className="success-story-card" style={{cursor: successStories.length ? 'pointer' : 'default'}} onClick={() => {
+            if (successStories.length) {
+              setPopupStory(successStories[storyIdx]);
+              setShowStoryPopup(true);
+            }
+          }}>
+            {loadingStories ? (
+              <div>Loading stories...</div>
+            ) : storiesError ? (
+              <div style={{ color: 'red' }}>{storiesError}</div>
+            ) : successStories.length === 0 ? (
+              <div>No stories available yet.</div>
+            ) : (
+              <>
+                <div className="story-card-title">{successStories[storyIdx].title}</div>
+                <div className="story-card-desc">{successStories[storyIdx].message.slice(0, 120)}{successStories[storyIdx].message.length > 120 ? '...' : ''}</div>
+                <div style={{ fontSize: '0.9rem', color: '#64748b', marginTop: 8 }}>
+                  {new Date(successStories[storyIdx].created_at).toLocaleDateString()}
+                </div>
+                <div style={{marginTop: 10, fontSize: '0.95rem', color: '#2563eb', fontWeight: 600}}>Click to read more</div>
+              </>
+            )}
           </div>
-          <button className="story-arrow story-arrow-right">&#8594;</button>
+          <button className="story-arrow story-arrow-right" onClick={nextStory}>&#8594;</button>
         </div>
       </section>
+
+      {/* Story Popup Modal */}
+      {showStoryPopup && popupStory && (
+        <div className="article-overlay" onClick={() => setShowStoryPopup(false)}>
+          <div className="article-sheet" onClick={e => e.stopPropagation()} style={{maxWidth: 600}}>
+            <button className="close-article-btn" onClick={() => setShowStoryPopup(false)}>✖</button>
+            <h2 style={{fontWeight: 700, fontSize: '1.3rem', marginBottom: 8, color: '#2563eb'}}>{popupStory.title}</h2>
+            <div style={{fontSize: '0.98rem', color: '#64748b', marginBottom: 12}}>{new Date(popupStory.created_at).toLocaleString()}</div>
+            <div style={{fontWeight: 500, fontSize: '1.08rem', marginBottom: 8}}>{popupStory.message}</div>
+          </div>
+        </div>
+      )}
 
       {/* Contact Section */}
       <section id="feedback" className="feedback-section">
@@ -402,21 +477,44 @@ const HomePage = () => {
         <div className="feedback-cards-row">
           <div className="feedback-card-v2">
             <div className="feedback-type">Donor Feedback</div>
-            <div className="feedback-message">“{donorFeedbacks[donorFeedbackIdx].message}”</div>
-            <div className="feedback-author">{donorFeedbacks[donorFeedbackIdx].author}</div>
-            <div className="feedback-arrows">
-              <button className="feedback-arrow" onClick={prevDonorFeedback} aria-label="Previous Donor Feedback">&#8592;</button>
-              <button className="feedback-arrow" onClick={nextDonorFeedback} aria-label="Next Donor Feedback">&#8594;</button>
-            </div>
+            {loadingFeedbacks ? (
+              <div>Loading feedbacks...</div>
+            ) : feedbacksError ? (
+              <div style={{ color: 'red' }}>{feedbacksError}</div>
+            ) : donorFeedbacks.length === 0 ? (
+              <div>No donor feedbacks yet.</div>
+            ) : (
+              <>
+                <div className="feedback-message">“{donorFeedbacks[donorFeedbackIdx].message}”</div>
+                <div className="feedback-author">Donor - {donorFeedbacks[donorFeedbackIdx].donor_name || 'Unknown'}</div>
+                <div className="feedback-arrows">
+                  <button className="feedback-arrow" onClick={prevDonorFeedback} aria-label="Previous Donor Feedback">&#8592;</button>
+                  <button className="feedback-arrow" onClick={nextDonorFeedback} aria-label="Next Donor Feedback">&#8594;</button>
+                </div>
+              </>
+            )}
           </div>
           <div className="feedback-card-v2">
-            <div className="feedback-type">Hospital Feedback</div>
-            <div className="feedback-message">“{hospitalFeedbacks[hospitalFeedbackIdx].message}”</div>
-            <div className="feedback-author">{hospitalFeedbacks[hospitalFeedbackIdx].author}</div>
-            <div className="feedback-arrows">
-              <button className="feedback-arrow" onClick={prevHospitalFeedback} aria-label="Previous Hospital Feedback">&#8592;</button>
-              <button className="feedback-arrow" onClick={nextHospitalFeedback} aria-label="Next Hospital Feedback">&#8594;</button>
-            </div>
+            <div className="feedback-type">Hospital/MRO Feedback</div>
+            {loadingFeedbacks ? (
+              <div>Loading feedbacks...</div>
+            ) : feedbacksError ? (
+              <div style={{ color: 'red' }}>{feedbacksError}</div>
+            ) : hospitalFeedbacks.length === 0 ? (
+              <div>No hospital or MRO feedbacks yet.</div>
+            ) : (
+              <>
+                <div className="feedback-message">“{hospitalFeedbacks[hospitalFeedbackIdx].message}”</div>
+                <div className="feedback-author">
+                  {hospitalFeedbacks[hospitalFeedbackIdx].role === 'mro' ? 'MRO' : 'Hospital'}
+                  {hospitalFeedbacks[hospitalFeedbackIdx].hospital_name ? ' - ' + hospitalFeedbacks[hospitalFeedbackIdx].hospital_name : ''}
+                </div>
+                <div className="feedback-arrows">
+                  <button className="feedback-arrow" onClick={prevHospitalFeedback} aria-label="Previous Hospital Feedback">&#8592;</button>
+                  <button className="feedback-arrow" onClick={nextHospitalFeedback} aria-label="Next Hospital Feedback">&#8594;</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>

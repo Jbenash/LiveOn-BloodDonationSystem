@@ -1,5 +1,6 @@
 <?php
 session_start();
+
 // Allow requests from both development ports
 $allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -24,8 +25,8 @@ class HospitalDashboard
 
     public function handle()
     {
-        // Get hospital_id from hospitals table using user_id
-        $stmt = $this->pdo->prepare("SELECT hospital_id, name FROM hospitals WHERE user_id = ?");
+        // Fetch hospital details
+        $stmt = $this->pdo->prepare("SELECT hospital_id, name, location, contact_phone FROM hospitals WHERE user_id = ?");
         $stmt->execute([$this->hospitalUserId]);
         $hospital = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -33,51 +34,79 @@ class HospitalDashboard
             echo json_encode(['error' => 'Hospital not found']);
             exit();
         }
+
         $hospitalId = $hospital['hospital_id'];
 
-        // Fetch blood inventory for this hospital
-        $inventoryStmt = $this->pdo->prepare("SELECT blood_type, units_available FROM blood_inventory WHERE hospital_id = ?");
+        // Fetch blood inventory (using new blood_id format)
+        $inventoryStmt = $this->pdo->prepare("SELECT blood_id, blood_type, units_available FROM blood_inventory WHERE hospital_id = ?");
         $inventoryStmt->execute([$hospitalId]);
-        $inventoryRows = $inventoryStmt->fetchAll(PDO::FETCH_ASSOC);
+        $inventory = $inventoryStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Calculate percent for each blood type (assuming max 20 units for 100%)
-        $bloodInventory = array_map(function ($row) {
-            return [
-                'type' => $row['blood_type'],
-                'units' => (int)$row['units_available']
-            ];
-        }, $inventoryRows);
-
-        // Fetch all approved donors (common for all hospitals)
-        $donorStmt = $this->pdo->query("SELECT d.donor_id, u.name, d.blood_type, u.phone as contact, d.city as location, d.last_donation_date as lastDonation, d.status FROM donors d JOIN users u ON d.user_id = u.user_id WHERE d.status = 'approved'");
+        // Fetch all active donors (both available and not available)
+        $donorStmt = $this->pdo->query("
+            SELECT d.donor_id, u.name, d.blood_type, u.phone AS contact, d.city AS location, d.last_donation_date AS lastDonation, d.status, d.preferred_hospital_id, h.name AS preferred_hospital_name, u.email,
+                   (SELECT TIMESTAMPDIFF(YEAR, d.dob, mv.verification_date) FROM medical_verifications mv WHERE mv.donor_id = d.donor_id ORDER BY mv.verification_date DESC LIMIT 1) AS age
+            FROM donors d
+            JOIN users u ON d.user_id = u.user_id
+            LEFT JOIN hospitals h ON d.preferred_hospital_id = h.hospital_id
+            WHERE u.status = 'active'
+        ");
         $donors = [];
-        while ($donor = $donorStmt->fetch(PDO::FETCH_ASSOC)) {
+        while ($row = $donorStmt->fetch(PDO::FETCH_ASSOC)) {
             $donors[] = [
-                'name' => $donor['name'],
-                'bloodType' => $donor['blood_type'],
-                'contact' => $donor['contact'],
-                'location' => $donor['location'],
-                'lastDonation' => $donor['lastDonation'],
-                'status' => ($donor['status'] === 'approved' ? 'Available' : 'Unavailable')
+                'donor_id' => $row['donor_id'],
+                'name' => $row['name'],
+                'bloodType' => $row['blood_type'],
+                'contact' => $row['contact'],
+                'location' => $row['location'],
+                'lastDonation' => $row['lastDonation'],
+                'status' => $row['status'],
+                'preferredHospitalId' => $row['preferred_hospital_id'],
+                'preferredHospitalName' => $row['preferred_hospital_name'],
+                'email' => $row['email'],
+                'age' => $row['age'],
             ];
         }
 
-        $response = [
-            'name' => $hospital['name'],
-            'donors' => $donors,
-            'bloodInventory' => $bloodInventory
-        ];
+        // Fetch emergency requests log for this hospital
+        $emergencyStmt = $this->pdo->prepare("SELECT blood_type, status, required_units, created_at FROM emergency_requests WHERE hospital_id = ? ORDER BY created_at DESC");
+        $emergencyStmt->execute([$hospitalId]);
+        $emergencyRequests = $emergencyStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        echo json_encode($response);
+        // Final response
+        echo json_encode([
+            'name' => $hospital['name'],
+            'location' => $hospital['location'],
+            'contact' => $hospital['contact_phone'],
+            'donors' => $donors,
+            'bloodInventory' => array_map(function ($row) {
+                return [
+                    'bloodId' => $row['blood_id'],
+                    'type' => $row['blood_type'],
+                    'units' => (int)$row['units_available']
+                ];
+            }, $inventory),
+            'emergencyRequests' => array_map(function ($row) {
+                $isCritical = ($row['status'] === 'pending' && $row['required_units'] >= 5);
+                return [
+                    'bloodType' => $row['blood_type'],
+                    'status' => $isCritical ? 'Critical' : 'Normal',
+                    'requiredUnits' => (int)$row['required_units'],
+                    'createdAt' => $row['created_at']
+                ];
+            }, $emergencyRequests)
+        ]);
     }
 }
 
+// Authorization check
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'hospital') {
-    echo json_encode(['error' => 'Unauthorized']);
     http_response_code(401);
+    echo json_encode(['error' => 'Unauthorized']);
     exit();
 }
 
+// DB connection and dashboard handler
 require 'db_connection.php';
 $db = new Database();
 $pdo = $db->connect();
