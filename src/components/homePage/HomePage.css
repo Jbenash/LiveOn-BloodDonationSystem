@@ -52,7 +52,7 @@
 }
 
 .logo-svg {
-  height: 40px;
+  height: 100px;
   width: auto;
   filter: brightness(0) invert(1);
 }
@@ -1101,7 +1101,7 @@
   justify-content: center;
   align-items: stretch;
   flex-wrap: wrap;
-  margin: 0 auto;
+  margin: 40px auto 40px auto; /* Add 40px space above and below */
   max-width: 900px;
 }
 
@@ -1202,6 +1202,11 @@
     max-width: 400px;
   }
 } 
+
+.feedback-section {
+  padding: 80px 40px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
 
 .why-donate-cards {
   display: flex;
@@ -1512,7 +1517,7 @@
 }
 
 .footer-logo .logo-svg {
-  height: 36px;
+  height: 140px;
   filter: drop-shadow(0 2px 8px rgba(59, 130, 246, 0.3));
 }
 

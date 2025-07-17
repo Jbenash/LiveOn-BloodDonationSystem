@@ -1,25 +1,43 @@
+html, body {
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  background: #f7f7fa;
+}
+
 .mro-dashboard-container {
-    display: flex;
-    height: 100vh;
-    background: #f7f7fa;
-    font-family: 'Segoe UI', Arial, sans-serif;
-  }
-  
-  .sidebar {
-    width: 240px;
-    min-width: 240px;
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    padding: 32px 0 0 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    box-shadow: 2px 0 8px rgba(0,0,0,0.03);
-    height: auto;
-    min-height: 100vh;
-    transition: background 0.2s, width 0.3s;
-  }
-  
-  .logo {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background: #f7f7fa;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  padding: 0;
+  margin: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  background-clip: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 100;
+  border-radius: 0 !important;
+}
+
+.logo {
     font-size: 1.6rem;
     font-weight: bold;
     color: #fff;
@@ -43,9 +61,26 @@
     transition: background 0.2s, color 0.2s;
     display: flex;
     align-items: center;
-    justify-content: center;
-    text-align: center;
-    gap: 6px;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 12px;
+}
+
+.sidebar nav ul li .sidebar-label {
+  text-align: left;
+  display: block;
+}
+
+.sidebar nav ul li .sidebar-badge {
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar nav ul li span {
+  flex-shrink: 0;
 }
   
   .sidebar nav ul li.active, .sidebar nav ul li:hover {
@@ -55,7 +90,8 @@
   }
   
   .dashboard-main {
-    flex: 1;
+    margin-left: 240px;
+    width: calc(100vw - 240px);
     padding: 32px 40px;
     overflow-y: auto;
   }
