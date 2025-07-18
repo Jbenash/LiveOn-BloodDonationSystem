@@ -186,7 +186,7 @@ const HospitalDashboard = () => {
               {/* Blood Inventory and Emergency Requests */}
               <div style={{ display: 'flex', gap: '28px', marginBottom: '36px' }}>
                 {/* Blood Inventory */}
-                <div className="dashboard-section" style={{ flex: 1, padding: '24px', borderRadius: '16px', boxShadow: '0 2px 8px rgba(30,41,59,0.04)' }}>
+        <div className="dashboard-section" style={{ flex: 1, padding: '24px', borderRadius: '16px', boxShadow: '0 2px 8px rgba(30,41,59,0.04)' }}>
                   <h2 style={{ color: '#2d3a8c', fontWeight: 700, marginBottom: 18 }}>Blood Inventory</h2>
                   <div className="inventory-list">
                     {bloodInventory.length > 0 ? (
@@ -206,6 +206,7 @@ const HospitalDashboard = () => {
                             >
                               <div className={`inventory-bar ${levelClass}`} style={{ width: `${width}%` }}>
                                 <span className="inventory-bar-label">{item.units}</span>
+
                               </div>
                             </div>
                             <span className="inventory-units">{item.units} units</span>
