@@ -94,17 +94,9 @@ try {
     $mail->addAttachment($donor_card_path, 'DonorCard.pdf');
 
     $mail->isHTML(true);
-    $mail->Subject = 'Your Donor Verification Details';
-    $mail->Body = '<h3>Dear ' . htmlspecialchars($input['full_name']) . ',</h3>' .
-        '<p>Your donor verification is complete. Here are your details:</p>' .
-        '<ul>' .
-        '<li><strong>Donor ID:</strong> ' . htmlspecialchars($input['donor_id']) . '</li>' .
-        '<li><strong>Full Name:</strong> ' . htmlspecialchars($input['full_name']) . '</li>' .
-        '<li><strong>Blood Group:</strong> ' . htmlspecialchars($input['blood_group']) . '</li>' .
-        '</ul>' .
-        '<p>Thank you for being a lifesaver!</p>';
-
-    $mail->AltBody = "Dear {$input['full_name']},\nYour donor verification is complete.\nDonor ID: {$input['donor_id']}\nFull Name: {$input['full_name']}\nBlood Group: {$input['blood_group']}\nThank you for being a lifesaver!";
+    $mail->Subject = 'Your Donor Card';
+    $mail->Body = '<p>Please find your donor card attached.</p>';
+    $mail->AltBody = 'Please find your donor card attached.';
 
     $mail->send();
     echo json_encode(['success' => true, 'message' => 'Email sent successfully']);

@@ -204,7 +204,7 @@ const HospitalDashboard = () => {
                               <div className="inventory-item" key={idx}>
                                 <span className="blood-type">{item.type}</span>
                                 <div
-                                  className={`inventory-bar-container clickable`}
+                                  className="inventory-bar-container clickable"
                                   onClick={() => {
                                     setSelectedBloodType(item.type);
                                     setShowDonorPopup(true);

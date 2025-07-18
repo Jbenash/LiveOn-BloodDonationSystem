@@ -25,7 +25,7 @@ if ($conn->connect_error) {
 }
 
 $sql = "SELECT d.donor_id, u.name AS full_name, u.email, d.blood_type AS blood_group, 
-        d.address, d.city, d.preferred_hospital_id, h.name AS preferred_hospital_name, d.last_donation_date, d.lives_saved, d.status
+        d.address, d.city, d.preferred_hospital_id, h.name AS preferred_hospital_name, d.last_donation_date, d.lives_saved, d.status, mv.verification_date AS verification_date
 FROM donors d
 INNER JOIN users u ON d.user_id = u.user_id
 INNER JOIN medical_verifications mv ON d.donor_id = mv.donor_id
