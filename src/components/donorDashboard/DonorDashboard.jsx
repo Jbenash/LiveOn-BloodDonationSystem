@@ -44,43 +44,71 @@ const DonorDashboard = () => {
   if (!user) return <div>Loading dashboard...</div>;
 
   return (
-    <div className="donor-dashboard-root">
-      {/* Animated Background */}
-      <div className="dashboard-background">
-        <div className="dashboard-grid"></div>
-        <div className="dashboard-particles"></div>
-      </div>
-
-      {/* Sidebar */}
-      <aside className="dashboard-sidebar">
-        <div>
-          <div className="dashboard-logo" onClick={() => navigate('/')}> 
-            <img src={logo} alt="LiveOn Logo" className="logo-svg" />
+    <div className="donor-dashboard-container">
+      <aside className="sidebar" style={{ width: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100vh' }}>
+        <div style={{ width: '100%' }}>
+          <div className="logo" style={{ cursor: 'pointer', padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginLeft: 32, marginBottom: 40 }} onClick={() => navigate('/') }>
+            <img src={logo} alt="LiveOn Logo" style={{ height: 120, width: 'auto', display: 'block' }} />
           </div>
           <nav>
-            <ul>
-              <li className={activeSection === 'dashboard' ? 'active' : ''} onClick={() => setActiveSection('dashboard')}><span className="icon dashboard" />Dashboard</li>
-              <li className={activeSection === 'profile' ? 'active' : ''} onClick={() => setActiveSection('profile')}><span className="icon profile" />Profile</li>
-              <li className={activeSection === 'donations' ? 'active' : ''} onClick={() => setActiveSection('donations')}><span className="icon donations" />Donations</li>
-              <li className={activeSection === 'rewards' ? 'active' : ''} onClick={() => setActiveSection('rewards')}><span className="icon rewards" />Rewards</li>
-              <li className={activeSection === 'feedback' ? 'active' : ''} onClick={() => setActiveSection('feedback')}><span className="icon feedback" />Feedback</li>
-              <li onClick={handleLogout}><span className="icon logout" />Logout</li>
+            <ul style={{ padding: 0, margin: 0 }}>
+              <li className={activeSection === 'dashboard' ? 'active' : ''} onClick={() => setActiveSection('dashboard')}
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+                <span className="sidebar-label">Dashboard</span>
+              </li>
+              <li className={activeSection === 'profile' ? 'active' : ''} onClick={() => setActiveSection('profile')}
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+                <span className="sidebar-label">Profile</span>
+              </li>
+              <li className={activeSection === 'donations' ? 'active' : ''} onClick={() => setActiveSection('donations')}
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+                <span className="sidebar-label">Donations</span>
+              </li>
+              <li className={activeSection === 'rewards' ? 'active' : ''} onClick={() => setActiveSection('rewards')}
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+                <span className="sidebar-label">Rewards</span>
+              </li>
+              <li className={activeSection === 'feedback' ? 'active' : ''} onClick={() => setActiveSection('feedback')}
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+                <span className="sidebar-label">Feedback</span>
+              </li>
             </ul>
           </nav>
         </div>
+        <button
+          onClick={handleLogout}
+          style={{
+            width: '90%',
+            margin: '0 auto 24px auto',
+            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 10,
+            padding: '14px 0',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(220,38,38,0.13)',
+            transition: 'background 0.2s',
+          }}
+        >
+          <span style={{ fontSize: 20, display: 'flex', alignItems: 'center' }}>⎋</span> Logout
+        </button>
       </aside>
-
-      {/* Main Content */}
       <div className="dashboard-main">
-        <header className="dashboard-header glassy">
-          <div className="dashboard-header-row">
-            <span className="dashboard-title gradient-text">Donor Dashboard</span>
-            <div className="dashboard-user-info">
-              <img src={user.profilePic} alt="Profile" className="dashboard-user-avatar" style={{ cursor: 'pointer' }} onClick={() => setActiveSection('profile')} />
-              <span className="dashboard-user-name">Welcome, {user.name}</span>
-            </div>
+        <div className="dashboard-section" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 36, padding: '28px 32px' }}>
+          <header className="dashboard-header" style={{ margin: 0 }}>
+            <h1 style={{ margin: 0 }}>Donor Dashboard</h1>
+          </header>
+          <div className="dashboard-user-info">
+            <img src={user.profilePic} alt="Profile" className="dashboard-user-avatar" onClick={() => setActiveSection('profile')} />
+            <span className="dashboard-user-name">Welcome, {user.name}</span>
           </div>
-        </header>
+        </div>
         <div className="dashboard-content">
           {activeSection === 'profile' && (
             <div className="dashboard-stats-grid">
