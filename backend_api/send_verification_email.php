@@ -28,7 +28,7 @@ if (!$input) {
     exit();
 }
 
-$required_fields = ['donor_id', 'full_name', 'blood_group', 'email'];
+$required_fields = ['donor_id', 'email'];
 foreach ($required_fields as $field) {
     if (empty($input[$field])) {
         http_response_code(400);

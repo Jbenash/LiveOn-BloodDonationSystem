@@ -120,126 +120,104 @@ try {
     $stmt4->close();
 
     // Generate donor card PDF
-    // Make sure Dompdf is properly imported
-    use Dompdf\Dompdf;
-
+    // (Dompdf is already imported at the top)
     $dompdf = new Dompdf();
     $html = '<!DOCTYPE html>
     <html>
     <head>
-        <!-- Font Awesome CDN for icons (may not work in PDF rendering) -->
-        <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"> -->
         <style>
             body {
                 margin: 0;
                 padding: 0;
                 font-family: Arial, sans-serif;
             }
-            .card {
-                width: 85.6mm; /* Credit card width */
-                height: 54mm;   /* Credit card height */
-                border: 4px solid #dc3545;
-                border-radius: 15px;
-                background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-                position: relative;
-                overflow: hidden;
-                box-shadow: 0 8px 16px rgba(220, 53, 69, 0.3);
+            .donor-card-container {
+                border: 3px solid #dc3545;
+                border-radius: 16px;
+                max-width: 700px;
+                margin: 30px auto;
+                padding: 32px 24px 24px 24px;
+                background: #fff;
             }
-            .header {
-                background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-                color: white;
-                padding: 15px;
+            .donor-card-title {
                 text-align: center;
-                font-size: 22px;
-                font-weight: bold;
-                border-radius: 11px 11px 0 0;
-                position: relative;
-            }
-            .logo {
-                position: absolute;
-                right: 15px;
-                top: 50%;
-                transform: translateY(-50%);
-                font-size: 45px;
                 color: #dc3545;
-                opacity: 0.3;
-            }
-            .content {
-                padding: 20px;
-                font-size: 16px;
-            }
-            .info-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 12px;
-                border-bottom: 2px solid #f0f0f0;
-                padding-bottom: 8px;
-            }
-            .label {
+                font-size: 2.2rem;
                 font-weight: bold;
-                color: #333;
-                min-width: 100px;
-                font-size: 16px;
+                margin-bottom: 0.5rem;
             }
-            .value {
-                color: #dc3545;
+            .donor-card-subtitle {
+                text-align: center;
+                font-size: 1.1rem;
+                color: #444;
+                margin-bottom: 1.2rem;
+            }
+            .donor-card-divider {
+                border: none;
+                border-top: 3px dashed #dc3545;
+                margin: 18px 0 28px 0;
+            }
+            .donor-card-table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0 10px;
+                margin-bottom: 32px;
+            }
+            .donor-card-table td {
+                padding: 8px 12px;
+                font-size: 1.13rem;
+            }
+            .donor-card-table .label {
+                font-weight: bold;
+                color: #222;
+                width: 160px;
                 text-align: right;
-                flex: 1;
-                font-weight: bold;
-                font-size: 18px;
             }
-            .footer {
-                position: absolute;
-                bottom: 10px;
-                right: 15px;
-                font-size: 10px;
-                color: #666;
+            .donor-card-table .value {
+                background: #fde8ea;
+                color: #b91c1c;
+                font-weight: bold;
+                border-radius: 4px;
+                min-width: 220px;
+                text-align: left;
+            }
+            .donor-card-thankyou {
+                text-align: center;
+                margin-top: 18px;
+                font-size: 1.13rem;
+                color: #222;
+            }
+            .donor-card-thankyou strong {
+                color: #dc3545;
                 font-weight: bold;
             }
-            .card-number {
-                position: absolute;
-                bottom: 35px;
-                left: 20px;
-                font-size: 14px;
-                color: #666;
-                font-weight: bold;
+            .donor-card-footer {
+                text-align: center;
+                color: #888;
+                font-size: 0.98rem;
+                margin-top: 32px;
             }
         </style>
     </head>
     <body>
-    <div class="card">
-        <div class="header">
-            DONOR CARD
-            <div class="logo"><i class="fas fa-tint"></i></div>
-        </div>
-        <div class="content">
-            <div class="info-row">
-                <span class="label">Donor ID:</span>
-                <span class="value">' . htmlspecialchars($donor_id) . '</span>
-            </div>
-            <div class="info-row">
-                <span class="label">Name:</span>
-                <span class="value">' . htmlspecialchars($data['full_name'] ?? '') . '</span>
-            </div>
-            <div class="info-row">
-                <span class="label">Blood Group:</span>
-                <span class="value">' . htmlspecialchars($blood_group) . '</span>
-            </div>
-            <div class="info-row">
-                <span class="label">Issued:</span>
-                <span class="value">' . date('d/m/Y') . '</span>
-            </div>
-        </div>
-        <div class="card-number">CARD NO: ' . strtoupper(substr($donor_id, 0, 8)) . '</div>
-        <div class="footer">
-            LiveOn Blood Donation System
-        </div>
+    <div class="donor-card-container">
+        <div class="donor-card-title">LiveOn - Blood Donor Card</div>
+        <div class="donor-card-subtitle">"You are a lifesaver!"</div>
+        <hr class="donor-card-divider" />
+        <table class="donor-card-table">
+            <tr><td class="label">Donor Name:</td><td class="value">' . htmlspecialchars($data['full_name'] ?? '') . '</td></tr>
+            <tr><td class="label">Blood Group:</td><td class="value">' . htmlspecialchars($blood_group) . '</td></tr>
+            <tr><td class="label">Registration Date:</td><td class="value">' . ($verification_date ? htmlspecialchars($verification_date) : date('Y-m-d')) . '</td></tr>
+            <tr><td class="label">Donor ID:</td><td class="value">' . htmlspecialchars($donor_id) . '</td></tr>
+        </table>
+        <div class="donor-card-thankyou">Thank you for your generous registration.<br><strong>You truly save lives!</strong></div>
+        <div class="donor-card-footer">This card was auto-generated by the LiveOn Blood Donation System.</div>
     </div>
     </body>
     </html>';
 
     $dompdf->loadHtml($html);
-    $dompdf->setPaper('A5', 'landscape');
+    $dompdf->setPaper('A4', 'portrait');
     $dompdf->render();
     $pdfOutput = $dompdf->output();
 
