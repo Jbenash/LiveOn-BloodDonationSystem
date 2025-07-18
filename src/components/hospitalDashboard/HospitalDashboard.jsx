@@ -8,7 +8,7 @@ const HospitalDashboard = () => {
   const [hospital, setHospital] = useState(null);
   const [donors, setDonors] = useState([]);
   const [bloodInventory, setBloodInventory] = useState([]);
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSection] = useState('Overview');
   const [emergencyRequests, setEmergencyRequests] = useState([]);
   const [showEmergencyPopup, setShowEmergencyPopup] = useState(false);
   const [emergencyBloodType, setEmergencyBloodType] = useState('');
@@ -51,23 +51,6 @@ const HospitalDashboard = () => {
     setShowDonationRequestPopup(true);
   };
 
-  // Remove or comment out the old sendEmergencyRequest function
-  // const sendEmergencyRequest = () => {
-  //   fetch('http://localhost/liveonv2/backend_api/emergency_request.php', {
-  //     method: 'POST',
-  //     credentials: 'include',
-  //     headers: { 'Content-Type': 'application/json' },
-  //     body: JSON.stringify({ type: 'general' })
-  //   })
-  //     .then(res => res.json())
-  //     .then(data => {
-  //       alert(data.message || 'Emergency request sent');
-  //     })
-  //     .catch(err => {
-  //       alert('Failed to send emergency request');
-  //     });
-  // };
-
   const handleLogout = () => {
     fetch('http://localhost/liveonv2/backend_api/logout.php', {
       method: 'POST',
@@ -81,66 +64,80 @@ const HospitalDashboard = () => {
       });
   };
 
-  // Helper to filter donors by blood type
   const donorsByBloodType = (type) => donors.filter(d => d.bloodType === type);
 
   if (!hospital) return <div>Loading dashboard...</div>;
 
-  const sectionTitles = {
-    dashboard: 'Hospital Overview',
-    donors: 'Donors',
-    inventory: 'Blood Inventory',
-    requests: 'Emergency Requests',
-  };
-
   return (
-    <div className="hospital-dashboard-root">
-      <div className="dashboard-background">
-        <div className="dashboard-grid"></div>
-        <div className="dashboard-particles"></div>
-      </div>
-
-      {/* Sidebar */}
-      <aside className="dashboard-sidebar">
-        <div>
-          <div className="dashboard-logo" onClick={() => navigate('/')}>
-            <img src={logo} alt="LiveOn Logo" className="logo-svg" />
+    <div className="mro-dashboard-container">
+      <aside className="sidebar" style={{ width: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100vh' }}>
+        <div style={{ width: '100%' }}>
+          <div className="logo" style={{ cursor: 'pointer', padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginLeft: 32 }} onClick={() => navigate('/') }>
+            <img src={logo} alt="LiveOn Logo" style={{ height: 120, width: 'auto', display: 'block' }} />
           </div>
           <nav>
-            <ul>
-              <li className={activeSection === 'dashboard' ? 'active' : ''} onClick={() => setActiveSection('dashboard')}><span className="icon dashboard" />Overview</li>
-              <li className={activeSection === 'donors' ? 'active' : ''} onClick={() => setActiveSection('donors')}><span className="icon donors" />Donors</li>
-              <li className={activeSection === 'inventory' ? 'active' : ''} onClick={() => setActiveSection('inventory')}><span className="icon inventory" />Inventory</li>
-              <li className={activeSection === 'requests' ? 'active' : ''} onClick={() => setActiveSection('requests')}><span className="icon requests" />Requests</li>
+            <ul style={{ padding: 0, margin: 0 }}>
+              <li className={activeSection === 'Overview' ? 'active' : ''} onClick={() => setActiveSection('Overview')}
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+                <span className="sidebar-label">Overview</span>
+              </li>
+              <li className={activeSection === 'Donors' ? 'active' : ''} onClick={() => setActiveSection('Donors')}
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+                <span className="sidebar-label">Donors</span>
+              </li>
+              <li className={activeSection === 'Inventory' ? 'active' : ''} onClick={() => setActiveSection('Inventory')}
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+                <span className="sidebar-label">Inventory</span>
+              </li>
+              <li className={activeSection === 'Requests' ? 'active' : ''} onClick={() => setActiveSection('Requests')}
+                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+                <span className="sidebar-label">Requests</span>
+              </li>
             </ul>
           </nav>
         </div>
-        <button className="logout-btn" onClick={handleLogout}>
-          Logout
+        <button
+          onClick={handleLogout}
+          style={{
+            width: '90%',
+            margin: '0 auto 24px auto',
+            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 10,
+            padding: '14px 0',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(220,38,38,0.13)',
+            transition: 'background 0.2s',
+          }}
+        >
+          <span style={{ fontSize: 20, display: 'flex', alignItems: 'center' }}>⎋</span> Logout
         </button>
       </aside>
-
-      {/* Main Content */}
-      <div className="dashboard-main">
-        <header className="dashboard-card glassy animate-fadein dashboard-header-card">
-          <div className="dashboard-header-row">
-            <span className="dashboard-title gradient-text">{sectionTitles[activeSection]}</span>
-            <div className="dashboard-user-info">
-              <img src={userImg} alt="Profile" className="dashboard-user-avatar" />
-              <span className="dashboard-user-name">{hospital.name || 'Hospital'}</span>
+      <main className="dashboard-main" style={{ display: 'flex', gap: '24px' }}>
+        <div style={{ flex: 2 }}>
+          {/* Dashboard Header: Hospital Dashboard ... Hospital Name */}
+          <div className="dashboard-section" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 36, padding: '28px 32px' }}>
+            <h1 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#222', margin: 0 }}>Hospital Dashboard</h1>
+            <div style={{ fontSize: '1.15rem', fontWeight: 600, color: '#2563eb', marginLeft: 24, whiteSpace: 'nowrap' }}>
+              <span>🏥 {hospital.name}</span>
             </div>
           </div>
-        </header>
-
-        <div className="dashboard-content">
-          {activeSection === 'dashboard' && (
-            <div className="dashboard-stats-grid">
-
-              {/* Donor Availability */}
-              <div className="dashboard-card glassy animate-fadein">
-                <div className="profile-summary-title gradient-text">Donor Availability</div>
+          {/* Section Tabs (if needed) */}
+          {/* Section Content */}
+          {activeSection === 'Overview' && (
+            <section className="dashboard-section" style={{ background: 'transparent', boxShadow: 'none', padding: 0 }}>
+              {/* Donor Availability Table */}
+              <div style={{ marginBottom: '36px' }}>
+                <h2 style={{ color: '#2d3a8c', fontWeight: 700, marginBottom: 18 }}>Donor Availability</h2>
                 <div className="donor-table-wrapper">
-                  <table className="donor-table">
+                  <table className="dashboard-table">
                     <thead>
                       <tr>
                         <th>Full Name</th>
@@ -186,77 +183,96 @@ const HospitalDashboard = () => {
                   </table>
                 </div>
               </div>
-
-              {/* Row for Blood Inventory and Emergency Requests */}
-              <div className="dashboard-row-cards">
+              {/* Blood Inventory and Emergency Requests */}
+              <div style={{ display: 'flex', gap: '28px', marginBottom: '36px' }}>
                 {/* Blood Inventory */}
-                <div className="dashboard-card glassy animate-fadein small-card">
-                  <div className="dashboard-card-inner">
-                    <div className="dashboard-card-title">Blood Inventory</div>
-                    <div className="dashboard-card-content">
-                      <div className="inventory-list">
-                        {bloodInventory.length > 0 ? (
-                          bloodInventory.map((item, idx) => {
-                            const width = Math.min(100, (item.units / 20) * 100);
-                            const levelClass = item.units < 4 ? 'low' : item.units < 10 ? 'medium' : 'high';
+        <div className="dashboard-section" style={{ flex: 1, padding: '24px', borderRadius: '16px', boxShadow: '0 2px 8px rgba(30,41,59,0.04)' }}>
+                  <h2 style={{ color: '#2d3a8c', fontWeight: 700, marginBottom: 18 }}>Blood Inventory</h2>
+                  <div className="inventory-list">
+                    {bloodInventory.length > 0 ? (
+                      bloodInventory.map((item, idx) => {
+                        const width = Math.min(100, (item.units / 20) * 100);
+                        const levelClass = item.units < 4 ? 'low' : item.units < 10 ? 'medium' : 'high';
+                        return (
+                          <div className="inventory-item" key={idx}>
+                            <span className="blood-type">{item.type}</span>
+                            <div
+                              className="inventory-bar-container clickable"
+                              onClick={() => {
+                                setSelectedBloodType(item.type);
+                                setShowDonorPopup(true);
+                              }}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              <div className={`inventory-bar ${levelClass}`} style={{ width: `${width}%` }}>
+                                <span className="inventory-bar-label">{item.units}</span>
 
-                            return (
-                              <div className="inventory-item" key={idx}>
-                                <span className="blood-type">{item.type}</span>
-                                <div
-                                  className="inventory-bar-container clickable"
-                                  onClick={() => {
-                                    setSelectedBloodType(item.type);
-                                    setShowDonorPopup(true);
-                                  }}
-                                  style={{ cursor: 'pointer' }}
-                                >
-                                  <div className={`inventory-bar ${levelClass}`} style={{ width: `${width}%` }}>
-                                    <span className="inventory-bar-label">{item.units}</span>
-                                  </div>
-                                </div>
-                                <span className="inventory-units">{item.units} units</span>
                               </div>
-                            );
-                          })
-                        ) : (
-                          <div>No blood inventory data</div>
-                        )}
-                      </div>
-                    </div>
+                            </div>
+                            <span className="inventory-units">{item.units} units</span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div>No blood inventory data</div>
+                    )}
                   </div>
                 </div>
-
-                {/* Emergency Request */}
-                <div className="dashboard-card glassy animate-fadein small-card">
-                  <div className="dashboard-card-inner">
-                    <div className="dashboard-card-title">Emergency Requests</div>
-                    <div className="dashboard-card-content">
-                      <button className="dashboard-btn primary" onClick={() => setShowEmergencyPopup(true)}>
-                        SEND EMERGENCY REQUEST
-                      </button>
-                      <div className="emergency-warning">
-                        <span className="warning-icon">⚠️</span> Low blood volume detected for O- and AB+
-                      </div>
-                    </div>
+                {/* Emergency Requests */}
+                <div className="dashboard-section" style={{ flex: 1, padding: '24px', borderRadius: '16px', boxShadow: '0 2px 8px rgba(30,41,59,0.04)' }}>
+                  <h2 style={{ color: '#2d3a8c', fontWeight: 700, marginBottom: 18 }}>Emergency Requests</h2>
+                  <button className="dashboard-btn primary" onClick={() => setShowEmergencyPopup(true)}>
+                    SEND EMERGENCY REQUEST
+                  </button>
+                  <div className="emergency-warning" style={{ marginTop: 16 }}>
+                    <span className="warning-icon">⚠️</span> Low blood volume detected for O- and AB+
                   </div>
+                  {/* Emergency Request Log */}
+                  {emergencyRequests.length > 0 ? (
+                    <div style={{ marginTop: '1.5rem' }}>
+                      <h3 style={{ color: '#2563eb', marginBottom: 12 }}>Emergency Request Log</h3>
+                      <table className="dashboard-table">
+                        <thead>
+                          <tr>
+                            <th>Blood Type</th>
+                            <th>Status</th>
+                            <th>Required Units</th>
+                            <th>Time Sent</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {emergencyRequests.map((req, idx) => (
+                            <tr key={idx}>
+                              <td>{req.bloodType}</td>
+                              <td>
+                                <span className={`status ${req.status === 'Critical' ? 'unavailable' : 'available'}`}>{req.status}</span>
+                              </td>
+                              <td>{req.requiredUnits}</td>
+                              <td>{new Date(req.createdAt).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: '1.5rem' }}>No emergency requests found.</div>
+                  )}
                 </div>
               </div>
-            </div>
+            </section>
           )}
-
-          {/* Other Sections (placeholders for future) */}
-          {activeSection === 'donors' && (
-            <div className="dashboard-card glassy animate-fadein">
-              <div className="profile-summary-title gradient-text">Donor Availability</div>
+          {activeSection === 'Donors' && (
+            <section className="dashboard-section">
+              <h2>Donors</h2>
               <div className="donor-table-wrapper">
-                <table className="donor-table">
+                <table className="dashboard-table">
                   <thead>
                     <tr>
                       <th>Full Name</th>
                       <th>Blood Type</th>
                       <th>Contact Info</th>
                       <th>Location</th>
+                      <th>Preferred Hospital</th>
                       <th>Last Donation</th>
                       <th>Status</th>
                       <th>Action</th>
@@ -270,6 +286,7 @@ const HospitalDashboard = () => {
                           <td>{donor.bloodType}</td>
                           <td>{donor.contact}</td>
                           <td>{donor.location}</td>
+                          <td>{donor.preferredHospitalName || donor.preferredHospitalId || 'Not specified'}</td>
                           <td>{donor.lastDonation || 'N/A'}</td>
                           <td>
                             <span className={`status ${donor.status === 'available' ? 'available' : 'unavailable'}`}>
@@ -288,295 +305,285 @@ const HospitalDashboard = () => {
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan="7">No donors available</td></tr>
+                      <tr><td colSpan="8">No donors available</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
+            </section>
+          )}
+          {activeSection === 'Inventory' && (
+            <section className="dashboard-section">
+              <h2>Blood Inventory</h2>
+              <div className="inventory-list">
+                {bloodInventory.length > 0 ? (
+                  bloodInventory.map((item, idx) => {
+                    const width = Math.min(100, (item.units / 20) * 100);
+                    const levelClass = item.units < 4 ? 'low' : item.units < 10 ? 'medium' : 'high';
+                    return (
+                      <div className="inventory-item" key={idx}>
+                        <span className="blood-type">{item.type}</span>
+                        <div
+                          className="inventory-bar-container clickable"
+                          onClick={() => {
+                            setSelectedBloodType(item.type);
+                            setShowDonorPopup(true);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className={`inventory-bar ${levelClass}`} style={{ width: `${width}%` }}>
+                            <span className="inventory-bar-label">{item.units}</span>
+                          </div>
+                        </div>
+                        <span className="inventory-units">{item.units} units</span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div>No blood inventory data</div>
+                )}
+              </div>
+            </section>
+          )}
+          {activeSection === 'Requests' && (
+            <section className="dashboard-section">
+              <h2>Emergency Requests</h2>
+              <button className="dashboard-btn primary" onClick={() => setShowEmergencyPopup(true)}>
+                SEND EMERGENCY REQUEST
+              </button>
+              <div className="emergency-warning" style={{ marginTop: 16 }}>
+                <span className="warning-icon">⚠️</span> Low blood volume detected for O- and AB+
+              </div>
+              {/* Emergency Request Log */}
+              {emergencyRequests.length > 0 ? (
+                <div style={{ marginTop: '1.5rem' }}>
+                  <h3 style={{ color: '#2563eb', marginBottom: 12 }}>Emergency Request Log</h3>
+                  <table className="dashboard-table">
+                    <thead>
+                      <tr>
+                        <th>Blood Type</th>
+                        <th>Status</th>
+                        <th>Required Units</th>
+                        <th>Time Sent</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {emergencyRequests.map((req, idx) => (
+                        <tr key={idx}>
+                          <td>{req.bloodType}</td>
+                          <td>
+                            <span className={`status ${req.status === 'Critical' ? 'unavailable' : 'available'}`}>{req.status}</span>
+                          </td>
+                          <td>{req.requiredUnits}</td>
+                          <td>{new Date(req.createdAt).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ marginTop: '1.5rem' }}>No emergency requests found.</div>
+              )}
+            </section>
+          )}
+          {/* Popups/Modals (reuse existing logic) */}
+          {showEmergencyPopup && (
+            <div className="popup-overlay">
+              <div className="popup-form">
+                <button className="popup-close" onClick={() => setShowEmergencyPopup(false)}>&times;</button>
+                <h3>Send Emergency Request</h3>
+                <label>
+                  Blood Type:
+                  <select value={emergencyBloodType} onChange={e => setEmergencyBloodType(e.target.value)}>
+                    <option value="">Select</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                  </select>
+                </label>
+                <label>
+                  Required Units:
+                  <input
+                    type="number"
+                    min="1"
+                    value={emergencyUnits}
+                    onChange={e => setEmergencyUnits(e.target.value)}
+                  />
+                </label>
+                {emergencyError && <div className="error-message" style={{ color: 'red', marginTop: '0.5rem' }}>{emergencyError}</div>}
+                <div className="modal-actions">
+                  <button
+                    className="dashboard-btn primary"
+                    onClick={() => {
+                      if (!emergencyBloodType && !emergencyUnits) {
+                        setEmergencyError('You have to enter both blood type and required units.');
+                        return;
+                      } else if (!emergencyBloodType) {
+                        setEmergencyError('You forgot to enter blood type.');
+                        return;
+                      } else if (!emergencyUnits) {
+                        setEmergencyError('You forgot to enter blood units.');
+                        return;
+                      }
+                      setEmergencyError('');
+                      fetch('http://localhost/liveonv2/backend_api/emergency_request.php', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          blood_type: emergencyBloodType,
+                          required_units: emergencyUnits
+                        })
+                      })
+                        .then(res => res.json())
+                        .then(data => {
+                          setShowEmergencyPopup(false);
+                          setEmergencyBloodType('');
+                          setEmergencyUnits('');
+                          setShowRequestSentPopup(true);
+                        })
+                        .catch(err => {
+                          setEmergencyError('Failed to send emergency request');
+                        });
+                    }}
+                  >
+                    Send to All Donors
+                  </button>
+                  <button className="dashboard-btn" onClick={() => { setShowEmergencyPopup(false); setEmergencyError(''); }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
             </div>
           )}
-          {activeSection === 'inventory' && (
-            <div className="dashboard-card glassy animate-fadein">
-              <div className="dashboard-card-title">Blood Inventory</div>
-              <div className="dashboard-card-content">
-                <div className="inventory-list">
-                  {bloodInventory.length > 0 ? (
-                    bloodInventory.map((item, idx) => {
-                      const width = Math.min(100, (item.units / 20) * 100);
-                      const levelClass = item.units < 4 ? 'low' : item.units < 10 ? 'medium' : 'high';
-                      return (
-                        <div className="inventory-item" key={idx}>
-                          <span className="blood-type">{item.type}</span>
-                          <div
-                            className="inventory-bar-container clickable"
-                            onClick={() => {
-                              setSelectedBloodType(item.type);
-                              setShowDonorPopup(true);
-                            }}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            <div className={`inventory-bar ${levelClass}`} style={{ width: `${width}%` }}>
-                              <span className="inventory-bar-label">{item.units}</span>
-                            </div>
-                          </div>
-                          <span className="inventory-units">{item.units} units</span>
+          {showRequestSentPopup && (
+            <div className="popup-overlay">
+              <div className="popup-form">
+                <h3>Request Sent</h3>
+                <p>Your emergency request has been sent successfully!</p>
+                <div className="modal-actions">
+                  <button className="dashboard-btn primary" onClick={() => setShowRequestSentPopup(false)}>
+                    OK
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {showDonationRequestPopup && (
+            <div className="popup-overlay">
+              <div className="popup-form">
+                <button className="popup-close" onClick={() => setShowDonationRequestPopup(false)}>&times;</button>
+                <h3>Request Donation</h3>
+                <label>
+                  Hospital Name:
+                  <input
+                    type="text"
+                    value={donationHospitalName}
+                    onChange={e => setDonationHospitalName(e.target.value)}
+                    disabled
+                  />
+                </label>
+                <label>
+                  Reason:
+                  <textarea
+                    value={donationReason}
+                    onChange={e => setDonationReason(e.target.value)}
+                    placeholder="Enter the reason for the donation request"
+                  />
+                </label>
+                {donationError && <div className="error-message" style={{ color: 'red', marginTop: '0.5rem' }}>{donationError}</div>}
+                <div className="modal-actions">
+                  <button
+                    className="dashboard-btn primary"
+                    onClick={() => {
+                      if (!donationReason) {
+                        setDonationError('You forgot to enter the reason.');
+                        return;
+                      }
+                      setDonationError('');
+                      fetch('http://localhost/liveonv2/backend_api/send_donation_request.php', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          donorId: donationRequestDonorId,
+                          hospitalName: donationHospitalName,
+                          reason: donationReason
+                        })
+                      })
+                        .then(res => res.json())
+                        .then(data => {
+                          setShowDonationRequestPopup(false);
+                          setShowDonationRequestSentPopup(true);
+                        })
+                        .catch(err => {
+                          setDonationError('Failed to send donation request');
+                        });
+                    }}
+                  >
+                    Send Request
+                  </button>
+                  <button className="dashboard-btn" onClick={() => setShowDonationRequestPopup(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {showDonationRequestSentPopup && (
+            <div className="popup-overlay">
+              <div className="popup-form">
+                <h3>Request Sent</h3>
+                <p>Your donation request has been sent successfully!</p>
+                <div className="modal-actions">
+                  <button className="dashboard-btn primary" onClick={() => setShowDonationRequestSentPopup(false)}>
+                    OK
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Donor Popup Modal */}
+          {showDonorPopup && (
+            <div className="popup-overlay" onClick={() => setShowDonorPopup(false)}>
+              <div className="popup-form donor-popup" onClick={e => e.stopPropagation()}>
+                <h3>Donors with Blood Type: {selectedBloodType}</h3>
+                <div className="donor-cards-list">
+                  {donorsByBloodType(selectedBloodType).length > 0 ? (
+                    donorsByBloodType(selectedBloodType).map((donor, idx) => (
+                      <div className="profile-summary-card" key={idx}>
+                        <img
+                          src={donor.profilePic || userImg}
+                          alt={donor.name}
+                          className="profile-avatar"
+                          style={{ width: 70, height: 70, borderRadius: '50%', objectFit: 'cover', border: '2px solid #3b82f6', marginRight: 20 }}
+                        />
+                        <div className="profile-summary-text">
+                          <div><span className="label">Donor ID:</span> {donor.donor_id || '-'}</div>
+                          <div><span className="label">Name:</span> {donor.name}</div>
+                          <div><span className="label">Blood Type:</span> {donor.bloodType}</div>
+                          <div><span className="label">Age:</span> {donor.age || '-'}</div>
+                          <div><span className="label">Location:</span> {donor.location}</div>
+                          <div><span className="label">Email:</span> {donor.email || '-'}</div>
+                          <div><span className="label">Phone:</span> {donor.contact || '-'}</div>
                         </div>
-                      );
-                    })
+                      </div>
+                    ))
                   ) : (
-                    <div>No blood inventory data</div>
+                    <div style={{ padding: '1.5rem' }}>No donors found for this blood type.</div>
                   )}
                 </div>
+                <button className="dashboard-btn primary" onClick={() => setShowDonorPopup(false)} style={{ marginTop: '1.5rem' }}>Close</button>
               </div>
             </div>
           )}
-          {activeSection === 'requests' && (
-            <>
-              <div className="dashboard-card glassy animate-fadein">
-                <div className="dashboard-card-title">Emergency Requests</div>
-                <div className="dashboard-card-content">
-                  <button className="dashboard-btn primary" onClick={() => setShowEmergencyPopup(true)}>
-                    SEND EMERGENCY REQUEST
-                  </button>
-                  <div className="emergency-warning">
-                    <span className="warning-icon">⚠️</span> Low blood volume detected for O- and AB+
-                  </div>
-                </div>
-              </div>
-              {emergencyRequests.length > 0 ? (
-                <div className="dashboard-card glassy animate-fadein" style={{ marginTop: '1.5rem' }}>
-                  <div className="dashboard-card-title">Emergency Request Log</div>
-                  <div className="dashboard-card-content">
-                    <table className="donor-table">
-                      <thead>
-                        <tr>
-                          <th>Blood Type</th>
-                          <th>Status</th>
-                          <th>Required Units</th>
-                          <th>Time Sent</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {emergencyRequests.map((req, idx) => (
-                          <tr key={idx}>
-                            <td>{req.bloodType}</td>
-                            <td>
-                              <span className={`status ${req.status === 'Critical' ? 'unavailable' : 'available'}`}>{req.status}</span>
-                            </td>
-                            <td>{req.requiredUnits}</td>
-                            <td>{new Date(req.createdAt).toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : (
-                <div className="dashboard-card glassy animate-fadein" style={{ marginTop: '1.5rem' }}>
-                  <div className="dashboard-card-title">Emergency Request Log</div>
-                  <div className="dashboard-card-content">
-                    <div>No emergency requests found.</div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
         </div>
-      </div>
-      {showEmergencyPopup && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Send Emergency Request</h3>
-            <label>
-              Blood Type:
-              <select value={emergencyBloodType} onChange={e => setEmergencyBloodType(e.target.value)}>
-                <option value="">Select</option>
-                <option value="A+">A+</option>
-                <option value="A-">A-</option>
-                <option value="B+">B+</option>
-                <option value="B-">B-</option>
-                <option value="AB+">AB+</option>
-                <option value="AB-">AB-</option>
-                <option value="O+">O+</option>
-                <option value="O-">O-</option>
-              </select>
-            </label>
-            <label>
-              Required Units:
-              <input
-                type="number"
-                min="1"
-                value={emergencyUnits}
-                onChange={e => setEmergencyUnits(e.target.value)}
-              />
-            </label>
-            {emergencyError && <div className="error-message" style={{ color: 'red', marginTop: '0.5rem' }}>{emergencyError}</div>}
-            <div className="modal-actions">
-              <button
-                className="dashboard-btn primary"
-                onClick={() => {
-                  if (!emergencyBloodType && !emergencyUnits) {
-                    setEmergencyError('You have to enter both blood type and required units.');
-                    return;
-                  } else if (!emergencyBloodType) {
-                    setEmergencyError('You forgot to enter blood type.');
-                    return;
-                  } else if (!emergencyUnits) {
-                    setEmergencyError('You forgot to enter blood units.');
-                    return;
-                  }
-                  setEmergencyError('');
-                  fetch('http://localhost/liveonv2/backend_api/emergency_request.php', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      blood_type: emergencyBloodType,
-                      required_units: emergencyUnits
-                    })
-                  })
-                    .then(res => res.json())
-                    .then(data => {
-                      setShowEmergencyPopup(false);
-                      setEmergencyBloodType('');
-                      setEmergencyUnits('');
-                      setShowRequestSentPopup(true);
-                    })
-                    .catch(err => {
-                      setEmergencyError('Failed to send emergency request');
-                    });
-                }}
-              >
-                Send to All Donors
-              </button>
-              <button className="dashboard-btn" onClick={() => { setShowEmergencyPopup(false); setEmergencyError(''); }}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showRequestSentPopup && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Request Sent</h3>
-            <p>Your emergency request has been sent successfully!</p>
-            <div className="modal-actions">
-              <button className="dashboard-btn primary" onClick={() => setShowRequestSentPopup(false)}>
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showDonationRequestPopup && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Request Donation</h3>
-            <label>
-              Hospital Name:
-              <input
-                type="text"
-                value={donationHospitalName}
-                onChange={e => setDonationHospitalName(e.target.value)}
-                disabled
-              />
-            </label>
-            <label>
-              Reason:
-              <textarea
-                value={donationReason}
-                onChange={e => setDonationReason(e.target.value)}
-                placeholder="Enter the reason for the donation request"
-              />
-            </label>
-            {donationError && <div className="error-message" style={{ color: 'red', marginTop: '0.5rem' }}>{donationError}</div>}
-            <div className="modal-actions">
-              <button
-                className="dashboard-btn primary"
-                onClick={() => {
-                  if (!donationReason) {
-                    setDonationError('You forgot to enter the reason.');
-                    return;
-                  }
-                  setDonationError('');
-                  fetch('http://localhost/liveonv2/backend_api/send_donation_request.php', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      donorId: donationRequestDonorId,
-                      hospitalName: donationHospitalName,
-                      reason: donationReason
-                    })
-                  })
-                    .then(res => res.json())
-                    .then(data => {
-                      console.log('Donation request response:', data); // Debug log
-                      setShowDonationRequestPopup(false);
-                      setShowDonationRequestSentPopup(true);
-                    })
-                    .catch(err => {
-                      setDonationError('Failed to send donation request');
-                    });
-                }}
-              >
-                Send Request
-              </button>
-              <button className="dashboard-btn" onClick={() => setShowDonationRequestPopup(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showDonationRequestSentPopup && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Request Sent</h3>
-            <p>Your donation request has been sent successfully!</p>
-            <div className="modal-actions">
-              <button className="dashboard-btn primary" onClick={() => setShowDonationRequestSentPopup(false)}>
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Donor Popup Modal */}
-      {showDonorPopup && (
-        <div className="modal-overlay" onClick={() => setShowDonorPopup(false)}>
-          <div className="modal-content donor-popup" onClick={e => e.stopPropagation()}>
-            <h3>Donors with Blood Type: {selectedBloodType}</h3>
-            <div className="donor-cards-list">
-              {donorsByBloodType(selectedBloodType).length > 0 ? (
-                donorsByBloodType(selectedBloodType).map((donor, idx) => (
-                  <div className="profile-summary-card" key={idx}>
-                    <img
-                      src={donor.profilePic || userImg}
-                      alt={donor.name}
-                      className="profile-avatar"
-                      style={{ width: 70, height: 70, borderRadius: '50%', objectFit: 'cover', border: '2px solid #3b82f6', marginRight: 20 }}
-                    />
-                    <div className="profile-summary-text">
-                      <div><span className="label">Donor ID:</span> {donor.donor_id || '-'}</div>
-                      <div><span className="label">Name:</span> {donor.name}</div>
-                      <div><span className="label">Blood Type:</span> {donor.bloodType}</div>
-                      <div><span className="label">Age:</span> {donor.age || '-'}</div>
-                      <div><span className="label">Location:</span> {donor.location}</div>
-                      <div><span className="label">Email:</span> {donor.email || '-'}</div>
-                      <div><span className="label">Phone:</span> {donor.contact || '-'}</div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div style={{ padding: '1.5rem' }}>No donors found for this blood type.</div>
-              )}
-            </div>
-            <button className="dashboard-btn primary" onClick={() => setShowDonorPopup(false)} style={{ marginTop: '1.5rem' }}>Close</button>
-          </div>
-        </div>
-      )}
+      </main>
     </div>
   );
 };

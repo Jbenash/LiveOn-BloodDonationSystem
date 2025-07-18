@@ -81,15 +81,15 @@ class DonorRegistration
         $stmt = $this->pdo->prepare("INSERT INTO users (user_id, name, email, phone, password_hash, role, status) VALUES (?, ?, ?, ?, ?, 'donor', 'inactive')");
         $stmt->execute([$userId, $name, $email, $phone, $passwordHash]);
     }
-    public function registerDonor($donorId, $userId, $dob, $address, $city)
+    public function registerDonor($donorId, $userId, $dob, $address, $city, $preferredHospitalId)
     {
-        $stmt = $this->pdo->prepare("INSERT INTO donors (donor_id, user_id, dob, address, city, status) VALUES (?, ?, ?, ?, ?, 'not available')");
-        $stmt->execute([$donorId, $userId, $dob, $address, $city]);
+        $stmt = $this->pdo->prepare("INSERT INTO donors (donor_id, user_id, dob, address, city, preferred_hospital_id, status) VALUES (?, ?, ?, ?, ?, ?, 'not available')");
+        $stmt->execute([$donorId, $userId, $dob, $address, $city, $preferredHospitalId]);
     }
 }
 
 $data = json_decode(file_get_contents("php://input"), true);
-if (!$data || !isset($data['fullName'], $data['email'], $data['password'], $data['dob'], $data['address'], $data['city'], $data['phone'])) {
+if (!$data || !isset($data['fullName'], $data['email'], $data['password'], $data['dob'], $data['address'], $data['city'], $data['phone'], $data['hospitalId'])) {
     echo json_encode(["success" => false, "message" => "Missing or invalid data"]);
     exit;
 }
@@ -107,6 +107,7 @@ $dob = $data['dob'];
 $address = $data['address'];
 $city = $data['city'];
 $phone = $data['phone'];
+$preferredHospitalId = $data['hospitalId'];
 
 if ($donorReg->isEmailRegistered($email)) {
     echo json_encode(["success" => false, "message" => "Email already registered."]);
@@ -116,7 +117,7 @@ if ($donorReg->isEmailRegistered($email)) {
 $userId = 'US' . uniqid();
 $donorId = 'DN' . uniqid();
 $donorReg->registerUser($userId, $fullName, $email, $phone, $passwordHash);
-$donorReg->registerDonor($donorId, $userId, $dob, $address, $city);
+$donorReg->registerDonor($donorId, $userId, $dob, $address, $city, $preferredHospitalId);
 $otp = $otpManager->generateAndStore($userId);
 
 try {
