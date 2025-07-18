@@ -10,7 +10,7 @@ const MroVerificationPopup = ({ isOpen, onClose }) => {
         <div className="mro-popup-content">
           <h2>Registration Complete!</h2>
           <p>Your registration is complete!</p>
-          <p><b>An MRO must verify your eligibility.</b></p>
+          <p><b>An Medical Registration Officer from you preffered Hospital must verify your eligibility.</b></p>
           <p>Please visit the hospital you entered during registration to complete your verification process.</p>
         </div>
       </div>
