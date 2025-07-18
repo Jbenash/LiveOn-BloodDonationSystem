@@ -76,45 +76,16 @@
   z-index: 1;
 }
 
-.modal-grid {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
-  background-size: 30px 30px;
-  animation: gridMove 25s linear infinite;
-}
-
-@keyframes gridMove {
-  0% { transform: translate(0, 0); }
-  100% { transform: translate(30px, 30px); }
-}
-
-.modal-particles {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-              radial-gradient(circle at 80% 20%, rgba(29, 78, 216, 0.05) 0%, transparent 50%);
-  animation: particleFloat 18s ease-in-out infinite;
-}
-
-@keyframes particleFloat {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-8px) rotate(90deg); }
-}
+/* .modal-grid, .modal-particles, @keyframes gridMove, @keyframes particleFloat removed to disable animation */
 
 /* Close Button */
 .modal-close-btn {
-  position: absolute;
+  position: sticky;
   top: 20px;
+  left: auto;
   right: 25px;
+  margin-left: auto;
+  float: right;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(59, 130, 246, 0.1);
   font-size: 24px;
@@ -127,7 +98,7 @@
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  z-index: 20;
+  z-index: 100;
   backdrop-filter: blur(10px);
 }
 
@@ -237,7 +208,8 @@
   letter-spacing: 0.5px;
 }
 
-.form-input {
+.form-input,
+select.form-input {
   width: 100%;
   padding: 16px 18px;
   border: 2px solid #e5e7eb;

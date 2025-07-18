@@ -101,8 +101,7 @@ const LoginModal = ({ isOpen, onClose }) => {
     >
       <div className="login-modal">
         <div className="modal-background">
-          <div className="modal-grid"></div>
-          <div className="modal-particles"></div>
+          {/* Removed modal-grid and modal-particles for a static background */}
         </div>
 
         <button className="modal-close-btn" onClick={onClose}>
