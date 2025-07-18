@@ -167,8 +167,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     >
       <div className="registration-modal">
         <div className="modal-background">
-          <div className="modal-grid"></div>
-          <div className="modal-particles"></div>
+          {/* Removed modal-grid and modal-particles for a static background */}
         </div>
 
         <button className="modal-close-btn" onClick={onClose}>
