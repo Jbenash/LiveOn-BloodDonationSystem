@@ -37,6 +37,9 @@ const MRODashboard = () => {
   const [hospitalName, setHospitalName] = useState("");
   const [hospitalNameLoading, setHospitalNameLoading] = useState(true);
   const [hospitalNameError, setHospitalNameError] = useState(null);
+  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const [rejectDonorId, setRejectDonorId] = useState(null);
+  const [verificationDateTime, setVerificationDateTime] = useState('');
 
   // Auth check: redirect to home if not logged in as MRO
   useEffect(() => {
@@ -65,56 +68,56 @@ const MRODashboard = () => {
         setError(err.message);
         setLoading(false);
       });
-
-    // Fetch donor registrations
+  
+  // Fetch donor registrations
     fetch("http://localhost/Liveonv2/backend_api/get_donor_registrations.php", {
       credentials: "include"
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Network response was not ok");
-        return res.json();
-      })
-      .then((data) => {
-        setDonorRegistrations(data);
-      })
-      .catch((err) => {
-        console.error("Error fetching donor registrations:", err);
-      });
+    .then((res) => {
+      if (!res.ok) throw new Error("Network response was not ok");
+      return res.json();
+    })
+    .then((data) => {
+      setDonorRegistrations(data);
+    })
+    .catch((err) => {
+      console.error("Error fetching donor registrations:", err);
+    });
 
-    // Fetch verification statistics
+  // Fetch verification statistics
     fetch("http://localhost/Liveonv2/backend_api/get_verification_stats.php", {
       credentials: "include"
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Network response was not ok");
-        return res.json();
-      })
-      .then((data) => {
-        setVerificationStats(data);
-      })
-      .catch((err) => {
-        console.error("Error fetching verification stats:", err);
-      });
+    .then((res) => {
+      if (!res.ok) throw new Error("Network response was not ok");
+      return res.json();
+    })
+    .then((data) => {
+      setVerificationStats(data);
+    })
+    .catch((err) => {
+      console.error("Error fetching verification stats:", err);
+    });
 
-    // Fetch donation logs
+  // Fetch donation logs
     fetch("http://localhost/Liveonv2/backend_api/get_donation_logs.php", {
       credentials: "include"
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Network response was not ok");
-        return res.json();
-      })
-      .then((data) => {
-        if (data.success) {
-          setDonationLogs(data.donations);
-        } else {
-          console.error("Error fetching donation logs:", data.error);
-        }
-      })
-      .catch((err) => {
-        console.error("Error fetching donation logs:", err);
-      });
-  }, []);
+    .then((res) => {
+      if (!res.ok) throw new Error("Network response was not ok");
+      return res.json();
+    })
+    .then((data) => {
+      if (data.success) {
+        setDonationLogs(data.donations);
+      } else {
+        console.error("Error fetching donation logs:", data.error);
+      }
+    })
+    .catch((err) => {
+      console.error("Error fetching donation logs:", err);
+    });
+}, []);
 
   useEffect(() => {
     // Fetch hospital name for MRO
@@ -133,6 +136,13 @@ const MRODashboard = () => {
         setHospitalNameLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    if (showPopup) {
+      const now = new Date();
+      setVerificationDateTime(now.toLocaleString('en-GB', { hour12: false }));
+    }
+  }, [showPopup]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -242,7 +252,7 @@ const MRODashboard = () => {
 
     // Always use the timestamp from popup open
     const donationDateTime = donationTimestamp;
-
+    
     // Prepare data for backend
     const payload = {
       donor_id: donatePopupDonor.donor_id,
@@ -250,7 +260,7 @@ const MRODashboard = () => {
       donation_date: donationDateTime, // send the exact timestamp
       volume: donateForm.volume
     };
-
+    
     try {
       const response = await fetch('http://localhost/Liveonv2/backend_api/save_donation.php', {
         method: 'POST',
@@ -282,6 +292,27 @@ const MRODashboard = () => {
     } catch (err) {
       alert('Error: ' + err.message);
     }
+  };
+
+  const handleReject = (donorId) => {
+    setRejectDonorId(donorId);
+    setShowRejectConfirm(true);
+  };
+
+  const confirmReject = async () => {
+    if (!rejectDonorId) return;
+    try {
+      await fetch('http://localhost/Liveonv2/backend_api/reject_donor.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ donor_id: rejectDonorId })
+      });
+      setDonorRequests(prev => prev.filter(d => d.donor_id !== rejectDonorId));
+    } catch (err) {
+      alert('Failed to reject donor.');
+    }
+    setShowRejectConfirm(false);
+    setRejectDonorId(null);
   };
 
   // Filter donorRequests based on search term, role, and status
@@ -328,7 +359,7 @@ const MRODashboard = () => {
           {verificationStats.verificationData.map((item, index) => {
             const height = maxCount > 0 ? (item.count / maxCount) * 150 : 0;
             const color = colors[index % colors.length];
-
+            
             return (
               <div key={item.date} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
                 <div
@@ -351,18 +382,18 @@ const MRODashboard = () => {
                     e.target.style.boxShadow = 'none';
                   }}
                 />
-                <div style={{
-                  fontSize: '0.75rem',
-                  color: '#6b7280',
+                <div style={{ 
+                  fontSize: '0.75rem', 
+                  color: '#6b7280', 
                   marginTop: '8px',
                   transform: 'rotate(-45deg)',
                   whiteSpace: 'nowrap'
                 }}>
                   {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </div>
-                <div style={{
-                  fontSize: '0.8rem',
-                  fontWeight: 'bold',
+                <div style={{ 
+                  fontSize: '0.8rem', 
+                  fontWeight: 'bold', 
                   color: '#2d3a8c',
                   marginTop: '4px'
                 }}>
@@ -427,7 +458,7 @@ const MRODashboard = () => {
           <div className="logo" style={{ cursor: 'pointer', padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginLeft: 32 }} onClick={() => navigate('/') }>
             <img src={logo} alt="LiveOn Logo" style={{ height: 120, width: 'auto', display: 'block' }} />
           </div>
-          <nav>
+        <nav>
             <ul style={{ padding: 0, margin: 0 }}>
               <li className={activeSection === "Overview" ? "active" : ""} onClick={() => setActiveSection("Overview")}
                   style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
@@ -448,8 +479,8 @@ const MRODashboard = () => {
                   style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
                 <span className="sidebar-label">Donation Logs</span>
               </li>
-            </ul>
-          </nav>
+          </ul>
+        </nav>
         </div>
         <button
           onClick={handleLogout}
@@ -488,13 +519,13 @@ const MRODashboard = () => {
               ) : (
                 <span>🏥 {hospitalName}</span>
               )}
-            </div>
-          </div>
+                </div>
+                </div>
           {/* Section Tabs */}
           <div style={{ display: 'flex', gap: 16, marginBottom: 32 }}>
             {/* Removed section tabs navigation bar */}
-          </div>
-
+                </div>
+                
           {activeSection === "Overview" && (
             <section className="dashboard-section" style={{ background: 'transparent', boxShadow: 'none', padding: 0 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '28px', marginBottom: '36px' }}>
@@ -513,7 +544,7 @@ const MRODashboard = () => {
                     <div style={{ marginBottom: 16 }}>{card.icon}</div>
                     <div style={{ fontSize: '2.2rem', fontWeight: 800, marginBottom: 8 }}>{card.value}</div>
                     <div style={{ fontSize: '1.08rem', fontWeight: 600 }}>{card.label}</div>
-                  </div>
+                </div>
                 ))}
               </div>
               {/* Verification Chart */}
@@ -523,7 +554,7 @@ const MRODashboard = () => {
               <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 8px rgba(30,41,59,0.04)' }}>
                 <h3 style={{ color: '#2563eb', margin: '0 0 18px 0', fontWeight: 700 }}>Quick Actions</h3>
                 <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap' }}>
-                  <button
+                  <button 
                     style={{
                       background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
                       color: '#fff',
@@ -540,7 +571,7 @@ const MRODashboard = () => {
                   >
                     Review Pending Requests
                   </button>
-                  <button
+                  <button 
                     style={{
                       background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                       color: '#fff',
@@ -557,7 +588,7 @@ const MRODashboard = () => {
                   >
                     View Active Donors
                   </button>
-                  <button
+                  <button 
                     style={{
                       background: 'linear-gradient(135deg, #f59e42 0%, #fbbf24 100%)',
                       color: '#fff',
@@ -604,14 +635,14 @@ const MRODashboard = () => {
                         <td>{donor.donor_email}</td>
                         <td>{donor.otp_number}</td>
                         <td>
-                          <button className="btn-cancel">Cancel</button>
+                          <button className="btn-cancel" onClick={() => handleReject(donor.donor_id)}>Reject</button>
                           <button className="btn-verify" onClick={() => handleOpenPopup({
                             donor_id: donor.donor_id,
                             fullName: donor.donor_fullname,
                             email: donor.donor_email,
                             otp: donor.otp_number,
                             blood_group: donor.blood_group // add blood_group for email
-                          })}>Next</button>
+                          })}>Accept</button>
                         </td>
                       </tr>
                     ))}
@@ -724,45 +755,41 @@ const MRODashboard = () => {
           )}
           {showPopup && popupDonor && (
             <div className="popup-overlay">
-              <div className="popup-form">
-                <button className="popup-close" onClick={handleClosePopup}>&times;</button>
-                <h3>Donor Medical Details</h3>
-                <form>
-                  <label>
-                    Donor ID:
-                    <input type="text" value={popupDonor.donor_id || ''} readOnly />
-                  </label>
-                  <label>
-                    Full Name:
-                    <input type="text" value={popupDonor.fullName || ''} readOnly />
-                  </label>
-                  <label>
-                    Email:
-                    <input type="text" value={popupDonor.email || ''} readOnly />
-                  </label>
-                  <label>
-                    Height:
-                    <input type="text" name="height" value={formData.height} onChange={handleInputChange} placeholder="Enter height (cm)" />
-                  </label>
-                  <label>
-                    Weight:
-                    <input type="text" name="weight" value={formData.weight} onChange={handleInputChange} placeholder="Enter weight (kg)" />
-                  </label>
-                  <label>
-                    Medical History:
-                    <textarea name="medicalHistory" value={formData.medicalHistory} onChange={handleInputChange} placeholder="Enter medical history" />
-                  </label>
-                  <label>
-                    Doctor's Note:
-                    <textarea name="doctorsNote" value={formData.doctorsNote} onChange={handleInputChange} placeholder="Enter doctor's note" />
-                  </label>
-                  <label>
-                    Verification Date:
-                    <input type="date" name="verificationDate" value={formData.verificationDate} onChange={handleInputChange} />
-                  </label>
-                  <label>
-                    Blood Group:
-                    <select name="bloodGroup" value={formData.bloodGroup} onChange={handleInputChange} required>
+              <div className="popup-form" style={{ maxWidth: 480, width: '95%', padding: '2.2rem 2rem', borderRadius: 18, fontWeight: 700 }}>
+                <button className="popup-close" onClick={handleClosePopup} style={{ fontWeight: 700 }}>&times;</button>
+                <h3 style={{ textAlign: 'center', marginBottom: 24, color: '#2563eb', fontWeight: 700 }}>Donor Medical Verification</h3>
+                <form style={{ fontWeight: 700 }}>
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Donor ID</label>
+                    <input type="text" value={popupDonor.donor_id || ''} readOnly style={{ background: '#f1f5f9', color: '#64748b', fontWeight: 700, border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%' }} />
+                  </div>
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Full Name</label>
+                    <input type="text" value={popupDonor.fullName || ''} readOnly style={{ background: '#f1f5f9', color: '#64748b', fontWeight: 700, border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%' }} />
+                  </div>
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Height (cm)</label>
+                    <input type="text" name="height" value={formData.height} onChange={handleInputChange} placeholder="Height" style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', fontWeight: 700 }} />
+                  </div>
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Weight (kg)</label>
+                    <input type="text" name="weight" value={formData.weight} onChange={handleInputChange} placeholder="Weight" style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', fontWeight: 700 }} />
+                  </div>
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Medical History</label>
+                    <textarea name="medicalHistory" value={formData.medicalHistory} onChange={handleInputChange} placeholder="Enter medical history" style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', minHeight: 60, fontWeight: 700 }} />
+                  </div>
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Doctor's Note</label>
+                    <textarea name="doctorsNote" value={formData.doctorsNote} onChange={handleInputChange} placeholder="Enter doctor's note" style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', minHeight: 60, fontWeight: 700 }} />
+                  </div>
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Verification Date</label>
+                    <input type="text" name="verificationDate" value={verificationDateTime} readOnly style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', fontWeight: 700, background: '#f1f5f9', color: '#64748b' }} />
+                  </div>
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Blood Group</label>
+                    <select name="bloodGroup" value={formData.bloodGroup} onChange={handleInputChange} required style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', fontWeight: 700 }}>
                       <option value="">Select Blood Group</option>
                       <option value="A+">A+</option>
                       <option value="A-">A-</option>
@@ -773,13 +800,14 @@ const MRODashboard = () => {
                       <option value="O+">O+</option>
                       <option value="O-">O-</option>
                     </select>
-                  </label>
-                  <label>
-                    Age:
-                    <input type="number" name="age" value={formData.age} onChange={handleInputChange} placeholder="Enter age" />
-                  </label>
-                  <button type="button" className="btn-verify" style={{ marginTop: '12px' }} onClick={handleSubmitDonorDetails}>Submit</button>
-                  {submitStatus && <div style={{ marginTop: '10px', color: submitStatus.startsWith('Donor details saved') ? 'green' : 'red' }}>{submitStatus}</div>}
+                  </div>
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Age</label>
+                    <input type="number" name="age" value={formData.age} onChange={handleInputChange} placeholder="Age" style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', fontWeight: 700 }} />
+                  </div>
+                  <hr style={{ margin: '24px 0', border: 'none', borderTop: '1.5px solid #e2e8f0' }} />
+                  <button type="button" className="btn-verify" style={{ width: '100%', fontSize: '1.13rem', padding: '14px 0', fontWeight: 700 }} onClick={handleSubmitDonorDetails}>Submit</button>
+                  {submitStatus && <div style={{ marginTop: '10px', color: submitStatus.startsWith('Donor details saved') ? 'green' : 'red', textAlign: 'center', fontWeight: 700 }}>{submitStatus}</div>}
                 </form>
               </div>
             </div>
@@ -815,10 +843,22 @@ const MRODashboard = () => {
               </div>
             </div>
           )}
+          {showRejectConfirm && (
+            <div className="modal-overlay">
+              <div className="modal-content">
+                <h3>Confirm Rejection</h3>
+                <p>Are you really want to reject this donor request?</p>
+                <div className="modal-actions">
+                  <button className="btn-cancel" onClick={() => setShowRejectConfirm(false)}>Cancel</button>
+                  <button className="btn-verify" onClick={confirmReject}>Confirm</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>
   );
 };
 
-export default MRODashboard;
+export default MRODashboard; 
