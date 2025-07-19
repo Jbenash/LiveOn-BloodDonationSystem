@@ -45,7 +45,13 @@ class HospitalDashboard
         // Fetch all active donors (both available and not available)
         $donorStmt = $this->pdo->query("
             SELECT d.donor_id, u.name, d.blood_type, u.phone AS contact, d.city AS location, d.last_donation_date AS lastDonation, d.status, d.preferred_hospital_id, h.name AS preferred_hospital_name, u.email,
-                   (SELECT TIMESTAMPDIFF(YEAR, d.dob, mv.verification_date) FROM medical_verifications mv WHERE mv.donor_id = d.donor_id ORDER BY mv.verification_date DESC LIMIT 1) AS age
+                   (
+                       SELECT mv.age
+                       FROM medical_verifications mv
+                       WHERE mv.donor_id = d.donor_id
+                       ORDER BY mv.verification_date DESC
+                       LIMIT 1
+                   ) AS age
             FROM donors d
             JOIN users u ON d.user_id = u.user_id
             LEFT JOIN hospitals h ON d.preferred_hospital_id = h.hospital_id

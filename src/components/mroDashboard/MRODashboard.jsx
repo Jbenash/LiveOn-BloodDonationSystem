@@ -275,12 +275,7 @@ const MRODashboard = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ donor_id: donatePopupDonor.donor_id, status: 'not available' })
         });
-        // Trigger delayed status reset (after 2 minutes) using the same endpoint
-        await fetch('http://localhost/Liveonv2/backend_api/update_donor_status.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ donor_id: donatePopupDonor.donor_id, status: 'available', delay_seconds: 120 })
-        });
+
         alert(`Donation saved successfully! Donation ID: ${data.donation_id}`);
         setShowDonatePopup(false);
         setDonatePopupDonor(null);
