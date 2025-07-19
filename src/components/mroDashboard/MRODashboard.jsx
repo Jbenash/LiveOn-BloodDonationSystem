@@ -275,8 +275,7 @@ const MRODashboard = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ donor_id: donatePopupDonor.donor_id, status: 'not available' })
         });
-        // Trigger delayed status reset (after 2 minutes)
-      
+
         alert(`Donation saved successfully! Donation ID: ${data.donation_id}`);
         setShowDonatePopup(false);
         setDonatePopupDonor(null);
@@ -625,7 +624,7 @@ const MRODashboard = () => {
                   </thead>
                   <tbody>
                     {filteredDonorRequests.map((donor, idx) => (
-                      <tr key={donor.otp_number || idx}>
+                      <tr key={`${donor.donor_id}_${idx}`}>
                         <td>{donor.donor_id}</td>
                         <td>{donor.donor_fullname}</td>
                         <td>{donor.donor_email}</td>
@@ -667,7 +666,7 @@ const MRODashboard = () => {
                     <tr><td colSpan="6">No registered donors found.</td></tr>
                   ) : (
                     filteredDonorRegistrations.map((donor, idx) => (
-                      <tr key={donor.donor_id || idx}>
+                      <tr key={`${donor.donor_id}_${idx}`}>
                         <td>{donor.donor_id}</td>
                         <td>{donor.full_name}</td>
                         <td>{donor.email}</td>
@@ -735,7 +734,7 @@ const MRODashboard = () => {
                     <tr><td colSpan="6">No donation logs found.</td></tr>
                   ) : (
                     filteredDonationLogs.map((log, idx) => (
-                      <tr key={log.donation_id || idx}>
+                      <tr key={`${log.donation_id}_${idx}`}>
                         <td>{log.donation_id}</td>
                         <td>{log.donor_id}</td>
                         <td>{log.full_name}</td>
