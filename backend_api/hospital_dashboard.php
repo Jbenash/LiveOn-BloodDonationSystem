@@ -44,7 +44,7 @@ class HospitalDashboard
 
         // Fetch all active donors (both available and not available)
         $donorStmt = $this->pdo->query("
-            SELECT d.donor_id, u.name, d.blood_type, u.phone AS contact, d.city AS location, d.last_donation_date AS lastDonation, d.status, d.preferred_hospital_id, h.name AS preferred_hospital_name, u.email,
+            SELECT d.donor_id, u.name, d.blood_type, u.phone AS contact, d.city AS location, d.last_donation_date AS lastDonation, d.status, d.preferred_hospital_id, h.name AS preferred_hospital_name, u.email, d.donor_image,
                    (
                        SELECT mv.age
                        FROM medical_verifications mv
@@ -71,6 +71,7 @@ class HospitalDashboard
                 'preferredHospitalName' => $row['preferred_hospital_name'],
                 'email' => $row['email'],
                 'age' => $row['age'],
+                'profilePic' => $row['donor_image'] ? (strpos($row['donor_image'], 'http') === 0 ? $row['donor_image'] : 'http://localhost/liveonv2/backend_api/' . $row['donor_image']) : null,
             ];
         }
 
