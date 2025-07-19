@@ -276,11 +276,7 @@ const MRODashboard = () => {
           body: JSON.stringify({ donor_id: donatePopupDonor.donor_id, status: 'not available' })
         });
         // Trigger delayed status reset (after 2 minutes)
-        await fetch('http://localhost/Liveonv2/backend_api/schedule_status_available.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ donor_id: donatePopupDonor.donor_id, delay_seconds: 120 })
-        });
+      
         alert(`Donation saved successfully! Donation ID: ${data.donation_id}`);
         setShowDonatePopup(false);
         setDonatePopupDonor(null);

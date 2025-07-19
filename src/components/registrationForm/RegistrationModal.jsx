@@ -59,6 +59,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     if (!formData.address.trim()) errs.address = 'Address is required';
     if (!formData.district) errs.district = 'District is required';
     if (!formData.phone.trim()) errs.phone = 'Phone number is required';
+    else if (!/^\d{10}$/.test(formData.phone.trim())) errs.phone = 'Phone number must be exactly 10 digits (Sri Lankan format)';
     if (!formData.password) errs.password = 'Password is required';
     else if (formData.password.length < 6) errs.password = 'Password must be at least 6 characters';
     if (formData.confirmPassword !== formData.password) errs.confirmPassword = 'Passwords do not match';
