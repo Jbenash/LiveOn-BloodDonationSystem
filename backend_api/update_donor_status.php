@@ -77,4 +77,4 @@ if ($stmt->execute()) {
     echo json_encode(['success' => false, 'error' => 'Failed to update donor status']);
 }
 $stmt->close();
-$conn->close(); 
+$conn->close();
