@@ -22,10 +22,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
+// Debug logging function
+function log_debug($msg) {
+    file_put_contents(__DIR__ . '/donation_debug.log', date('Y-m-d H:i:s') . ' ' . $msg . "\n", FILE_APPEND);
+}
+
+// Log the raw input
+log_debug('Raw input: ' . file_get_contents('php://input'));
+
 // Get JSON input
 $input = json_decode(file_get_contents('php://input'), true);
 
 if (!$input) {
+    log_debug('Invalid JSON input');
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Invalid JSON input']);
     exit();
@@ -35,6 +44,7 @@ if (!$input) {
 $required_fields = ['donor_id', 'blood_type', 'donation_date', 'volume'];
 foreach ($required_fields as $field) {
     if (!isset($input[$field]) || empty($input[$field])) {
+        log_debug("Missing required field: $field");
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => "Missing required field: $field"]);
         exit();
@@ -70,13 +80,23 @@ try {
     $stmt->bindParam(':hospital_id', $hospital_id);
     
     // Execute the statement
-    $stmt->execute();
+    try {
+        $stmt->execute();
+    } catch (PDOException $e) {
+        log_debug('SQL Insert Error: ' . $e->getMessage());
+        throw $e;
+    }
 
     // Update donors table status to 'not available'
     $sql2 = "UPDATE donors SET status = 'not available' WHERE donor_id = :donor_id";
     $stmt2 = $pdo->prepare($sql2);
     $stmt2->bindParam(':donor_id', $input['donor_id']);
-    $stmt2->execute();
+    try {
+        $stmt2->execute();
+    } catch (PDOException $e) {
+        log_debug('SQL Update Donor Status Error: ' . $e->getMessage());
+        throw $e;
+    }
 
     // Convert UTC donation_date to Asia/Colombo local time with milliseconds
     $date = new DateTime($input['donation_date'], new DateTimeZone('UTC'));
@@ -87,9 +107,15 @@ try {
     $stmt3 = $pdo->prepare($sql3);
     $stmt3->bindParam(':donation_date', $localDatetime);
     $stmt3->bindParam(':donor_id', $input['donor_id']);
-    $stmt3->execute();
+    try {
+        $stmt3->execute();
+    } catch (PDOException $e) {
+        log_debug('SQL Update Last Donation Date Error: ' . $e->getMessage());
+        throw $e;
+    }
 
     // Schedule a background PHP process to set status back to 'available' after 1 minute
+    log_debug('Scheduling background status update for donor_id: ' . $input['donor_id']);
     $donorIdShell = escapeshellarg($input['donor_id']);
     $phpPath = PHP_BINARY;
     $script = __DIR__ . '/update_donor_status_available.php';
@@ -99,13 +125,13 @@ try {
         $fullCmd = 'start /B cmd /C "ping 127.0.0.1 -n 301 > nul && ' . $phpPath . ' ' . $script . ' ' . $donorIdShell . ' > nul 2>&1"';
         pclose(popen($fullCmd, 'r'));
     } else {
-        // Linux/Unix: use sleep for delay and & for background
         $cmd = "$phpPath $script $donorIdShell > /dev/null 2>&1 &";
         $fullCmd = "(sleep 120; $cmd) > /dev/null 2>&1 &";
         exec($fullCmd);
     }
 
     // Return success response
+    log_debug('Donation saved successfully for donor_id: ' . $input['donor_id'] . ', donation_id: ' . $donation_id);
     echo json_encode([
         'success' => true,
         'message' => 'Donation saved successfully',
@@ -113,12 +139,14 @@ try {
     ]);
     
 } catch (PDOException $e) {
+    log_debug('Database error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'error' => 'Database error: ' . $e->getMessage()
     ]);
 } catch (Exception $e) {
+    log_debug('Server error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,
