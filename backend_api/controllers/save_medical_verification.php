@@ -82,6 +82,10 @@ try {
         $stmt4 = $pdo->prepare($sql4);
         $stmt4->execute([$blood_group, $donor_id]);
 
+        // Insert notification for donor verification
+        $notifStmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, ?, NOW())");
+        $notifStmt->execute([$user_id, "Donor verified: $donor_id", 'success', 'unread']);
+
         // Generate donor card PDF
         // (Dompdf is already imported at the top)
         $dompdf = new Dompdf();

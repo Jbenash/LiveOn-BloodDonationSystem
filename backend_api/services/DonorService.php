@@ -234,6 +234,20 @@ class DonorService
             $stmt3->bindParam(':donor_id', $input['donor_id']);
             $stmt3->execute();
             // Schedule background status update (not implemented here)
+
+            // Fetch user_id for the donor
+            $user_id = null;
+            $userStmt = $pdo->prepare("SELECT user_id FROM donors WHERE donor_id = ?");
+            $userStmt->execute([$input['donor_id']]);
+            if ($row = $userStmt->fetch()) {
+                $user_id = $row['user_id'];
+            }
+            // Insert notification for new donation
+            if ($user_id) {
+                $notifStmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, ?, NOW())");
+                $notifStmt->execute([$user_id, "New donation recorded: $donation_id", 'success', 'unread']);
+            }
+
             return [
                 'success' => true,
                 'message' => 'Donation saved successfully',

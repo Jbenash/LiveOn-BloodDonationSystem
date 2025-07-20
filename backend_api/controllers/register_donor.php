@@ -120,6 +120,10 @@ $donorReg->registerUser($userId, $fullName, $email, $phone, $passwordHash);
 $donorReg->registerDonor($donorId, $userId, $dob, $address, $city, $preferredHospitalId);
 $otp = $otpManager->generateAndStore($userId);
 
+// Insert notification for new donor registration
+$notifStmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, ?, NOW())");
+$notifStmt->execute([$userId, "New donor registered: $fullName", 'info', 'unread']);
+
 try {
     $mailer->sendOTP($email, $fullName, $otp);
     echo json_encode(["success" => true]);
