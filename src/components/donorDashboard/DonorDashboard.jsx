@@ -11,7 +11,7 @@ const DonorDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('http://localhost/liveonv2/backend_api/donor_dashboard.php', {
+    fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
       credentials: 'include'
     })
       .then(res => res.json())
@@ -29,7 +29,7 @@ const DonorDashboard = () => {
   }, [navigate]);
 
   const handleLogout = () => {
-    fetch("http://localhost/liveonv2/backend_api/logout.php", {
+    fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
       method: 'POST',
       credentials: 'include'
     })
@@ -284,7 +284,7 @@ const DonorDashboard = () => {
                       return;
                     }
                     try {
-                      const res = await fetch('http://localhost/liveonv2/backend_api/submit_feedback.php', {
+                      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_feedback.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ donorId: user.donorId, feedback }),
@@ -398,7 +398,7 @@ const DonorDashboard = () => {
                     formData.append('profilePicFile', editForm.profilePicFile);
                   }
                   try {
-                    const res = await fetch('http://localhost/liveonv2/backend_api/update_donor_profile.php', {
+                    const res = await fetch('http://localhost/liveonv2/backend_api/controllers/update_donor_profile.php', {
                       method: 'POST',
                       body: formData,
                       credentials: 'include',

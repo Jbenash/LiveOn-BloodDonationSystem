@@ -26,7 +26,7 @@ const HospitalDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('http://localhost/liveonv2/backend_api/hospital_dashboard.php', {
+    fetch('http://localhost/liveonv2/backend_api/controllers/hospital_dashboard.php', {
       credentials: 'include'
     })
       .then(res => res.json())
@@ -52,7 +52,7 @@ const HospitalDashboard = () => {
   };
 
   const handleLogout = () => {
-    fetch('http://localhost/liveonv2/backend_api/logout.php', {
+    fetch('http://localhost/liveonv2/backend_api/controllers/logout.php', {
       method: 'POST',
       credentials: 'include',
     })
@@ -431,7 +431,7 @@ const HospitalDashboard = () => {
                         return;
                       }
                       setEmergencyError('');
-                      fetch('http://localhost/liveonv2/backend_api/emergency_request.php', {
+                      fetch('http://localhost/liveonv2/backend_api/controllers/emergency_request.php', {
                         method: 'POST',
                         credentials: 'include',
                         headers: { 'Content-Type': 'application/json' },
@@ -506,7 +506,7 @@ const HospitalDashboard = () => {
                         return;
                       }
                       setDonationError('');
-                      fetch('http://localhost/liveonv2/backend_api/send_donation_request.php', {
+                      fetch('http://localhost/liveonv2/backend_api/controllers/send_donation_request.php', {
                         method: 'POST',
                         credentials: 'include',
                         headers: { 'Content-Type': 'application/json' },

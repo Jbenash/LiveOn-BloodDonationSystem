@@ -48,7 +48,7 @@ const AdminDashboard = () => {
   const fetchAdminData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost/liveonv2/backend_api/admin_dashboard.php', {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/admin_dashboard.php', {
         credentials: 'include'
       });
 
@@ -81,7 +81,7 @@ const AdminDashboard = () => {
   };
 
   const handleLogout = () => {
-    fetch('http://localhost/liveonv2/backend_api/logout.php', {
+    fetch('http://localhost/liveonv2/backend_api/controllers/logout.php', {
       method: 'POST',
       credentials: 'include',
     })
@@ -116,7 +116,7 @@ const AdminDashboard = () => {
     setEditLoading(true);
     setEditError('');
     try {
-      const res = await fetch('http://localhost/liveonv2/backend_api/edit_user.php', {
+      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/edit_user.php', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
