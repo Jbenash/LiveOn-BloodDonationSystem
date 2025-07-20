@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-require 'vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 include __DIR__ . '/../config/db_connection.php';
 
 class Mailer

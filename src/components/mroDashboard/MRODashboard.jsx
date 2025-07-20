@@ -276,7 +276,7 @@ const MRODashboard = () => {
           body: JSON.stringify({ donor_id: donatePopupDonor.donor_id, status: 'not available' })
         });
 
-        alert(`Donation saved successfully! Donation ID: ${data.donation_id}`);
+        // No alert after successful donation
         setShowDonatePopup(false);
         setDonatePopupDonor(null);
         setDonateForm({ bloodType: '', donationDate: '', volume: '' });
@@ -337,6 +337,9 @@ const MRODashboard = () => {
     (log.donor_id && log.donor_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (log.full_name && log.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Sort donation logs by date (most recent first)
+  const sortedDonationLogs = [...filteredDonationLogs].sort((a, b) => new Date(b.donation_date) - new Date(a.donation_date));
 
   // Function to create colorful bar chart
   const createVerificationChart = () => {
@@ -607,6 +610,54 @@ const MRODashboard = () => {
           {activeSection === "Donor Requests" && (
             <section className="dashboard-section">
               <h2>Donor Requests</h2>
+              {/* Search bar is now inside dashboard-section, just above the table */}
+              <div style={{ margin: '0 0 16px 0', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+                <div style={{
+                  position: 'relative',
+                  width: 200,
+                  maxWidth: '100%'
+                }}>
+                  <span style={{
+                    position: 'absolute',
+                    left: 14,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#64748b',
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: 20
+                  }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20" height="20" viewBox="0 0 120 120">
+                      <rect width="15" height="62.367" x="76.95" y="57.266" opacity=".35" transform="rotate(-45.001 84.45 88.451)"></rect>
+                      <rect width="15" height="62.367" x="76.95" y="53.266" fill="#0037ff" transform="rotate(-45.001 84.45 84.451)"></rect>
+                      <circle cx="49" cy="53" r="37" opacity=".35"></circle>
+                      <circle cx="49" cy="49" r="37" fill="#0075ff"></circle>
+                      <circle cx="49" cy="53" r="28" opacity=".35"></circle>
+                      <circle cx="49" cy="49" r="28" fill="#a4e2f1"></circle>
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search Donors..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    style={{
+                      padding: '10px 14px 10px 40px',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: 8,
+                      fontSize: '1.08rem',
+                      width: '100%',
+                      background: '#f8fafc',
+                      color: '#222',
+                      outline: 'none',
+                      boxShadow: '0 2px 8px rgba(30,41,59,0.04)',
+                      transition: 'border 0.2s',
+                      marginBottom: 0
+                    }}
+                  />
+                </div>
+              </div>
               {loading ? (
                 <p>Loading...</p>
               ) : error ? (
@@ -649,23 +700,70 @@ const MRODashboard = () => {
           {activeSection === "Donor Registration Logs" && (
             <section className="dashboard-section">
               <h2>Donor Registration Logs</h2>
-              <table className="dashboard-table">
-                <thead>
-                  <tr>
-                    <th>DONOR ID</th>
-                    <th>FULL NAME</th>
-                    <th>EMAIL</th>
-                    <th>BLOOD GROUP</th>
-                    <th>STATUS</th>
-                    <th>REGISTERED ON</th>
-                    <th>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {donorRegistrations.length === 0 ? (
-                    <tr><td colSpan="6">No registered donors found.</td></tr>
-                  ) : (
-                    filteredDonorRegistrations.map((donor, idx) => (
+              <div style={{ margin: '0 0 16px 0', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+                <div style={{
+                  position: 'relative',
+                  width: 200,
+                  maxWidth: '100%'
+                }}>
+                  <span style={{
+                    position: 'absolute',
+                    left: 14,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#64748b',
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: 20
+                  }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20" height="20" viewBox="0 0 120 120">
+                      <rect width="15" height="62.367" x="76.95" y="57.266" opacity=".35" transform="rotate(-45.001 84.45 88.451)" />
+                      <rect width="15" height="62.367" x="76.95" y="53.266" fill="#0037ff" transform="rotate(-45.001 84.45 84.451)" />
+                      <circle cx="49" cy="53" r="37" opacity=".35" />
+                      <circle cx="49" cy="49" r="37" fill="#0075ff" />
+                      <circle cx="49" cy="53" r="28" opacity=".35" />
+                      <circle cx="49" cy="49" r="28" fill="#a4e2f1" />
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search Donors..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    style={{
+                      padding: '10px 14px 10px 40px',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: 8,
+                      fontSize: '1.08rem',
+                      width: '100%',
+                      background: '#f8fafc',
+                      color: '#222',
+                      outline: 'none',
+                      boxShadow: '0 2px 8px rgba(30,41,59,0.04)',
+                      transition: 'border 0.2s',
+                      marginBottom: 0
+                    }}
+                  />
+                </div>
+              </div>
+              {donorRegistrations.length === 0 ? (
+                <p>No registered donors found.</p>
+              ) : (
+                <table className="dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>DONOR ID</th>
+                      <th>FULL NAME</th>
+                      <th>EMAIL</th>
+                      <th>BLOOD GROUP</th>
+                      <th>STATUS</th>
+                      <th>REGISTERED ON</th>
+                      <th>ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredDonorRegistrations.map((donor, idx) => (
                       <tr key={`${donor.donor_id}_${idx}`}>
                         <td>{donor.donor_id}</td>
                         <td>{donor.full_name}</td>
@@ -709,31 +807,78 @@ const MRODashboard = () => {
                           </button>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </section>
           )}
           {activeSection === "Donation Logs" && (
             <section className="dashboard-section">
               <h2>Donation Logs</h2>
-              <table className="dashboard-table">
-                <thead>
-                  <tr>
-                    <th>DONATION ID</th>
-                    <th>DONOR ID</th>
-                    <th>FULL NAME</th>
-                    <th>BLOOD TYPE</th>
-                    <th>VOLUME (ml)</th>
-                    <th>DONATION DATE</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {donationLogs.length === 0 ? (
-                    <tr><td colSpan="6">No donation logs found.</td></tr>
-                  ) : (
-                    filteredDonationLogs.map((log, idx) => (
+              <div style={{ margin: '0 0 16px 0', display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
+                <div style={{
+                  position: 'relative',
+                  width: 200,
+                  maxWidth: '100%'
+                }}>
+                  <span style={{
+                    position: 'absolute',
+                    left: 14,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#64748b',
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: 20
+                  }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20" height="20" viewBox="0 0 120 120">
+                      <rect width="15" height="62.367" x="76.95" y="57.266" opacity=".35" transform="rotate(-45.001 84.45 88.451)" />
+                      <rect width="15" height="62.367" x="76.95" y="53.266" fill="#0037ff" transform="rotate(-45.001 84.45 84.451)" />
+                      <circle cx="49" cy="53" r="37" opacity=".35" />
+                      <circle cx="49" cy="49" r="37" fill="#0075ff" />
+                      <circle cx="49" cy="53" r="28" opacity=".35" />
+                      <circle cx="49" cy="49" r="28" fill="#a4e2f1" />
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search Donations..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    style={{
+                      padding: '10px 14px 10px 40px',
+                      border: '1.5px solid #e2e8f0',
+                      borderRadius: 8,
+                      fontSize: '1.08rem',
+                      width: '100%',
+                      background: '#f8fafc',
+                      color: '#222',
+                      outline: 'none',
+                      boxShadow: '0 2px 8px rgba(30,41,59,0.04)',
+                      transition: 'border 0.2s',
+                      marginBottom: 0
+                    }}
+                  />
+                </div>
+              </div>
+              {donationLogs.length === 0 ? (
+                <p>No donation logs found.</p>
+              ) : (
+                <table className="dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>DONATION ID</th>
+                      <th>DONOR ID</th>
+                      <th>FULL NAME</th>
+                      <th>BLOOD TYPE</th>
+                      <th>VOLUME (ml)</th>
+                      <th>DONATION DATE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedDonationLogs.map((log, idx) => (
                       <tr key={`${log.donation_id}_${idx}`}>
                         <td>{log.donation_id}</td>
                         <td>{log.donor_id}</td>
@@ -742,10 +887,10 @@ const MRODashboard = () => {
                         <td>{log.units_donated}</td>
                         <td>{log.donation_date}</td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </section>
           )}
           {showPopup && popupDonor && (
@@ -830,8 +975,8 @@ const MRODashboard = () => {
                     <input type="text" value={donationTimestamp ? new Date(donationTimestamp).toLocaleString('en-GB', { hour12: false }) : ''} readOnly style={{backgroundColor: '#f3f4f6'}} />
                   </label>
                   <label>
-                    Volume:
-                    <input type="text" name="volume" value={donateForm.volume} onChange={handleDonateFormChange} placeholder="Enter volume (e.g. 450ml)" required />
+                    Units:
+                    <input type="text" name="volume" value={donateForm.volume} onChange={handleDonateFormChange} placeholder="Number of units" required />
                   </label>
                   <button type="submit" className="btn-donate" style={{ marginTop: '12px' }}>Submit</button>
                 </form>
