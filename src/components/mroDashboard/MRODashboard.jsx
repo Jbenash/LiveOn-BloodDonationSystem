@@ -43,7 +43,7 @@ const MRODashboard = () => {
 
   // Auth check: redirect to home if not logged in as MRO
   useEffect(() => {
-    fetch("http://localhost/Liveonv2/backend_api/get_donor_requests.php", { credentials: 'include' })
+    fetch("http://localhost/Liveonv2/backend_api/controllers/get_donor_requests.php", { credentials: 'include' })
       .then(res => {
         if (res.status === 401) {
           navigate('/');
@@ -53,7 +53,7 @@ const MRODashboard = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch("http://localhost/Liveonv2/backend_api/get_donor_requests.php", {
+    fetch("http://localhost/Liveonv2/backend_api/controllers/get_donor_requests.php", {
       credentials: "include"
     })
       .then((res) => {
@@ -70,7 +70,7 @@ const MRODashboard = () => {
       });
   
   // Fetch donor registrations
-    fetch("http://localhost/Liveonv2/backend_api/get_donor_registrations.php", {
+    fetch("http://localhost/Liveonv2/backend_api/controllers/get_donor_registrations.php", {
       credentials: "include"
     })
     .then((res) => {
@@ -85,7 +85,7 @@ const MRODashboard = () => {
     });
 
   // Fetch verification statistics
-    fetch("http://localhost/Liveonv2/backend_api/get_verification_stats.php", {
+    fetch("http://localhost/Liveonv2/backend_api/controllers/get_verification_stats.php", {
       credentials: "include"
     })
     .then((res) => {
@@ -100,7 +100,7 @@ const MRODashboard = () => {
     });
 
   // Fetch donation logs
-    fetch("http://localhost/Liveonv2/backend_api/get_donation_logs.php", {
+    fetch("http://localhost/Liveonv2/backend_api/controllers/get_donation_logs.php", {
       credentials: "include"
     })
     .then((res) => {
@@ -121,7 +121,7 @@ const MRODashboard = () => {
 
   useEffect(() => {
     // Fetch hospital name for MRO
-    fetch("http://localhost/Liveonv2/backend_api/get_mro_hospital.php", { credentials: 'include' })
+    fetch("http://localhost/Liveonv2/backend_api/controllers/get_mro_hospital.php", { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -180,7 +180,7 @@ const MRODashboard = () => {
     };
     console.log('payload:', payload); // Debug: check the payload being sent
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/save_medical_verification.php', {
+      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/save_medical_verification.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -195,7 +195,7 @@ const MRODashboard = () => {
           blood_group: popupDonor.blood_group || '',
           email: popupDonor.email || popupDonor.donor_email || ''
         };
-        fetch('http://localhost/Liveonv2/backend_api/send_verification_email.php', {
+        fetch('http://localhost/Liveonv2/backend_api/controllers/send_verification_email.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(emailPayload)
@@ -262,7 +262,7 @@ const MRODashboard = () => {
     };
     
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/save_donation.php', {
+      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/save_donation.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -270,7 +270,7 @@ const MRODashboard = () => {
       const data = await response.json();
       if (data.success) {
         // Immediately set donor status to 'not available'
-        await fetch('http://localhost/Liveonv2/backend_api/update_donor_status.php', {
+        await fetch('http://localhost/Liveonv2/backend_api/controllers/update_donor_status.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ donor_id: donatePopupDonor.donor_id, status: 'not available' })
@@ -297,7 +297,7 @@ const MRODashboard = () => {
   const confirmReject = async () => {
     if (!rejectDonorId) return;
     try {
-      await fetch('http://localhost/Liveonv2/backend_api/reject_donor.php', {
+      await fetch('http://localhost/Liveonv2/backend_api/controllers/reject_donor.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ donor_id: rejectDonorId })
@@ -405,7 +405,7 @@ const MRODashboard = () => {
   // Add logout handler
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost/Liveonv2/backend_api/logout.php", {
+      await fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
         method: 'POST',
         credentials: 'include',
       });

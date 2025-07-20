@@ -68,7 +68,7 @@ const HomePage = () => {
 
   useEffect(() => {
     // Fetch success stories
-    fetch('http://localhost/Liveonv2/backend_api/get_success_stories.php')
+    fetch('http://localhost/Liveonv2/backend_api/controllers/get_success_stories.php')
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -86,7 +86,7 @@ const HomePage = () => {
 
   useEffect(() => {
     // Fetch feedbacks
-    fetch('http://localhost/Liveonv2/backend_api/get_feedbacks.php')
+    fetch('http://localhost/Liveonv2/backend_api/controllers/get_feedbacks.php')
       .then(res => res.json())
       .then(data => {
         if (data.success) {
