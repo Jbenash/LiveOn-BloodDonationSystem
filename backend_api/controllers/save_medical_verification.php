@@ -32,7 +32,7 @@ try {
     $data = json_decode(file_get_contents('php://input'), true);
 
     $donor_id = $data['donor_id'] ?? null;
-    $mro_id = 'MRO001'; // Always use MRO001 as the default value
+    $mro_id = $data['mro_id'] ?? null;
     $height_cm = $data['height_cm'] ?? null;
     $weight_kg = $data['weight_kg'] ?? null;
     $medical_history = $data['medical_history'] ?? null;
@@ -40,10 +40,16 @@ try {
     $verification_date = $data['verification_date'] ?? null;
     $blood_group = $data['blood_group'] ?? null;
     $age = $data['age'] ?? null;
+    $full_name = $data['full_name'] ?? '';
 
     if (!$donor_id) {
         http_response_code(400);
         echo json_encode(["error" => "Missing donor_id"]);
+        exit();
+    }
+    if (!$mro_id) {
+        http_response_code(400);
+        echo json_encode(["error" => "Missing mro_id"]);
         exit();
     }
 
@@ -173,20 +179,12 @@ try {
                         <td class="value">' . $donor_id . '</td>
                     </tr>
                     <tr>
+                        <td class="label">Full Name:</td>
+                        <td class="value">' . htmlspecialchars($full_name) . '</td>
+                    </tr>
+                    <tr>
                         <td class="label">Blood Type:</td>
                         <td class="value">' . $blood_group . '</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Age:</td>
-                        <td class="value">' . $age . ' years</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Height:</td>
-                        <td class="value">' . $height_cm . ' cm</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Weight:</td>
-                        <td class="value">' . $weight_kg . ' kg</td>
                     </tr>
                     <tr>
                         <td class="label">Verification Date:</td>
@@ -210,7 +208,7 @@ try {
         $dompdf->render();
 
         // Create uploads directory if it doesn't exist
-        $uploadDir = __DIR__ . '/uploads/donor_cards/';
+        $uploadDir = dirname(__DIR__) . '/uploads/donor_cards/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0777, true);
         }
@@ -221,6 +219,11 @@ try {
 
         // Save PDF to file
         file_put_contents($filepath, $dompdf->output());
+
+        // Update donors table with donor_card PDF path
+        $sqlUpdateCard = "UPDATE donors SET donor_card = ? WHERE donor_id = ?";
+        $stmtUpdateCard = $pdo->prepare($sqlUpdateCard);
+        $stmtUpdateCard->execute([$filepath, $donor_id]);
 
         // Commit transaction
         $pdo->commit();

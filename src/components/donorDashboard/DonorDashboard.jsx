@@ -64,8 +64,8 @@ const DonorDashboard = () => {
         <div style={{ width: '100%' }}>
           <div className="logo" style={{ cursor: 'pointer', padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginLeft: 32, marginBottom: 40 }} onClick={() => navigate('/') }>
             <img src={logo} alt="LiveOn Logo" style={{ height: 120, width: 'auto', display: 'block' }} />
-          </div>
-          <nav>
+        </div>
+        <nav>
             <ul style={{ padding: 0, margin: 0 }}>
               <li className={activeSection === 'dashboard' ? 'active' : ''} onClick={() => setActiveSection('dashboard')}
                   style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
@@ -87,8 +87,8 @@ const DonorDashboard = () => {
                   style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
                 <span className="sidebar-label">Feedback</span>
               </li>
-            </ul>
-          </nav>
+          </ul>
+        </nav>
         </div>
         <button
           onClick={handleLogout}
@@ -119,11 +119,11 @@ const DonorDashboard = () => {
           <header className="dashboard-header" style={{ margin: 0 }}>
             <h1 style={{ margin: 0 }}>Donor Dashboard</h1>
           </header>
-          <div className="dashboard-user-info">
+            <div className="dashboard-user-info">
             <img src={user.profilePic} alt="Profile" className="dashboard-user-avatar" onClick={() => setActiveSection('profile')} />
-            <span className="dashboard-user-name">Welcome, {user.name}</span>
+              <span className="dashboard-user-name">Welcome, {user.name}</span>
+            </div>
           </div>
-        </div>
         <div className="dashboard-content">
           {activeSection === 'profile' && (
             <div className="dashboard-stats-grid">
@@ -170,28 +170,28 @@ const DonorDashboard = () => {
           )}
           {activeSection === 'dashboard' && (
             <>
-              <div className="dashboard-stats-grid">
-                {/* Profile Card */}
-                <div className="dashboard-card glassy profile-summary animate-fadein">
-                  <div className="profile-summary-title gradient-text">Profile Summary</div>
-                  <div className="profile-summary-details">
-                    <img src={user.profilePic} alt="Profile" className="profile-avatar" />
-                    <div className="profile-summary-text">
+          <div className="dashboard-stats-grid">
+            {/* Profile Card */}
+            <div className="dashboard-card glassy profile-summary animate-fadein">
+              <div className="profile-summary-title gradient-text">Profile Summary</div>
+              <div className="profile-summary-details">
+                <img src={user.profilePic} alt="Profile" className="profile-avatar" />
+                <div className="profile-summary-text">
                       <div><span className="label">Donor ID:</span> {user.donorId}</div>
-                      <div><span className="label">Name:</span> {user.name}</div>
-                      <div><span className="label">Blood Type:</span> {user.bloodType}</div>
-                      <div><span className="label">Age:</span> {user.age}</div>
-                      <div><span className="label">Location:</span> {user.location}</div>
-                      <div><span className="label">Email:</span> {user.email}</div>
-                    </div>
-                  </div>
+                  <div><span className="label">Name:</span> {user.name}</div>
+                  <div><span className="label">Blood Type:</span> {user.bloodType}</div>
+                  <div><span className="label">Age:</span> {user.age}</div>
+                  <div><span className="label">Location:</span> {user.location}</div>
+                  <div><span className="label">Email:</span> {user.email}</div>
                 </div>
+              </div>
+            </div>
 
-                {/* Donation Stats */}
-                <div className="dashboard-card glassy donation-stats animate-fadein">
-                  <div className="donation-stats-title gradient-text">Donation Statistics</div>
-                  <div className="donation-stats-grid">
-                    <div className="donation-stat">
+            {/* Donation Stats */}
+            <div className="dashboard-card glassy donation-stats animate-fadein">
+              <div className="donation-stats-title gradient-text">Donation Statistics</div>
+              <div className="donation-stats-grid">
+                <div className="donation-stat">
                       {/* Total Donations SVG - Provided by user */}
                       <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="32" height="32">
@@ -228,10 +228,10 @@ const DonorDashboard = () => {
                           </g>
                         </svg>
                       </span>
-                      <div className="stat-value stat-blue">{user.totalDonations}</div>
-                      <div className="stat-label">Total Donations</div>
-                    </div>
-                    <div className="donation-stat">
+                  <div className="stat-value stat-blue">{user.totalDonations}</div>
+                  <div className="stat-label">Total Donations</div>
+                </div>
+                <div className="donation-stat">
                       {/* Last Donation SVG - Provided by user */}
                       <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>
                         <svg xmlns="http://www.w3.org/2000/svg" xmlSpace="preserve" width="32" height="32" viewBox="0 0 2048 2048" style={{ shapeRendering: 'geometricPrecision', textRendering: 'geometricPrecision', imageRendering: 'optimizeQuality', fillRule: 'evenodd', clipRule: 'evenodd' }}>
@@ -297,9 +297,9 @@ const DonorDashboard = () => {
                             : user.lastDonation.slice(0, 10))
                           : 'N/A'
                       }</div>
-                      <div className="stat-label">Last Donation</div>
-                    </div>
-                    <div className="donation-stat">
+                  <div className="stat-label">Last Donation</div>
+                </div>
+                <div className="donation-stat">
                       {/* Next Eligible SVG - Provided by user */}
                       <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>
                         <svg xmlns="http://www.w3.org/2000/svg" xmlSpace="preserve" width="32" height="32" viewBox="0 0 2048 2048" style={{ shapeRendering: 'geometricPrecision', textRendering: 'geometricPrecision', imageRendering: 'optimizeQuality', fillRule: 'evenodd', clipRule: 'evenodd' }}>
@@ -340,10 +340,10 @@ const DonorDashboard = () => {
                           </g>
                         </svg>
                       </span>
-                      <div className="stat-value stat-blue">{user.nextEligible}</div>
-                      <div className="stat-label">Next Eligible</div>
-                    </div>
-                    <div className="donation-stat">
+                  <div className="stat-value stat-blue">{user.nextEligible}</div>
+                  <div className="stat-label">Next Eligible</div>
+                </div>
+                <div className="donation-stat">
                       {/* Lives Saved SVG - Provided by user */}
                       <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>
                         <svg version="1.1" id="Icon_Set" xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 512 512" width="32" height="32" style={{ enableBackground: 'new 0 0 512 512' }} xmlSpace="preserve">
@@ -365,26 +365,26 @@ const DonorDashboard = () => {
                           </g>
                         </svg>
                       </span>
-                      <div className="stat-value stat-green">{user.livesSaved}</div>
-                      <div className="stat-label">Lives Saved</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Reward Section */}
-                <div className="dashboard-card glassy reward-stats animate-fadein">
-                  <div className="reward-title gradient-text">Reward Points & Ranking</div>
-                  <div className="reward-points stat-green">{user.points} Points</div>
-                  <div className="reward-rank">Rank: {user.rank}</div>
+                  <div className="stat-value stat-green">{user.livesSaved}</div>
+                  <div className="stat-label">Lives Saved</div>
                 </div>
               </div>
+            </div>
 
-              {/* Call to Action */}
-              <div className="dashboard-cta-card glassy animate-fadein">
-                <h3 className="cta-title gradient-text">Ready for your next donation?</h3>
-                <p className="cta-desc">Book your next appointment and keep saving lives!</p>
-                <button className="dashboard-btn primary">Book Next Donation</button>
-              </div>
+            {/* Reward Section */}
+            <div className="dashboard-card glassy reward-stats animate-fadein">
+              <div className="reward-title gradient-text">Reward Points & Ranking</div>
+              <div className="reward-points stat-green">{user.points} Points</div>
+              <div className="reward-rank">Rank: {user.rank}</div>
+            </div>
+          </div>
+
+          {/* Call to Action */}
+          <div className="dashboard-cta-card glassy animate-fadein">
+            <h3 className="cta-title gradient-text">Ready for your next donation?</h3>
+            <p className="cta-desc">Book your next appointment and keep saving lives!</p>
+            <button className="dashboard-btn primary">Book Next Donation</button>
+          </div>
             </>
           )}
           {activeSection === 'donations' && (
@@ -466,7 +466,7 @@ const DonorDashboard = () => {
                   />
                   <button type="submit" className="dashboard-btn primary" style={{ fontSize: '1.08rem', padding: '12px 0' }}>Submit Feedback</button>
                 </form>
-              </div>
+          </div>
             </div>
           )}
           {/* Add similar blocks for Donations, Rewards, Feedback, etc. if needed */}
@@ -572,7 +572,7 @@ const DonorDashboard = () => {
               >Save Changes</button>
             </form>
           </div>
-        </div>
+      </div>
       )}
     </div>
   );
