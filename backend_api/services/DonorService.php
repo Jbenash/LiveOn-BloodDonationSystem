@@ -9,9 +9,11 @@ class DonorService
     private $user;
     private $donor;
     private $medicalVerification;
+    private $pdo;
 
     public function __construct(PDO $pdo)
     {
+        $this->pdo = $pdo;
         $this->user = new User($pdo);
         $this->donor = new Donor($pdo);
         $this->medicalVerification = new MedicalVerification($pdo);
@@ -191,6 +193,62 @@ class DonorService
             return ['success' => true, 'message' => 'Donor is eligible for donation'];
         } catch (Exception $e) {
             return ['success' => false, 'message' => 'Eligibility check failed: ' . $e->getMessage()];
+        }
+    }
+
+    public function saveDonation(array $input): array
+    {
+        // Validate required fields
+        $required_fields = ['donor_id', 'blood_type', 'donation_date', 'volume'];
+        foreach ($required_fields as $field) {
+            if (!isset($input[$field]) || empty($input[$field])) {
+                return ['success' => false, 'error' => "Missing required field: $field"];
+            }
+        }
+        $pdo = $this->pdo;
+        try {
+            // Generate unique donation_id
+            $donation_id = 'DON' . date('YmdHis') . rand(100, 999);
+            $sql = "INSERT INTO donations (donation_id, donor_id, blood_type, donation_date, units_donated, hospital_id) VALUES (:donation_id, :donor_id, :blood_type, :donation_date, :units_donated, :hospital_id)";
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindParam(':donation_id', $donation_id);
+            $stmt->bindParam(':donor_id', $input['donor_id']);
+            $stmt->bindParam(':blood_type', $input['blood_type']);
+            $stmt->bindParam(':donation_date', $input['donation_date']);
+            $stmt->bindParam(':units_donated', $input['volume']);
+            $hospital_id = 'HS002';
+            $stmt->bindParam(':hospital_id', $hospital_id);
+            $stmt->execute();
+            // Update donors table status to 'not available'
+            $sql2 = "UPDATE donors SET status = 'not available' WHERE donor_id = :donor_id";
+            $stmt2 = $pdo->prepare($sql2);
+            $stmt2->bindParam(':donor_id', $input['donor_id']);
+            $stmt2->execute();
+            // Update donors table last_donation_date
+            $date = new \DateTime($input['donation_date'], new \DateTimeZone('UTC'));
+            $date->setTimezone(new \DateTimeZone('Asia/Colombo'));
+            $localDatetime = $date->format('Y-m-d H:i:s.v');
+            $sql3 = "UPDATE donors SET last_donation_date = :donation_date WHERE donor_id = :donor_id";
+            $stmt3 = $pdo->prepare($sql3);
+            $stmt3->bindParam(':donation_date', $localDatetime);
+            $stmt3->bindParam(':donor_id', $input['donor_id']);
+            $stmt3->execute();
+            // Schedule background status update (not implemented here)
+            return [
+                'success' => true,
+                'message' => 'Donation saved successfully',
+                'donation_id' => $donation_id
+            ];
+        } catch (\PDOException $e) {
+            return [
+                'success' => false,
+                'error' => 'Database error: ' . $e->getMessage()
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => 'Server error: ' . $e->getMessage()
+            ];
         }
     }
 }
