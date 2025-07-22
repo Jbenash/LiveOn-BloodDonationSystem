@@ -1932,3 +1932,406 @@ html {
     padding-right: 4px;
   }
 }
+
+/* --- BEGIN: Enhanced Responsive Adjustments --- */
+
+@media (max-width: 425px) {
+  html {
+    font-size: 14px !important;
+  }
+  .section-title {
+    font-size: 2.2rem !important;
+    margin: 32px 0 24px 0;
+  }
+  .section-header {
+    margin-bottom: 40px;
+  }
+  .hero-title {
+    font-size: 2rem;
+    margin-bottom: 12px;
+  }
+  .hero-subtitle {
+    font-size: 1rem;
+    margin-bottom: 18px;
+  }
+  .stat-number {
+    font-size: 1.2rem;
+  }
+  .stat-label {
+    font-size: 0.85rem;
+  }
+  .hero-btn {
+    padding: 10px 14px;
+    font-size: 0.95rem;
+  }
+  .hero-side-img-bottom {
+    max-width: 120px;
+    margin: 0 auto 0 auto;
+  }
+  .feature-card-v2, .feedback-card-v2, .success-story-card {
+    min-width: 0;
+    max-width: 98vw;
+    padding: 18px 8px 18px 8px;
+  }
+  .impact-card {
+    width: 98vw !important;
+    height: 160px;
+  }
+  .footer-content {
+    gap: 16px;
+    padding: 0 4px;
+  }
+  .footer-section {
+    min-width: 0;
+    font-size: 0.95rem;
+  }
+  .footer-logo .logo-svg {
+    height: 32px;
+  }
+  .homepage-footer {
+    padding: 24px 0 10px 0;
+  }
+  .article-sheet, .howitworks-popup-content {
+    padding: 16px 4px;
+    min-width: 0;
+    max-width: 98vw;
+  }
+}
+
+@media (max-width: 375px) {
+  html {
+    font-size: 12px !important;
+  }
+  .hero-title {
+    font-size: 1.5rem;
+  }
+  .section-title {
+    font-size: 1.5rem !important;
+  }
+  .feature-title {
+    font-size: 1rem;
+  }
+  .feature-desc {
+    font-size: 0.95rem;
+  }
+}
+
+/* Prevent horizontal scroll on all devices */
+body, html, .homepage-root {
+  max-width: 100vw;
+  overflow-x: hidden !important;
+}
+
+/* Ensure all flex and grid containers wrap properly on small screens */
+.features-flex-grid, .impact-grid, .feedback-cards-row, .footer-content {
+  flex-wrap: wrap !important;
+  gap: 12px !important;
+}
+
+/* Make sure all images are responsive */
+img, .logo-svg, .hero-side-img, .hero-side-img-bottom {
+  max-width: 100%;
+  height: auto;
+  width: auto;
+  display: block;
+}
+
+/* Touch target improvements for mobile */
+.hero-btn, .impact-learn-btn, .feedback-arrow, .story-arrow {
+  min-height: 44px;
+  min-width: 44px;
+  font-size: 1rem;
+}
+
+/* Ensure popups and overlays are scrollable on mobile */
+.article-overlay, .howitworks-popup {
+  align-items: flex-start;
+  overflow-y: auto;
+}
+
+/* --- END: Enhanced Responsive Adjustments --- */
+
+/* --- BEGIN: Tablet Navbar and Logo Fix --- */
+@media (max-width: 900px) {
+  .homepage-navbar {
+    min-height: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%) !important;
+    color: #fff;
+    border-bottom: 1px solid #2563eb;
+    box-shadow: 0 2px 8px rgba(30,41,59,0.06);
+    z-index: 3000;
+  }
+  .nav-container {
+    height: 60px;
+    min-height: 60px;
+    padding: 0 8px;
+    gap: 8px;
+  }
+  .logo-svg {
+    height: 40px !important;
+    max-width: 120px;
+    margin: 0;
+    display: block;
+  }
+  .mobile-menu-btn {
+    display: block;
+    z-index: 3100;
+    position: relative;
+  }
+  .mobile-menu {
+    display: none;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    width: 100vw;
+    background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%) !important;
+    color: #fff;
+    z-index: 3050;
+    box-shadow: 0 2px 8px rgba(30,41,59,0.10);
+    border-bottom: 1px solid #2563eb;
+  }
+  .mobile-menu.open {
+    display: block;
+  }
+  .mobile-nav-links li {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-bottom: 1px solid #475569;
+    padding: 14px 0;
+  }
+  .hamburger, .hamburger::before, .hamburger::after {
+    background: #fff !important;
+  }
+}
+@media (max-width: 768px) {
+  .logo-svg {
+    height: 32px !important;
+    max-width: 90px;
+  }
+  .nav-container {
+    padding: 0 4px;
+    gap: 4px;
+  }
+}
+/* --- END: Tablet Navbar and Logo Fix --- */
+
+/* --- BEGIN: Logo Size Adjustment for Mobile --- */
+@media (max-width: 425px) {
+  .logo-svg {
+    height: 24px !important;
+    max-width: 80px;
+    margin: 0 auto;
+    display: block;
+  }
+  .nav-logo {
+    min-width: 0;
+    padding: 0;
+    margin-right: auto;
+    margin-left: 0;
+    display: flex;
+    align-items: center;
+  }
+}
+/* --- END: Logo Size Adjustment for Mobile --- */
+
+/* --- BEGIN: iPad Air Responsive Fix --- */
+@media (max-width: 850px) {
+  .homepage-navbar {
+    min-height: 58px;
+    height: 58px;
+    background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%) !important;
+    color: #fff;
+    border-bottom: 1px solid #2563eb;
+    box-shadow: 0 2px 8px rgba(30,41,59,0.06);
+    z-index: 3000;
+  }
+  .nav-container {
+    height: 58px;
+    min-height: 58px;
+    padding: 0 8px;
+    gap: 8px;
+  }
+  .logo-svg {
+    height: 36px !important;
+    max-width: 100px;
+    margin: 0;
+    display: block;
+  }
+  .mobile-menu-btn {
+    display: block;
+    z-index: 3100;
+    position: relative;
+  }
+  .mobile-menu {
+    display: none;
+    position: absolute;
+    top: 58px;
+    left: 0;
+    width: 100vw;
+    background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%) !important;
+    color: #fff;
+    z-index: 3050;
+    box-shadow: 0 2px 8px rgba(30,41,59,0.10);
+    border-bottom: 1px solid #2563eb;
+  }
+  .mobile-menu.open {
+    display: block;
+  }
+  .mobile-nav-links li {
+    color: #fff;
+    font-size: 1.08rem;
+    font-weight: 600;
+    border-bottom: 1px solid #475569;
+    padding: 13px 0;
+  }
+  .hamburger, .hamburger::before, .hamburger::after {
+    background: #fff !important;
+  }
+}
+/* --- END: iPad Air Responsive Fix --- */
+
+/* --- BEGIN: Force Burger Navbar for <=850px --- */
+@media (max-width: 850px) {
+  .nav-links {
+    display: none !important;
+  }
+  .mobile-menu-btn {
+    display: block !important;
+  }
+  .mobile-menu {
+    display: none;
+    position: absolute;
+    top: 58px;
+    left: 0;
+    width: 100vw;
+    background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%) !important;
+    color: #fff;
+    z-index: 3050;
+    box-shadow: 0 2px 8px rgba(30,41,59,0.10);
+    border-bottom: 1px solid #2563eb;
+  }
+  .mobile-menu.open {
+    display: block;
+  }
+  .mobile-nav-links li {
+    color: #fff;
+    font-size: 1.08rem;
+    font-weight: 600;
+    border-bottom: 1px solid #475569;
+    padding: 13px 0;
+  }
+  .hamburger, .hamburger::before, .hamburger::after {
+    background: #fff !important;
+  }
+}
+/* --- END: Force Burger Navbar for <=850px --- */
+
+/* --- BEGIN: Universal Device Responsiveness --- */
+/* iPhone SE, XR, 12 Pro, 14 Pro Max, Pixel 7, Galaxy S8+, S20 Ultra, etc. */
+@media (max-width: 430px) {
+  html { font-size: 13px !important; }
+  .logo-svg { height: 22px !important; max-width: 60px; }
+  .hero-title { font-size: 1.3rem; }
+  .section-title { font-size: 1.1rem !important; }
+  .feature-card-v2, .feedback-card-v2, .success-story-card { padding: 10px 2px; }
+}
+
+/* iPad Mini, iPad Air, iPad Pro, Surface Pro 7, Surface Duo, Galaxy Z Fold, etc. */
+@media (max-width: 1200px) {
+  .nav-links { display: none !important; }
+  .mobile-menu-btn { display: block !important; }
+  .logo-svg { height: 36px !important; max-width: 100px; }
+  .homepage-navbar { min-height: 58px; height: 58px; }
+  .nav-container { height: 58px; min-height: 58px; padding: 0 8px; gap: 8px; }
+  .mobile-menu { top: 58px; }
+}
+
+@media (max-width: 1024px) {
+  .logo-svg { height: 32px !important; max-width: 80px; }
+  .nav-container { padding: 0 4px; gap: 4px; }
+  .feature-card-v2, .feedback-card-v2, .success-story-card { min-width: 0; max-width: 98vw; }
+}
+
+/* Large foldables, Surface, Nest Hub, etc. */
+@media (max-width: 1366px) {
+  .logo-svg { height: 40px !important; max-width: 120px; }
+  .homepage-navbar { min-height: 60px; height: 60px; }
+  .nav-container { height: 60px; min-height: 60px; }
+}
+
+/* Prevent horizontal scroll and ensure all containers wrap */
+body, html, .homepage-root { max-width: 100vw; overflow-x: hidden !important; }
+.features-flex-grid, .impact-grid, .feedback-cards-row, .footer-content { flex-wrap: wrap !important; gap: 12px !important; }
+img, .logo-svg, .hero-side-img, .hero-side-img-bottom { max-width: 100%; height: auto; width: auto; display: block; }
+
+/* Burger menu always for <=1200px */
+@media (max-width: 1200px) {
+  .nav-links { display: none !important; }
+  .mobile-menu-btn { display: block !important; }
+  .mobile-menu { display: none; position: absolute; top: 58px; left: 0; width: 100vw; background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%) !important; color: #fff; z-index: 3050; box-shadow: 0 2px 8px rgba(30,41,59,0.10); border-bottom: 1px solid #2563eb; }
+  .mobile-menu.open { display: block; }
+  .mobile-nav-links li { color: #fff; font-size: 1.08rem; font-weight: 600; border-bottom: 1px solid #475569; padding: 13px 0; }
+  .hamburger, .hamburger::before, .hamburger::after { background: #fff !important; }
+}
+/* --- END: Universal Device Responsiveness --- */
+
+/* --- BEGIN: Right-align Burger Menu for Phones --- */
+@media (max-width: 600px) {
+  .nav-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    position: relative;
+  }
+  .nav-logo {
+    margin-right: 0;
+    margin-left: 0;
+  }
+  .mobile-menu-btn {
+    margin-left: auto;
+    margin-right: 0;
+    display: block !important;
+    position: relative;
+    z-index: 3100;
+  }
+}
+/* --- END: Right-align Burger Menu for Phones --- */
+
+/* --- BEGIN: Restore Desktop Navbar and Logo Styles --- */
+@media (min-width: 1201px) {
+  .nav-links {
+    display: flex !important;
+    gap: 32px;
+  }
+  .mobile-menu-btn {
+    display: none !important;
+  }
+  .logo-svg {
+    height: 100px !important;
+    max-width: none;
+  }
+  .homepage-navbar {
+    min-height: 70px;
+    height: 70px;
+  }
+  .nav-container {
+    height: 70px;
+    min-height: 70px;
+    padding: 0 0 0 12px;
+    gap: 60px;
+  }
+}
+/* --- END: Restore Desktop Navbar and Logo Styles --- */
+
+/* --- BEGIN: Always Left-align Logo in Navbar --- */
+.nav-logo {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+/* --- END: Always Left-align Logo in Navbar --- */
