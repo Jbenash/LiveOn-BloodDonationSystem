@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginModal.css';
+import { toast } from 'sonner';
 
 const LoginModal = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -56,9 +57,10 @@ const LoginModal = ({ isOpen, onClose }) => {
         setErrorMessage(data.message || "Login Failed");
       }
 
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (err) {
+      console.error('Login error:', err);
       setErrorMessage('Login failed. Please try again.');
+      toast.error(err.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

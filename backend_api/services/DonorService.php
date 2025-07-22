@@ -219,20 +219,15 @@ class DonorService
             $hospital_id = 'HS002';
             $stmt->bindParam(':hospital_id', $hospital_id);
             $stmt->execute();
-            // Update donors table status to 'not available'
-            $sql2 = "UPDATE donors SET status = 'not available' WHERE donor_id = :donor_id";
-            $stmt2 = $pdo->prepare($sql2);
-            $stmt2->bindParam(':donor_id', $input['donor_id']);
-            $stmt2->execute();
-            // Update donors table last_donation_date
+            // Update donors table status to 'not available' and last_donation_date
             $date = new \DateTime($input['donation_date'], new \DateTimeZone('UTC'));
             $date->setTimezone(new \DateTimeZone('Asia/Colombo'));
             $localDatetime = $date->format('Y-m-d H:i:s.v');
-            $sql3 = "UPDATE donors SET last_donation_date = :donation_date WHERE donor_id = :donor_id";
-            $stmt3 = $pdo->prepare($sql3);
-            $stmt3->bindParam(':donation_date', $localDatetime);
-            $stmt3->bindParam(':donor_id', $input['donor_id']);
-            $stmt3->execute();
+            $sql2 = "UPDATE donors SET status = 'not available', last_donation_date = :donation_date WHERE donor_id = :donor_id";
+            $stmt2 = $pdo->prepare($sql2);
+            $stmt2->bindParam(':donation_date', $localDatetime);
+            $stmt2->bindParam(':donor_id', $input['donor_id']);
+            $stmt2->execute();
             // Schedule background status update (not implemented here)
 
             // Fetch user_id for the donor

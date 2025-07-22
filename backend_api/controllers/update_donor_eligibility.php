@@ -11,7 +11,7 @@ try {
         SET status = 'available'
         WHERE status = 'not available'
         AND (
-            (last_donation_date IS NOT NULL AND last_donation_date <= DATE_SUB(CURDATE(), INTERVAL 6 MONTH ))
+            (last_donation_date IS NOT NULL AND last_donation_date <= DATE_SUB(CURDATE(), INTERVAL 6 MONTH))
             OR
             (last_donation_date IS NULL AND registration_date <= DATE_SUB(CURDATE(), INTERVAL 6 MONTH))
         )

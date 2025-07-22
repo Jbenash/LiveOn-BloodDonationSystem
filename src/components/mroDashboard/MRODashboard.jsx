@@ -3,6 +3,7 @@ import "./MRODashboard.css";
 import { useNavigate } from 'react-router-dom';
 import { FaUserFriends, FaClipboardList, FaUserCheck, FaCheckCircle } from 'react-icons/fa';
 import logo from '../../assets/logo.svg';
+import { toast } from 'sonner';
 
 const MRODashboard = () => {
   const navigate = useNavigate();
@@ -67,6 +68,7 @@ const MRODashboard = () => {
       .catch((err) => {
         setError(err.message);
         setLoading(false);
+        toast.error('Failed to fetch donor requests: ' + err.message);
       });
   
   // Fetch donor registrations
@@ -82,6 +84,7 @@ const MRODashboard = () => {
     })
     .catch((err) => {
       console.error("Error fetching donor registrations:", err);
+      toast.error('Failed to fetch donor registrations: ' + err.message);
     });
 
   // Fetch verification statistics
@@ -97,6 +100,7 @@ const MRODashboard = () => {
     })
     .catch((err) => {
       console.error("Error fetching verification stats:", err);
+      toast.error('Failed to fetch verification stats: ' + err.message);
     });
 
   // Fetch donation logs
@@ -116,6 +120,7 @@ const MRODashboard = () => {
     })
     .catch((err) => {
       console.error("Error fetching donation logs:", err);
+      toast.error('Failed to fetch donation logs: ' + err.message);
     });
 }, []);
 
@@ -133,6 +138,7 @@ const MRODashboard = () => {
       })
       .catch(err => {
         setHospitalNameError("Failed to load hospital name");
+        toast.error('Failed to load hospital name: ' + err.message);
         setHospitalNameLoading(false);
       });
   }, []);
