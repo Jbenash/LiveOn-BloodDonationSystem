@@ -1,5 +1,6 @@
 {
     "require": {
-        "masterminds/html5": "^2.9"
+        "masterminds/html5": "^2.9",
+        "dompdf/dompdf": "^3.1"
     }
 }

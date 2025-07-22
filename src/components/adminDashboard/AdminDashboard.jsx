@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "./AdminDashboard.css";
 import logo from "../../assets/logo.svg";
 import userImg from "../../assets/user.png";
+import { FaBell } from 'react-icons/fa';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -40,6 +41,65 @@ const AdminDashboard = () => {
   const [storyLoading, setStoryLoading] = useState(false);
   const [storyError, setStoryError] = useState('');
   const [isAddStory, setIsAddStory] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+
+  // Helper to add a notification
+  const addNotification = (message, type = 'info') => {
+    setNotifications(prev => [{
+      message,
+      type,
+      timestamp: new Date().toLocaleString(),
+      id: Date.now() + Math.random()
+    }, ...prev]);
+    setUnreadCount(c => c + 1);
+  };
+
+  // Fetch notifications from backend
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch('http://localhost/liveonv2/backend_api/controllers/get_notifications.php', { credentials: 'include' });
+        const data = await res.json();
+        if (data.success) {
+          setNotifications(data.notifications);
+          setUnreadCount(data.notifications.filter(n => n.status === 'unread').length);
+        }
+      } catch (e) { /* ignore */ }
+    };
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Mark all as read
+  const markNotificationsRead = async () => {
+    try {
+      await fetch('http://localhost/liveonv2/backend_api/controllers/mark_notifications_read.php', { method: 'POST', credentials: 'include' });
+      setUnreadCount(0);
+      // Optionally refetch notifications
+      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/get_notifications.php', { credentials: 'include' });
+      const data = await res.json();
+      if (data.success) setNotifications(data.notifications);
+    } catch (e) { /* ignore */ }
+  };
+
+  // Mark a single notification as read
+  const markNotificationRead = async (notification_id) => {
+    try {
+      await fetch('http://localhost/liveonv2/backend_api/controllers/mark_notification_read.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ notification_id })
+      });
+      // Update UI
+      setNotifications(prev => prev.map(n => n.notification_id === notification_id ? { ...n, status: 'read' } : n));
+      setUnreadCount(c => Math.max(0, c - 1));
+    } catch (e) { /* ignore */ }
+  };
 
   useEffect(() => {
     fetchAdminData();
@@ -200,24 +260,19 @@ const AdminDashboard = () => {
       case 'dashboard':
         return (
           <>
-            {/* Top: Quick Stats */}
-            <div className="dashboard-quick-stats">
-              <div className="dashboard-card glassy stat-card animate-fadein">
-                <div className="stat-label">Total Users</div>
-                <div className="stat-value stat-blue">{stats.total_users}</div>
-              </div>
-              <div className="dashboard-card glassy stat-card animate-fadein">
-                <div className="stat-label">Hospitals</div>
-                <div className="stat-value stat-blue">{stats.total_hospitals}</div>
-              </div>
-              <div className="dashboard-card glassy stat-card animate-fadein">
-                <div className="stat-label">Donors</div>
-                <div className="stat-value stat-blue">{stats.total_donors}</div>
-              </div>
-              <div className="dashboard-card glassy stat-card animate-fadein">
-                <div className="stat-label">Pending Requests</div>
-                <div className="stat-value stat-green">{stats.pending_requests}</div>
-              </div>
+            {/* Overview: Quick Stats as square cards */}
+            <div className="dashboard-overview-grid">
+              {[
+                { label: 'Total Users', value: stats.total_users, color: 'stat-blue' },
+                { label: 'Hospitals', value: stats.total_hospitals, color: 'stat-blue' },
+                { label: 'Donors', value: stats.total_donors, color: 'stat-blue' },
+                { label: 'Pending Requests', value: stats.pending_requests, color: 'stat-green' },
+              ].map((card, idx) => (
+                <div className={`overview-card square-card ${card.color}`} key={card.label}>
+                  <div className="stat-label">{card.label}</div>
+                  <div className="stat-value">{card.value}</div>
+                </div>
+              ))}
             </div>
             {/* Middle: Recent Users & Requests */}
             <div className="dashboard-middle-row">
@@ -651,10 +706,6 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <div className="admin-dashboard-root">
-        <div className="dashboard-background">
-          <div className="dashboard-grid"></div>
-          <div className="dashboard-particles"></div>
-        </div>
         <div className="loading-container">
           <div className="loading-spinner"></div>
           <p>Loading dashboard...</p>
@@ -666,10 +717,6 @@ const AdminDashboard = () => {
   if (error) {
     return (
       <div className="admin-dashboard-root">
-        <div className="dashboard-background">
-          <div className="dashboard-grid"></div>
-          <div className="dashboard-particles"></div>
-        </div>
         <div className="error-container">
           <p>Error: {error}</p>
           <button onClick={fetchAdminData} className="dashboard-btn primary">
@@ -681,62 +728,110 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="admin-dashboard-root">
-      {/* Animated Background */}
-      <div className="dashboard-background">
-        <div className="dashboard-grid"></div>
-        <div className="dashboard-particles"></div>
-      </div>
+    <div className="admin-dashboard-container">
       {/* Sidebar */}
-      <aside className={`dashboard-sidebar${sidebarOpen ? ' open' : ''}`}>
-        <div>
-          <div className="dashboard-logo">
-            <img src={logo} alt="LiveOn Logo" className="logo-svg" />
+      <aside className="sidebar">
+        <div style={{ width: '100%' }}>
+          <div className="logo" onClick={() => window.location.href = '/'}>
+            <img src={logo} alt="LiveOn Logo" style={{ height: 120, width: 'auto', display: 'block' }} />
           </div>
-          <nav className="sidebar-nav">
+          <nav>
             <ul>
               {sections.map(section => (
                 <li
                   key={section.key}
                   className={activeSection === section.key ? 'active' : ''}
-                  onClick={() => {
-                    setActiveSection(section.key);
-                    setSidebarOpen(false); // close sidebar on mobile
-                  }}
+                  onClick={() => setActiveSection(section.key)}
                 >
-                  <span className="icon">{section.icon}</span> {section.label}
+                  <span className="sidebar-label">{section.label}</span>
                 </li>
               ))}
             </ul>
           </nav>
         </div>
         <button className="logout-btn" onClick={handleLogout}>
-          <span className="icon">🚪</span> Logout
+          <span style={{ fontSize: 20, display: 'flex', alignItems: 'center' }}>&#9099;</span> Logout
         </button>
       </aside>
-      {/* Mobile sidebar toggle button */}
-      <button className="sidebar-toggle" onClick={handleSidebarToggle} aria-label="Toggle sidebar">
-        ☰
-      </button>
       {/* Main Content */}
-      <div className="dashboard-main">
+      <main className="dashboard-main">
         {/* Header */}
-        <header className="dashboard-header glassy">
-          <div className="dashboard-header-row">
-            <span className="dashboard-title gradient-text">
-              {sections.find(s => s.key === activeSection)?.label || 'Admin Dashboard'}
-            </span>
-            <div className="dashboard-user-info">
-              <img src={userImg} alt="User" className="dashboard-user-avatar" />
-              <span className="dashboard-user-name">Welcome, Admin</span>
+        <div className="dashboard-section dashboard-header">
+          <h1>Admin Dashboard</h1>
+          <div className="dashboard-user-info">
+            {/* Notification Bell */}
+            <div className="notification-bell-wrapper">
+              <button className="notification-bell" onClick={() => { setShowNotifications(v => !v); if (!showNotifications) markNotificationsRead(); }}>
+                <FaBell size={22} />
+                {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+              </button>
+              {showNotifications && (
+                <div className="notification-dropdown" onClick={e => e.stopPropagation()}>
+                  <div className="notification-dropdown-header">Notifications</div>
+                  {notifications.length === 0 ? (
+                    <div className="notification-empty">No notifications</div>
+                  ) : (
+                    <ul className="notification-list">
+                      {notifications.slice(0, 10).map(n => (
+                        <li
+                          key={n.notification_id}
+                          className={`notification-item ${n.type} ${n.status === 'unread' ? 'unread' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => {
+                            setSelectedNotification(n);
+                            if (n.status === 'unread') markNotificationRead(n.notification_id);
+                          }}
+                        >
+                          <div className="notification-message">{n.message}</div>
+                          <div className="notification-timestamp">{n.timestamp}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
+            <img src={userImg} alt="User" className="dashboard-user-avatar" />
+            <span className="dashboard-user-name">Welcome, Admin</span>
           </div>
-        </header>
+        </div>
         {/* Content Grid */}
         <div className="dashboard-content-grid">
           {renderSection()}
         </div>
-      </div>
+      </main>
+      {/* Modals (edit user, story, etc.) */}
+      {editUser && (
+        <div className="modal-overlay" onClick={() => setEditUser(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            <h3>Edit User</h3>
+            <label>
+              Name:
+              <input type="text" name="name" value={editForm.name} onChange={handleEditFormChange} />
+            </label>
+            <label>
+              Phone:
+              <input type="text" name="phone" value={editForm.phone} onChange={handleEditFormChange} />
+            </label>
+            <label>
+              Status:
+              <select name="status" value={editForm.status} onChange={handleEditFormChange}>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </label>
+            <label>
+              Password:
+              <input type="password" name="password" value={editForm.password} onChange={handleEditFormChange} placeholder="Leave blank to keep unchanged" />
+            </label>
+            {editError && <div className="error-message" style={{ color: 'red', marginTop: 8 }}>{editError}</div>}
+            <div className="modal-actions" style={{ marginTop: 16 }}>
+              <button className="dashboard-btn primary" onClick={handleEditSave} disabled={editLoading}>{editLoading ? 'Saving...' : 'Save'}</button>
+              <button className="dashboard-btn" onClick={() => setEditUser(null)} disabled={editLoading}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
       {storyModalOpen && (
         <div className="modal-overlay" onClick={closeStoryModal}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
@@ -753,6 +848,22 @@ const AdminDashboard = () => {
             <div className="modal-actions" style={{ marginTop: 16 }}>
               <button className="dashboard-btn primary" onClick={handleStorySave} disabled={storyLoading}>{storyLoading ? 'Saving...' : 'Save'}</button>
               <button className="dashboard-btn cancel" onClick={closeStoryModal} disabled={storyLoading}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Notification Details Modal */}
+      {selectedNotification && (
+        <div className="modal-overlay" onClick={() => setSelectedNotification(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            <h3>Notification Details</h3>
+            <div style={{ marginBottom: 12 }}><strong>Message:</strong> {selectedNotification.message}</div>
+            <div style={{ marginBottom: 8 }}><strong>Type:</strong> {selectedNotification.type}</div>
+            <div style={{ marginBottom: 8 }}><strong>Status:</strong> {selectedNotification.status}</div>
+            <div style={{ marginBottom: 8 }}><strong>User ID:</strong> {selectedNotification.user_id}</div>
+            <div style={{ marginBottom: 8 }}><strong>Timestamp:</strong> {selectedNotification.timestamp}</div>
+            <div className="modal-actions" style={{ marginTop: 16 }}>
+              <button className="dashboard-btn primary" onClick={() => setSelectedNotification(null)}>Close</button>
             </div>
           </div>
         </div>
