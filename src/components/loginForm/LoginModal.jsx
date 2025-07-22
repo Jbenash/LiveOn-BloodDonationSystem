@@ -84,10 +84,28 @@ const LoginModal = ({ isOpen, onClose }) => {
     setShowForgotPassword(true);
   };
 
-  const handleForgotPasswordSubmit = (newPassword) => {
-    // Here you would send the request to the backend
+  const handleForgotPasswordSubmit = async (newPassword) => {
     setShowForgotPassword(false);
-    setShowRequestSent(true);
+    setShowRequestSent(false);
+    if (!formData.username || !formData.username.trim()) {
+      setShowEmailRequired(true);
+      return;
+    }
+    try {
+      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_password_reset_request.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.username, requested_password: newPassword })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowRequestSent(true);
+      } else {
+        setErrorMessage(data.message || 'Failed to submit password reset request');
+      }
+    } catch (e) {
+      setErrorMessage('Network error');
+    }
   };
 
   if (!isOpen) return null;

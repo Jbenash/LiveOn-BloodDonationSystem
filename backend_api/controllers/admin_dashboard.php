@@ -77,8 +77,19 @@ try {
     $allDonors = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Get all requests (for Requests section)
-    $stmt = $pdo->query("SELECT er.emergency_id, er.blood_type, er.required_units, er.status, er.created_at, h.name as hospital_name, h.location as hospital_location FROM emergency_requests er LEFT JOIN hospitals h ON er.hospital_id = h.hospital_id ORDER BY er.created_at DESC");
-    $allRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Emergency requests
+    $stmt = $pdo->query("SELECT er.emergency_id AS request_id, 'emergency' AS type, er.blood_type, er.required_units AS units, er.status, er.created_at, h.name as hospital_name, h.location as hospital_location, NULL as donor_name FROM emergency_requests er LEFT JOIN hospitals h ON er.hospital_id = h.hospital_id");
+    $emergencyRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Donation requests
+    $stmt = $pdo->query("SELECT dr.request_id, 'donation' AS type, dr.blood_type, NULL AS units, dr.status, dr.request_date AS created_at, h.name as hospital_name, h.location as hospital_location, u.name as donor_name FROM donation_requests dr LEFT JOIN hospitals h ON dr.hospital_id = h.hospital_id LEFT JOIN donors d ON dr.donor_id = d.donor_id LEFT JOIN users u ON d.user_id = u.user_id");
+    $donationRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Merge and sort all requests by created_at DESC
+    $allRequests = array_merge($emergencyRequests, $donationRequests);
+    usort($allRequests, function ($a, $b) {
+        return strtotime($b['created_at']) - strtotime($a['created_at']);
+    });
 
     // Get all feedback (for Feedback section)
     $stmt = $pdo->query("SELECT feedback_id, user_id, role, message, created_at FROM feedback ORDER BY created_at DESC");

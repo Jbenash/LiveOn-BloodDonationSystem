@@ -101,13 +101,24 @@ $otpManager = new OTPManager($pdo);
 $mailer = new Mailer();
 
 $fullName = $data['fullName'];
-$email = $data['email'];
+$email = filter_var(trim($data['email']), FILTER_SANITIZE_EMAIL);
 $passwordHash = password_hash($data['password'], PASSWORD_BCRYPT);
 $dob = $data['dob'];
 $address = $data['address'];
 $city = $data['city'];
-$phone = $data['phone'];
+$phone = preg_replace('/\D/', '', $data['phone']); // Remove non-digits
 $preferredHospitalId = $data['hospitalId'];
+
+// Email validation
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    echo json_encode(["success" => false, "message" => "Invalid email address."]);
+    exit;
+}
+// Phone validation (Sri Lankan: exactly 10 digits)
+if (!preg_match('/^\d{10}$/', $phone)) {
+    echo json_encode(["success" => false, "message" => "Phone number must be exactly 10 digits."]);
+    exit;
+}
 
 if ($donorReg->isEmailRegistered($email)) {
     echo json_encode(["success" => false, "message" => "Email already registered."]);

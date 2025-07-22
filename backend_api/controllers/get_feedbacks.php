@@ -28,9 +28,21 @@ try {
                 WHEN f.role = 'hospital' THEN h.name
                 WHEN f.role = 'mro' THEN h2.name
                 ELSE NULL
-            END AS hospital_name
+            END AS hospital_name,
+            CASE
+                WHEN f.role = 'donor' THEN u.email
+                WHEN f.role = 'hospital' THEN h.contact_email
+                WHEN f.role = 'mro' THEN u.email
+                ELSE NULL
+            END AS user_email,
+            CASE
+                WHEN f.role = 'donor' THEN h3.name
+                ELSE NULL
+            END AS donor_hospital_name
         FROM feedback f
-        LEFT JOIN users u ON f.role = 'donor' AND f.user_id = u.user_id
+        LEFT JOIN users u ON f.user_id = u.user_id
+        LEFT JOIN donors d ON f.role = 'donor' AND f.user_id = d.user_id
+        LEFT JOIN hospitals h3 ON d.preferred_hospital_id = h3.hospital_id
         LEFT JOIN hospitals h ON f.role = 'hospital' AND f.user_id = h.user_id
         LEFT JOIN mro_officers m ON f.role = 'mro' AND f.user_id = m.user_id
         LEFT JOIN hospitals h2 ON m.hospital_id = h2.hospital_id
