@@ -264,7 +264,7 @@ html, body {
 .dashboard-overview-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 28px;
+  gap: 36px; /* increased from 28px for more space */
   margin-bottom: 36px;
 }
 
@@ -280,6 +280,7 @@ html, body {
   min-width: 0;
   min-height: 0;
   padding: 0;
+  margin: 0 4px; /* add a little horizontal space between cards */
   transition: box-shadow 0.2s, transform 0.2s;
   cursor: default;
 }
@@ -377,6 +378,11 @@ html, body {
   padding: 0;
   max-height: 320px;
   overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+.notification-list::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Webkit */
 }
 
 .notification-item {
@@ -423,6 +429,152 @@ html, body {
 }
 
 /* Modal for notification details is already styled by .modal-overlay and .modal-content */
+
+.dashboard-middle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-bottom: 36px;
+}
+
+.dashboard-card {
+  margin-bottom: 32px;
+}
+
+.system-health-section {
+  margin-top: 32px;
+}
+
+/* Profile Edit Modal Styles */
+.profile-edit-modal .modal-content {
+  padding: 32px 28px 24px 28px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 32px rgba(30,41,59,0.18);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 320px;
+  box-sizing: border-box;
+}
+.profile-edit-modal h3 {
+  font-size: 1.35em;
+  font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 18px;
+}
+.profile-edit-modal label {
+  width: 100%;
+  font-weight: 500;
+  color: #334155;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 1em;
+}
+.profile-edit-modal input[type="text"],
+.profile-edit-modal input[type="email"],
+.profile-edit-modal input[type="password"],
+.profile-edit-modal input[type="file"] {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  margin-top: 6px;
+  margin-bottom: 14px;
+  font-size: 1em;
+  background: #f8fafc;
+  transition: border 0.2s;
+  box-sizing: border-box;
+}
+.profile-edit-modal input[type="text"]:focus,
+.profile-edit-modal input[type="email"]:focus,
+.profile-edit-modal input[type="password"]:focus {
+  border: 1.5px solid #2563eb;
+  outline: none;
+}
+.profile-edit-modal .avatar-preview {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 16px 0 18px 0;
+  border: 3px solid #2563eb22;
+  box-shadow: 0 2px 8px rgba(30,41,59,0.10);
+}
+.profile-edit-modal .modal-actions {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+.profile-edit-modal .dashboard-btn.primary {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1em;
+  padding: 10px 22px;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.13);
+  transition: background 0.2s;
+}
+.profile-edit-modal .dashboard-btn.primary:hover {
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+}
+.profile-edit-modal .dashboard-btn {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 1em;
+  padding: 10px 22px;
+  transition: background 0.2s, color 0.2s;
+}
+.profile-edit-modal .dashboard-btn:hover {
+  background: #e0e7ff;
+  color: #2563eb;
+}
+.profile-edit-modal .error-message {
+  color: #ef4444;
+  margin-top: 8px;
+  margin-bottom: 0;
+  font-size: 0.98em;
+  width: 100%;
+  text-align: left;
+}
+
+/* Hospital Section Tab Buttons */
+.hospital-tab-btn {
+  background: #f1f5f9;
+  color: #2563eb;
+  border: 1.5px solid #e0e7ff;
+  border-radius: 22px;
+  font-weight: 600;
+  font-size: 1.05em;
+  padding: 8px 28px;
+  margin-right: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border 0.18s;
+  outline: none;
+}
+.hospital-tab-btn:last-child {
+  margin-right: 0;
+}
+.hospital-tab-btn.active, .hospital-tab-btn:focus {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: #fff;
+  border: 1.5px solid #2563eb;
+}
+.hospital-tab-btn:hover:not(.active) {
+  background: #e0e7ff;
+  color: #2563eb;
+  border: 1.5px solid #3b82f6;
+}
 
 @media (max-width: 1100px) {
   .admin-dashboard-container {
@@ -533,6 +685,16 @@ html, body {
     align-items: flex-start;
     gap: 8px;
   }
+}
+
+/* Hide scrollbar for feedback and success stories cards but keep scrollable */
+.dashboard-card.glassy.animate-fadein[style*='max-width: 500px'] {
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+.dashboard-card.glassy.animate-fadein[style*='max-width: 500px']::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Webkit */
 }
 
 /* Remove old quick stats styles if present */
