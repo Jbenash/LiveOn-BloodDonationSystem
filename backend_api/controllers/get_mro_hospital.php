@@ -42,7 +42,7 @@ try {
         echo json_encode(['error' => 'Hospital not found']);
         exit();
     }
-    echo json_encode(['success' => true, 'hospital_name' => $hospital['name']]);
+    echo json_encode(['success' => true, 'hospital_id' => $hospital_id, 'hospital_name' => $hospital['name']]);
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);

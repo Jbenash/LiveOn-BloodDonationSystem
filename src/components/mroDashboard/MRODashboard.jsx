@@ -41,6 +41,8 @@ const MRODashboard = () => {
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
   const [rejectDonorId, setRejectDonorId] = useState(null);
   const [verificationDateTime, setVerificationDateTime] = useState('');
+  // Add hospitalId state
+  const [hospitalId, setHospitalId] = useState("");
 
   // Auth check: redirect to home if not logged in as MRO
   useEffect(() => {
@@ -131,6 +133,7 @@ const MRODashboard = () => {
       .then(data => {
         if (data.success) {
           setHospitalName(data.hospital_name);
+          if (data.hospital_id) setHospitalId(data.hospital_id);
         } else {
           setHospitalNameError(data.error || "Failed to load hospital name");
         }
@@ -264,7 +267,8 @@ const MRODashboard = () => {
       donor_id: donatePopupDonor.donor_id,
       blood_type: donateForm.bloodType,
       donation_date: donationDateTime, // send the exact timestamp
-      volume: donateForm.volume
+      volume: donateForm.volume,
+      hospital_id: hospitalId // <-- include hospital_id
     };
     
     try {
