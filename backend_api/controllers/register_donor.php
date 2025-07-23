@@ -125,13 +125,10 @@ if ($donorReg->isEmailRegistered($email)) {
     exit;
 }
 
-// Store registration data in a temporary table (registration_temp)
-$regId = 'REG' . uniqid();
-$stmt = $pdo->prepare("INSERT INTO registration_temp (reg_id, full_name, email, password_hash, dob, address, city, phone, hospital_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-$stmt->execute([$regId, $fullName, $email, $passwordHash, $dob, $address, $city, $phone, $preferredHospitalId]);
-
-// Generate a temporary userId for OTP (not yet in users table)
-$userId = $regId;
+$userId = 'US' . uniqid();
+$donorId = 'DN' . uniqid();
+$donorReg->registerUser($userId, $fullName, $email, $phone, $passwordHash);
+$donorReg->registerDonor($donorId, $userId, $dob, $address, $city, $preferredHospitalId);
 $otp = $otpManager->generateAndStore($userId);
 
 // Insert notification for new donor registration
@@ -140,7 +137,7 @@ $notifStmt->execute([$userId, "New donor registered: $fullName", 'info', 'unread
 
 try {
     $mailer->sendOTP($email, $fullName, $otp);
-    echo json_encode(["success" => true, "regId" => $regId]);
+    echo json_encode(["success" => true]);
 } catch (Exception $e) {
     echo json_encode(["success" => false, "message" => "Email could not be sent. Mailer Error: {$e->getMessage()}"]);
 }
