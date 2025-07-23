@@ -59,7 +59,7 @@ class DonorDashboard
             'age' => $age,
             'location' => $donor['city'],
             'email' => $donor['email'],
-            'profilePic' => !empty($donor['donor_image']) ? ('http://localhost/liveonv2/backend_api/' . $donor['donor_image']) : 'https://randomuser.me/api/portraits/men/1.jpg',
+            'profilePic' => !empty($donor['donor_image']) ? ('http://localhost/liveonv2/' . $donor['donor_image']) : 'https://randomuser.me/api/portraits/men/1.jpg',
             'totalDonations' => $totalDonations,
             'lastDonation' => $lastDonation,
             'nextEligible' => $nextEligible,

@@ -756,19 +756,19 @@ const MRODashboard = () => {
               {donorRegistrations.length === 0 ? (
                 <p>No registered donors found.</p>
               ) : (
-                <table className="dashboard-table">
-                  <thead>
-                    <tr>
-                      <th>DONOR ID</th>
-                      <th>FULL NAME</th>
-                      <th>EMAIL</th>
-                      <th>BLOOD GROUP</th>
+              <table className="dashboard-table">
+                <thead>
+                  <tr>
+                    <th>DONOR ID</th>
+                    <th>FULL NAME</th>
+                    <th>EMAIL</th>
+                    <th>BLOOD GROUP</th>
                       <th>STATUS</th>
                       <th>REGISTERED ON</th>
-                      <th>ACTION</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                    <th>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
                     {filteredDonorRegistrations.map((donor, idx) => (
                       <tr key={`${donor.donor_id}_${idx}`}>
                         <td>{donor.donor_id}</td>
@@ -814,8 +814,8 @@ const MRODashboard = () => {
                         </td>
                       </tr>
                     ))}
-                  </tbody>
-                </table>
+                </tbody>
+              </table>
               )}
             </section>
           )}
@@ -872,18 +872,18 @@ const MRODashboard = () => {
               {donationLogs.length === 0 ? (
                 <p>No donation logs found.</p>
               ) : (
-                <table className="dashboard-table">
-                  <thead>
-                    <tr>
-                      <th>DONATION ID</th>
-                      <th>DONOR ID</th>
-                      <th>FULL NAME</th>
-                      <th>BLOOD TYPE</th>
-                      <th>VOLUME (ml)</th>
-                      <th>DONATION DATE</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              <table className="dashboard-table">
+                <thead>
+                  <tr>
+                    <th>DONATION ID</th>
+                    <th>DONOR ID</th>
+                    <th>FULL NAME</th>
+                    <th>BLOOD TYPE</th>
+                    <th>VOLUME (ml)</th>
+                    <th>DONATION DATE</th>
+                  </tr>
+                </thead>
+                <tbody>
                     {sortedDonationLogs.map((log, idx) => (
                       <tr key={`${log.donation_id}_${idx}`}>
                         <td>{log.donation_id}</td>
@@ -894,8 +894,8 @@ const MRODashboard = () => {
                         <td>{log.donation_date}</td>
                       </tr>
                     ))}
-                  </tbody>
-                </table>
+                </tbody>
+              </table>
               )}
             </section>
           )}
