@@ -8,6 +8,7 @@ import RegistrationModal from './components/registrationForm/RegistrationModal';
 import MroVerificationPopup from './components/mroVerificationPopup/MroVerificationPopup';
 import MRODashboard from './components/mroDashboard/MRODashboard'; // Assuming you have a MRO Dashboard component
 import LoginModal from './components/loginForm/LoginModal';
+import { Toaster } from 'sonner';
 
 function App() {
   const [showMroPopup, setShowMroPopup] = useState(false);
@@ -17,21 +18,24 @@ function App() {
   };
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/HospitalDashboard" element={<HospitalDashboard />} />
-        <Route path="/" element={<HomePage />} />
-        <Route path="/DonorDashboard" element={<DonorDashboard />} />
-        <Route path="/AdminDashboard" element={<AdminDashboard />} />
-        {/* <Route path="/RegistrationForm" element={<RegistrationForm />} /> */}
-        <Route path='/RegistrationModal' element={<RegistrationModal onRegistrationComplete={handleRegistrationComplete} />} />
-        <Route path="/MRODashboard" element={<MRODashboard />} />
-        <Route path="/login" element={<LoginModal />} />
-        <Route path="*" element={<Navigate to="/" />} />
-        {/* Add other routes as needed */}
-      </Routes>
-      <MroVerificationPopup isOpen={showMroPopup} onClose={() => setShowMroPopup(false)} />
-    </Router>
+    <>
+      <Router>
+        <Routes>
+          <Route path="/HospitalDashboard" element={<HospitalDashboard />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/DonorDashboard" element={<DonorDashboard />} />
+          <Route path="/AdminDashboard" element={<AdminDashboard />} />
+          {/* <Route path="/RegistrationForm" element={<RegistrationForm />} /> */}
+          <Route path='/RegistrationModal' element={<RegistrationModal onRegistrationComplete={handleRegistrationComplete} />} />
+          <Route path="/MRODashboard" element={<MRODashboard />} />
+          <Route path="/login" element={<LoginModal />} />
+          <Route path="*" element={<Navigate to="/" />} />
+          {/* Add other routes as needed */}
+        </Routes>
+        <MroVerificationPopup isOpen={showMroPopup} onClose={() => setShowMroPopup(false)} />
+      </Router>
+      <Toaster position="top-right" richColors />
+    </>
   );
 }
 
