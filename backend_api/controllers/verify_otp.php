@@ -40,7 +40,26 @@ class OTPVerifier
                 "UPDATE otp_verification SET verified = 1, verified_at = NOW() WHERE user_id = ? AND otp_code = ?"
             );
             $updateStmt->execute([$userId, $enteredOtp]);
-            return ["success" => true];
+
+            // Fetch registration data from registration_temp
+            $regStmt = $this->pdo->prepare("SELECT * FROM registration_temp WHERE reg_id = ?");
+            $regStmt->execute([$userId]);
+            $regData = $regStmt->fetch();
+            if ($regData) {
+                // Create user and donor records
+                $newUserId = 'US' . uniqid();
+                $newDonorId = 'DN' . uniqid();
+                $userStmt = $this->pdo->prepare("INSERT INTO users (user_id, name, email, phone, password_hash, role, status) VALUES (?, ?, ?, ?, ?, 'donor', 'inactive')");
+                $userStmt->execute([$newUserId, $regData['full_name'], $regData['email'], $regData['phone'], $regData['password_hash']]);
+                $donorStmt = $this->pdo->prepare("INSERT INTO donors (donor_id, user_id, dob, address, city, preferred_hospital_id, status) VALUES (?, ?, ?, ?, ?, ?, 'not available')");
+                $donorStmt->execute([$newDonorId, $newUserId, $regData['dob'], $regData['address'], $regData['city'], $regData['hospital_id']]);
+                // Remove temp registration
+                $delStmt = $this->pdo->prepare("DELETE FROM registration_temp WHERE reg_id = ?");
+                $delStmt->execute([$userId]);
+                return ["success" => true];
+            } else {
+                return ["success" => false, "message" => "Registration data not found."];
+            }
         } else {
             return ["success" => false, "message" => "Invalid or expired OTP"];
         }

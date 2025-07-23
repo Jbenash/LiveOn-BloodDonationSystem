@@ -258,21 +258,6 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label htmlFor="address">Address</label>
-                      <textarea
-                        id="address"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleChange}
-                        className="form-input address-textarea"
-                        placeholder="Enter your full address"
-                        rows="3"
-                        required
-                      />
-                      {errors.address && <div className="form-error">{errors.address}</div>}
-                    </div>
-
-                    <div className="form-group">
                       <label htmlFor="district">District</label>
                       <select
                         id="district"
@@ -287,6 +272,21 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                         ))}
                       </select>
                       {errors.district && <div className="form-error">{errors.district}</div>}
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="address">Address</label>
+                      <textarea
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        className="form-input address-textarea"
+                        placeholder="Enter your full address"
+                        rows="3"
+                        required
+                      />
+                      {errors.address && <div className="form-error">{errors.address}</div>}
                     </div>
                   </div>
 

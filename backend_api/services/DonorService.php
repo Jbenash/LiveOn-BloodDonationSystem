@@ -209,6 +209,21 @@ class DonorService
         try {
             // Generate unique donation_id
             $donation_id = 'DON' . date('YmdHis') . rand(100, 999);
+            // Determine correct hospital_id
+            $hospital_id = null;
+            if (!empty($input['hospital_id'])) {
+                $hospital_id = $input['hospital_id'];
+            } else {
+                // Try to get donor's preferred hospital
+                $stmt = $pdo->prepare("SELECT preferred_hospital_id FROM donors WHERE donor_id = ?");
+                $stmt->execute([$input['donor_id']]);
+                $row = $stmt->fetch();
+                if ($row && !empty($row['preferred_hospital_id'])) {
+                    $hospital_id = $row['preferred_hospital_id'];
+                } else {
+                    $hospital_id = 'HS002'; // fallback default
+                }
+            }
             $sql = "INSERT INTO donations (donation_id, donor_id, blood_type, donation_date, units_donated, hospital_id) VALUES (:donation_id, :donor_id, :blood_type, :donation_date, :units_donated, :hospital_id)";
             $stmt = $pdo->prepare($sql);
             $stmt->bindParam(':donation_id', $donation_id);
@@ -216,7 +231,6 @@ class DonorService
             $stmt->bindParam(':blood_type', $input['blood_type']);
             $stmt->bindParam(':donation_date', $input['donation_date']);
             $stmt->bindParam(':units_donated', $input['volume']);
-            $hospital_id = 'HS002';
             $stmt->bindParam(':hospital_id', $hospital_id);
             $stmt->execute();
             // Update donors table status to 'not available' and last_donation_date
