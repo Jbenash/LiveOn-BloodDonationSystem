@@ -36,29 +36,29 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 try {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-        echo json_encode(['success' => false, 'error' => 'Method not allowed']);
-        exit();
-    }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+    exit();
+}
 
-    $input = json_decode(file_get_contents('php://input'), true);
-    if (!$input) {
+$input = json_decode(file_get_contents('php://input'), true);
+if (!$input) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => 'Invalid JSON input']);
+    exit();
+}
+
+$required_fields = ['donor_id', 'email'];
+foreach ($required_fields as $field) {
+    if (empty($input[$field])) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Invalid JSON input']);
+        echo json_encode(['success' => false, 'error' => "Missing required field: $field"]);
         exit();
     }
+}
 
-    $required_fields = ['donor_id', 'email'];
-    foreach ($required_fields as $field) {
-        if (empty($input[$field])) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'error' => "Missing required field: $field"]);
-            exit();
-        }
-    }
-
-    $mail = new PHPMailer(true);
+$mail = new PHPMailer(true);
     // SMTP settings (customize as needed)
     $mail->isSMTP();
     $mail->Host = 'smtp.gmail.com';
@@ -83,30 +83,30 @@ try {
         exit();
     }
 
-    $donor_id = $input['donor_id'];
-    $sql = "SELECT donor_card FROM donors WHERE donor_id = ?";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$donor_id]);
-    $row = $stmt->fetch();
-    $donor_card_path = $row['donor_card'] ?? null;
+        $donor_id = $input['donor_id'];
+        $sql = "SELECT donor_card FROM donors WHERE donor_id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$donor_id]);
+        $row = $stmt->fetch();
+        $donor_card_path = $row['donor_card'] ?? null;
 
-    if (!$donor_card_path || !file_exists($donor_card_path)) {
+        if (!$donor_card_path || !file_exists($donor_card_path)) {
         error_log('Donor card PDF not found for donor_id: ' . $donor_id . ' | Path: ' . $donor_card_path);
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Donor card PDF not found for donor_id: ' . $donor_id]);
-        exit();
-    }
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Donor card PDF not found for donor_id: ' . $donor_id]);
+            exit();
+        }
 
-    // Attach the existing donor card PDF file
-    $mail->addAttachment($donor_card_path, 'DonorCard.pdf');
+        // Attach the existing donor card PDF file
+        $mail->addAttachment($donor_card_path, 'DonorCard.pdf');
 
-    $mail->isHTML(true);
-    $mail->Subject = 'Your Donor Card';
-    $mail->Body = '<p>Please find your donor card attached.</p>';
-    $mail->AltBody = 'Please find your donor card attached.';
+        $mail->isHTML(true);
+        $mail->Subject = 'Your Donor Card';
+        $mail->Body = '<p>Please find your donor card attached.</p>';
+        $mail->AltBody = 'Please find your donor card attached.';
 
-    $mail->send();
-    echo json_encode(['success' => true, 'message' => 'Email sent successfully']);
+        $mail->send();
+        echo json_encode(['success' => true, 'message' => 'Email sent successfully']);
 
 } catch (Throwable $e) {
     error_log('Fatal error in send_verification_email.php: ' . $e->getMessage());

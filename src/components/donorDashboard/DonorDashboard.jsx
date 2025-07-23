@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './DonorDashboard.css';
 import logo from '../../assets/logo.svg';
+import CountdownCircle from './CountdownCircle';
 
 const DonorDashboard = () => {
   const [user, setUser] = useState(null);
@@ -9,6 +10,8 @@ const DonorDashboard = () => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [donations, setDonations] = useState([]);
+  const [countdown, setCountdown] = useState('');
+  const countdownInterval = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,7 +34,7 @@ const DonorDashboard = () => {
 
   useEffect(() => {
     if (activeSection === 'donations' && user?.donorId) {
-      fetch(`http://localhost/liveonv2/backend_api/get_donor_donations.php?donor_id=${user.donorId}`, {
+      fetch(`http://localhost/liveonv2/backend_api/controllers/get_donor_donations.php?donor_id=${user.donorId}`, {
         credentials: 'include'
       })
         .then(res => res.json())
@@ -42,6 +45,39 @@ const DonorDashboard = () => {
         .catch(() => setDonations([]));
     }
   }, [activeSection, user]);
+
+  useEffect(() => {
+    if (user?.lastDonation && user.lastDonation !== 'N/A') {
+      const lastDonationDate = new Date(user.lastDonation);
+      // Add 6 months
+      const nextEligibleDate = new Date(lastDonationDate);
+      nextEligibleDate.setMonth(nextEligibleDate.getMonth() + 6);
+
+      function updateCountdown() {
+        const now = new Date();
+        const diff = nextEligibleDate - now;
+        if (diff <= 0) {
+          setCountdown('Eligible now!');
+          if (countdownInterval.current) clearInterval(countdownInterval.current);
+          return;
+        }
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+        setCountdown(`${days}d ${hours}h ${minutes}m ${seconds}s`);
+      }
+
+      updateCountdown();
+      countdownInterval.current = setInterval(updateCountdown, 1000);
+      return () => {
+        if (countdownInterval.current) clearInterval(countdownInterval.current);
+      };
+    } else {
+      setCountdown('N/A');
+      if (countdownInterval.current) clearInterval(countdownInterval.current);
+    }
+  }, [user?.lastDonation]);
 
   const handleLogout = () => {
     fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
@@ -185,8 +221,61 @@ const DonorDashboard = () => {
                   <div><span className="label">Email:</span> {user.email}</div>
                 </div>
               </div>
+                </div>
+              </div>
+              {/* Countdown Box - moved here */}
+              <div style={{ margin: '32px 0 24px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                {(countdown && countdown !== 'N/A' && countdown !== 'Eligible now!') && (
+                  <div style={{
+                    color: ' #2d3a8c',
+                    fontWeight: 700,
+                    fontSize: '1.35rem',
+                    textAlign: 'center',
+                    marginBottom: 14,
+                    textShadow: '0 2px 8px rgba(30,41,59,0.18)'
+                  }}>
+                    Next Donation Countdown
+                  </div>
+                )}
+                {countdown && countdown !== 'N/A' && countdown !== 'Eligible now!' ? (() => {
+                  const parts = countdown.match(/(\d+)d (\d+)h (\d+)m (\d+)s/);
+                  if (!parts) return null;
+                  const [days, hours, minutes, seconds] = parts.slice(1).map(Number);
+                  return (
+                    <div style={{
+                      display: 'flex',
+                      gap: 28,
+                      background: 'linear-gradient(90deg, #f43f5e 0%, #3b82f6 100%)',
+                      borderRadius: 18,
+                      padding: '18px 24px',
+                      boxShadow: '0 2px 8px rgba(37,99,235,0.08)'
+                    }}>
+                      <CountdownCircle value={days} max={180} label="Days" />
+                      <CountdownCircle value={hours} max={24} label="Hours" />
+                      <CountdownCircle value={minutes} max={60} label="Minutes" />
+                      <CountdownCircle value={seconds} max={60} label="Seconds" />
+                    </div>
+                  );
+                })() : countdown === 'Eligible now!' && (
+                  <div style={{
+                    background: '#16a34a',
+                    color: '#fff',
+                    padding: '10px 24px',
+                    borderRadius: 12,
+                    fontWeight: 700,
+                    fontSize: '1.15rem',
+                    boxShadow: '0 2px 8px rgba(22,163,74,0.13)',
+                    letterSpacing: 1,
+                    minWidth: 180,
+                    textAlign: 'center',
+                    margin: '0 auto',
+                    display: 'inline-block'
+                  }}>
+                    Eligible now!
+                  </div>
+                )}
             </div>
-
+              <div className="dashboard-stats-grid">
             {/* Donation Stats */}
             <div className="dashboard-card glassy donation-stats animate-fadein">
               <div className="donation-stats-title gradient-text">Donation Statistics</div>
@@ -560,7 +649,7 @@ const DonorDashboard = () => {
                     });
                     const data = await res.json();
                     if (data.success) {
-                      setUser(u => ({ ...u, name: editForm.name, bloodType: editForm.bloodType, age: editForm.age, location: editForm.location, email: editForm.email, profilePic: data.imagePath ? `http://localhost/liveonv2/backend_api/${data.imagePath}` : u.profilePic }));
+                      setUser(u => ({ ...u, name: editForm.name, bloodType: editForm.bloodType, age: editForm.age, location: editForm.location, email: editForm.email, profilePic: data.imagePath ? `http://localhost/liveonv2/${data.imagePath}` : u.profilePic }));
                       setShowEditProfile(false);
                     } else {
                       alert(data.message || 'Failed to update profile');

@@ -35,7 +35,7 @@ if (!$donor_id || !$name || !$blood_type || !$age || !$location || !$email) {
 // Handle image upload
 $imagePath = null;
 if (isset($_FILES['profilePicFile']) && $_FILES['profilePicFile']['error'] === UPLOAD_ERR_OK) {
-    $uploadDir = __DIR__ . '/uploads/donor_images/';
+    $uploadDir = __DIR__ . '/../../uploads/donor_images/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0777, true);
     }
