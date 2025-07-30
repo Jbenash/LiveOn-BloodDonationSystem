@@ -30,7 +30,16 @@ class DonorDashboard
         $donor = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$donor) {
-            echo json_encode(['error' => 'Donor not found']);
+            // Check if user exists but no donor record
+            $stmt = $this->pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role = 'donor'");
+            $stmt->execute([$this->donorId]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user) {
+                echo json_encode(['error' => 'Donor profile not found. Please contact administrator.']);
+            } else {
+                echo json_encode(['error' => 'Donor not found']);
+            }
             exit();
         }
 
@@ -52,6 +61,12 @@ class DonorDashboard
         $med = $stmt->fetch(PDO::FETCH_ASSOC);
         $age = $med ? $med['age'] : null;
 
+        // Fetch registration date (earliest verification_date)
+        $stmt = $this->pdo->prepare("SELECT verification_date FROM medical_verifications WHERE donor_id = ? ORDER BY verification_date ASC LIMIT 1");
+        $stmt->execute([$donor['donor_id']]);
+        $reg = $stmt->fetch(PDO::FETCH_ASSOC);
+        $registrationDate = $reg ? $reg['verification_date'] : null;
+
         $response = [
             'donorId' => $donor['donor_id'],
             'name' => $donor['name'],
@@ -65,7 +80,8 @@ class DonorDashboard
             'nextEligible' => $nextEligible,
             'livesSaved' => $livesSaved,
             'points' => $points,
-            'rank' => $rank
+            'rank' => $rank,
+            'registrationDate' => $registrationDate
         ];
 
         echo json_encode($response);
@@ -82,6 +98,17 @@ require_once __DIR__ . '/../config/db_connection.php';
 $db = new Database();
 $pdo = $db->connect();
 $donorId = $_SESSION['user_id'];
+
+// First check if user exists and is active
+$stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role = 'donor' AND status = 'active'");
+$stmt->execute([$donorId]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$user) {
+    echo json_encode(['error' => 'User not found or not active']);
+    http_response_code(401);
+    exit();
+}
 
 $dashboard = new DonorDashboard($pdo, $donorId);
 $dashboard->handle();

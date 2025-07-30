@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import './RegistrationModal.css';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const bloodTypes = [
   '', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
@@ -23,10 +25,57 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     otp: '',
     hospitalId: '',
   });
-  const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [hospitals, setHospitals] = useState([]);
+  const [passwordStrength, setPasswordStrength] = useState({ strength: 'weak', score: 0, color: '#ff4444' });
+
+  // Password strength calculation function
+  const calculatePasswordStrength = (password) => {
+    if (!password) {
+      return { strength: 'weak', score: 0, color: '#ff4444' };
+    }
+
+    let score = 0;
+    const checks = {
+      length: password.length >= 8,
+      lowercase: /[a-z]/.test(password),
+      uppercase: /[A-Z]/.test(password),
+      numbers: /\d/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    };
+
+    // Add points for each criteria met
+    Object.values(checks).forEach(check => {
+      if (check) score += 20;
+    });
+
+    // Bonus points for length
+    if (password.length >= 12) score += 10;
+    if (password.length >= 16) score += 10;
+
+    // Determine strength level
+    let strength, color;
+    if (score >= 90) {
+      strength = 'strong';
+      color = '#00C851';
+    } else if (score >= 60) {
+      strength = 'moderate';
+      color = '#ffbb33';
+    } else {
+      strength = 'weak';
+      color = '#ff4444';
+    }
+
+    return { strength, score, color };
+  };
+
+  // Handle password change with strength calculation
+  const handlePasswordChange = (e) => {
+    const { value } = e.target;
+    setFormData(prev => ({ ...prev, password: value }));
+    setPasswordStrength(calculatePasswordStrength(value));
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -50,16 +99,135 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleNameChange = (e) => {
+    const { value } = e.target;
+    setFormData(prev => ({ ...prev, fullName: value }));
+    
+    // Real-time validation for name with toast notifications
+    if (value.trim()) {
+      // Check if name contains only letters and spaces
+      if (!/^[a-zA-Z\s]*$/.test(value)) {
+        toast.error('Name must contain only letters and spaces');
+      }
+      // Check if name is not purely numeric
+      const nameWithoutSpaces = value.replace(/\s/g, '');
+      if (/^\d+$/.test(nameWithoutSpaces)) {
+        toast.error('Name cannot be purely numeric');
+      }
+    }
+  };
+
+  const handleDateOfBirthChange = (e) => {
+    const { value } = e.target;
+    setFormData(prev => ({ ...prev, dob: value }));
+    
+    // Real-time validation for date of birth
+    if (value) {
+      const birthDate = new Date(value);
+      const currentDate = new Date();
+      
+      // Check if date is not in the future
+      if (birthDate > currentDate) {
+        toast.error('Date of birth cannot be in the future');
+        return;
+      }
+      
+      // Calculate age
+      const age = currentDate.getFullYear() - birthDate.getFullYear();
+      const monthDiff = currentDate.getMonth() - birthDate.getMonth();
+      const actualAge = monthDiff < 0 || (monthDiff === 0 && currentDate.getDate() < birthDate.getDate()) ? age - 1 : age;
+      
+      // Check age eligibility
+      if (actualAge < 18) {
+        toast.error('You must be at least 18 years old to donate blood');
+      } else if (actualAge > 65) {
+        toast.error('You must be 65 years old or younger to donate blood');
+      }
+    }
+  };
+
+  const handlePhoneChange = (e) => {
+    const { value } = e.target;
+    
+    // Only allow digits
+    const phoneRegex = /^[0-9]*$/;
+    
+    if (phoneRegex.test(value)) {
+      setFormData(prev => ({ ...prev, phone: value }));
+    } else {
+      // Show error for invalid characters
+      toast.error('Phone number can only contain numbers');
+    }
+  };
+
   const validateStep1 = () => {
     const errs = {};
-    if (!formData.fullName.trim()) errs.fullName = 'Full name is required';
+    
+    // Full name validation
+    if (!formData.fullName.trim()) {
+      errs.fullName = 'Full name is required';
+    } else {
+      // Check if name contains only letters and spaces
+      if (!/^[a-zA-Z\s]+$/.test(formData.fullName.trim())) {
+        errs.fullName = 'Name must contain only letters and spaces';
+      }
+      // Check if name is not purely numeric
+      const nameWithoutSpaces = formData.fullName.trim().replace(/\s/g, '');
+      if (/^\d+$/.test(nameWithoutSpaces)) {
+        errs.fullName = 'Name cannot be purely numeric';
+      }
+      // Check minimum length
+      if (formData.fullName.trim().length < 2) {
+        errs.fullName = 'Name must be at least 2 characters long';
+      }
+    }
+    
     if (!formData.email.trim()) errs.email = 'Email is required';
     else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.email)) errs.email = 'Invalid email';
-    if (!formData.dob) errs.dob = 'Date of birth is required';
+    
+    // Date of birth validation
+    if (!formData.dob) {
+      errs.dob = 'Date of birth is required';
+    } else {
+      // Calculate age from date of birth
+      const birthDate = new Date(formData.dob);
+      const currentDate = new Date();
+      const age = currentDate.getFullYear() - birthDate.getFullYear();
+      const monthDiff = currentDate.getMonth() - birthDate.getMonth();
+      
+      // Adjust age if birthday hasn't occurred this year
+      const actualAge = monthDiff < 0 || (monthDiff === 0 && currentDate.getDate() < birthDate.getDate()) ? age - 1 : age;
+      
+      // Check if age is within donation eligibility range (18 to 65)
+      if (actualAge < 18) {
+        errs.dob = 'You must be at least 18 years old to donate blood';
+      } else if (actualAge > 65) {
+        errs.dob = 'You must be 65 years old or younger to donate blood';
+      }
+      
+      // Check if date is not in the future
+      if (birthDate > currentDate) {
+        errs.dob = 'Date of birth cannot be in the future';
+      }
+    }
+    
     if (!formData.address.trim()) errs.address = 'Address is required';
     if (!formData.district) errs.district = 'District is required';
-    if (!formData.phone.trim()) errs.phone = 'Phone number is required';
-    else if (!/^\d{10}$/.test(formData.phone.trim())) errs.phone = 'Phone number must be exactly 10 digits (Sri Lankan format)';
+    
+    // Phone number validation
+    if (!formData.phone.trim()) {
+      errs.phone = 'Phone number is required';
+    } else {
+      // Check if phone contains only digits
+      if (!/^[0-9]+$/.test(formData.phone.trim())) {
+        errs.phone = 'Phone number can only contain numbers';
+      }
+      // Check if phone has exactly 10 digits (Sri Lankan format)
+      if (formData.phone.trim().length !== 10) {
+        errs.phone = 'Phone number must be exactly 10 digits (Sri Lankan format)';
+      }
+    }
+    
     if (!formData.password) errs.password = 'Password is required';
     else if (formData.password.length < 6) errs.password = 'Password must be at least 6 characters';
     if (formData.confirmPassword !== formData.password) errs.confirmPassword = 'Passwords do not match';
@@ -70,7 +238,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
   const handleSubmitStep1 = async (e) => {
     e.preventDefault();
     const errs = validateStep1();
-    setErrors(errs);
+    
     if (Object.keys(errs).length === 0) {
       setIsSubmitting(true);
       try {
@@ -95,23 +263,39 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
         const result = await response.json();
 
         if (result.success) {
+          toast.success('Registration successful! Please check your email for OTP verification.');
           setOtpSent(true);
           setStep(2);
         } else {
-          setErrors({ email: result.message || 'Failed to register' });
+          // Show server-side validation errors
+          if (result.errors && typeof result.errors === 'object') {
+            // Handle multiple validation errors
+            Object.keys(result.errors).forEach(field => {
+              result.errors[field].forEach(error => {
+                toast.error(`${field}: ${error}`);
+              });
+            });
+          } else {
+            toast.error(result.message || 'Failed to register');
+          }
         }
       } catch (error) {
         console.error('Registration error:', error);
-        setErrors({ email: 'Network error. Please try again.' });
+        toast.error('Network error. Please try again.');
       }
       setIsSubmitting(false);
+    } else {
+      // Show client-side validation errors as toast notifications
+      Object.keys(errs).forEach(field => {
+        toast.error(errs[field]);
+      });
     }
   };
 
   const handleSubmitStep2 = async (e) => {
     e.preventDefault();
     if (!formData.otp.trim()) {
-      setErrors({ otp: 'OTP is required' });
+      toast.error('OTP is required');
       return;
     }
     setIsSubmitting(true);
@@ -128,6 +312,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
       const result = await response.json();
 
       if (result.success) {
+        toast.success('Email verified successfully! Your registration request has been sent to the MRO for approval.');
         setFormData({
           fullName: '', email: '', password: '', confirmPassword: '',
           dob: '', address: '', district: '', otp: '', hospitalId: '',
@@ -137,10 +322,10 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
         onClose && onClose();
         if (onRegistrationComplete) onRegistrationComplete();
       } else {
-        setErrors({ otp: result.message || 'Invalid OTP' });
+        toast.error(result.message || 'Invalid OTP');
       }
     } catch (error) {
-      setErrors({ otp: 'Network error' });
+      toast.error('Network error. Please try again.');
     }
     setIsSubmitting(false);
   };
@@ -201,12 +386,11 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                         id="fullName"
                         name="fullName"
                         value={formData.fullName}
-                        onChange={handleChange}
+                        onChange={handleNameChange}
                         className="form-input"
                         placeholder="Enter your full name"
                         required
                       />
-                      {errors.fullName && <div className="form-error">{errors.fullName}</div>}
                     </div>
 
                     <div className="form-group">
@@ -221,7 +405,6 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                         placeholder="Enter your email"
                         required
                       />
-                      {errors.email && <div className="form-error">{errors.email}</div>}
                     </div>
                   </div>
 
@@ -233,11 +416,20 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                         id="dob"
                         name="dob"
                         value={formData.dob}
-                        onChange={handleChange}
+                        onChange={handleDateOfBirthChange}
                         className="form-input"
+                        max={(() => {
+                          const today = new Date();
+                          const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+                          return maxDate.toISOString().split('T')[0];
+                        })()}
+                        min={(() => {
+                          const today = new Date();
+                          const minDate = new Date(today.getFullYear() - 65, today.getMonth(), today.getDate());
+                          return minDate.toISOString().split('T')[0];
+                        })()}
                         required
                       />
-                      {errors.dob && <div className="form-error">{errors.dob}</div>}
                     </div>
 
                     <div className="form-group">
@@ -247,12 +439,11 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                         id="phone"
                         name="phone"
                         value={formData.phone}
-                        onChange={handleChange}
+                        onChange={handlePhoneChange}
                         className="form-input"
                         placeholder="Enter your phone number"
                         required
                       />
-                      {errors.phone && <div className="form-error">{errors.phone}</div>}
                     </div>
                   </div>
 
@@ -271,7 +462,6 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                           <option key={d} value={d}>{d ? d : 'Select district'}</option>
                         ))}
                       </select>
-                      {errors.district && <div className="form-error">{errors.district}</div>}
                     </div>
 
                     <div className="form-group">
@@ -286,7 +476,6 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                         rows="3"
                         required
                       />
-                      {errors.address && <div className="form-error">{errors.address}</div>}
                     </div>
                   </div>
 
@@ -308,7 +497,6 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                           </option>
                         ))}
                       </select>
-                      {errors.hospitalId && <div className="form-error">{errors.hospitalId}</div>}
                     </div>
                   </div>
 
@@ -320,12 +508,27 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                         id="password"
                         name="password"
                         value={formData.password}
-                        onChange={handleChange}
+                        onChange={handlePasswordChange}
                         className="form-input"
                         placeholder="Create a password"
                         required
                       />
-                      {errors.password && <div className="form-error">{errors.password}</div>}
+                      {formData.password && (
+                        <div className="password-strength-container">
+                          <div className="password-strength-bar">
+                            <div 
+                              className="password-strength-fill"
+                              style={{ 
+                                width: `${passwordStrength.score}%`,
+                                backgroundColor: passwordStrength.color
+                              }}
+                            ></div>
+                          </div>
+                          <div className="password-strength-text" style={{ color: passwordStrength.color }}>
+                            {passwordStrength.strength.charAt(0).toUpperCase() + passwordStrength.strength.slice(1)} Password
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -340,7 +543,6 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                         placeholder="Confirm your password"
                         required
                       />
-                      {errors.confirmPassword && <div className="form-error">{errors.confirmPassword}</div>}
                     </div>
                   </div>
 
@@ -350,10 +552,13 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
-                      <span className="loading-spinner">
-                        <span className="spinner"></span>
-                        Processing...
-                      </span>
+                      <LoadingSpinner 
+                        size="16" 
+                        stroke="2" 
+                        color="#ffffff" 
+                        text="Processing..."
+                        className="button"
+                      />
                     ) : (
                       <>
                         <span className="btn-text">Create Account</span>
@@ -388,7 +593,6 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                         maxLength="6"
                         required
                       />
-                      {errors.otp && <div className="form-error">{errors.otp}</div>}
                     </div>
 
                     <button
@@ -397,10 +601,13 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       disabled={isSubmitting}
                     >
                       {isSubmitting ? (
-                        <span className="loading-spinner">
-                          <span className="spinner"></span>
-                          Verifying...
-                        </span>
+                        <LoadingSpinner 
+                          size="16" 
+                          stroke="2" 
+                          color="#ffffff" 
+                          text="Verifying..."
+                          className="button"
+                        />
                       ) : (
                         <>
                           <span className="btn-text">Verify Email</span>

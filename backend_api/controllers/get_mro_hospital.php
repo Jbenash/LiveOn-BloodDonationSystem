@@ -20,10 +20,10 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'mro') {
     exit();
 }
 
-require_once __DIR__ . '/../config/db_connection.php';
+require_once __DIR__ . '/../classes/Database.php';
 try {
-    $database = new Database();
-    $pdo = $database->connect();
+    $database = Database::getInstance();
+    $pdo = $database->getConnection();
     $user_id = $_SESSION['user_id'];
     // Get hospital_id for this MRO
     $stmt = $pdo->prepare('SELECT hospital_id FROM mro_officers WHERE user_id = ?');

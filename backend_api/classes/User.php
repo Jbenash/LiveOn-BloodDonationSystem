@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/Exceptions.php';
+
 class User
 {
     private $conn;
@@ -25,7 +27,9 @@ class User
                         'user_id' => $user['user_id'],
                         'name' => $user['name'],
                         'role' => $user['role'],
-                        'email' => $user['email']
+                        'email' => $user['email'],
+                        'phone' => $user['phone'],
+                        'status' => $user['status']
                     ];
                 } else {
                     return ['pending' => true, 'status' => $user['status']];
@@ -146,13 +150,5 @@ class User
         } catch (PDOException $e) {
             throw new UserException("Users by role retrieval failed: " . $e->getMessage());
         }
-    }
-}
-
-class UserException extends Exception
-{
-    public function __construct($message = "", $code = 0, Exception $previous = null)
-    {
-        parent::__construct($message, $code, $previous);
     }
 }

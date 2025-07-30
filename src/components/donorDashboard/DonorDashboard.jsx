@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import './DonorDashboard.css';
 import logo from '../../assets/logo.svg';
-import CountdownCircle from './CountdownCircle';
+import ConfirmDialog from '../common/ConfirmDialog';
+import ErrorDisplay from '../common/ErrorDisplay';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const DonorDashboard = () => {
   const [user, setUser] = useState(null);
@@ -13,22 +16,41 @@ const DonorDashboard = () => {
   const [countdown, setCountdown] = useState('');
   const countdownInterval = useRef(null);
   const navigate = useNavigate();
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [showLogoDialog, setShowLogoDialog] = useState(false);
+  const [showSaveProfileDialog, setShowSaveProfileDialog] = useState(false);
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const [removeReason, setRemoveReason] = useState('');
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
+    setError(null);
+    
     fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
       credentials: 'include'
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        return res.json();
+      })
       .then(data => {
         if (data.error) {
-          navigate('/'); // If not logged in, redirect
+          throw new Error(data.error);
         } else {
           setUser(data);
         }
       })
       .catch(err => {
         console.error('Error fetching donor data:', err);
-        navigate('/'); // In case of error, redirect
+        setError(err.message || 'Failed to load donor data');
+        toast.error('Failed to load donor data');
+      })
+      .finally(() => {
+        setLoading(false);
       });
   }, [navigate]);
 
@@ -47,10 +69,17 @@ const DonorDashboard = () => {
   }, [activeSection, user]);
 
   useEffect(() => {
+    // Use lastDonation if available, otherwise use registrationDate
+    let baseDate = null;
     if (user?.lastDonation && user.lastDonation !== 'N/A') {
-      const lastDonationDate = new Date(user.lastDonation);
+      baseDate = new Date(user.lastDonation);
+    } else if (user?.registrationDate) {
+      baseDate = new Date(user.registrationDate);
+    }
+
+    if (baseDate) {
       // Add 6 months
-      const nextEligibleDate = new Date(lastDonationDate);
+      const nextEligibleDate = new Date(baseDate);
       nextEligibleDate.setMonth(nextEligibleDate.getMonth() + 6);
 
       function updateCountdown() {
@@ -77,76 +106,276 @@ const DonorDashboard = () => {
       setCountdown('N/A');
       if (countdownInterval.current) clearInterval(countdownInterval.current);
     }
-  }, [user?.lastDonation]);
+  }, [user?.lastDonation, user?.registrationDate]);
 
+  // Use custom dialog for logout
   const handleLogout = () => {
+    setShowLogoutDialog(true);
+  };
+  const confirmLogout = () => {
+    setShowLogoutDialog(false);
     fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
       method: 'POST',
       credentials: 'include'
     })
       .then(() => {
-        navigate('/'); // Go to login or home page
+        navigate('/?login=true');
       })
       .catch(error => {
         console.error("Logout failed:", error);
+        navigate('/?login=true');
       });
   };
+  const cancelLogout = () => setShowLogoutDialog(false);
 
-  if (!user) return <div>Loading dashboard...</div>;
+  // Use custom dialog for logo click
+  const handleLogoClick = () => {
+    setShowLogoDialog(true);
+  };
+  const confirmLogo = () => {
+    setShowLogoDialog(false);
+    navigate('/');
+  };
+  const cancelLogo = () => setShowLogoDialog(false);
+
+  // Profile save confirmation functions
+  const confirmSaveProfile = async () => {
+    setShowSaveProfileDialog(false);
+    const formData = new FormData();
+    formData.append('donorId', editForm.donorId);
+    formData.append('name', editForm.name);
+    formData.append('bloodType', editForm.bloodType);
+    formData.append('age', editForm.age);
+    formData.append('location', editForm.location);
+    formData.append('email', editForm.email);
+    if (editForm.profilePicFile) {
+      formData.append('profilePicFile', editForm.profilePicFile);
+    }
+    try {
+      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/update_donor_profile.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUser(u => ({ ...u, name: editForm.name, bloodType: editForm.bloodType, age: editForm.age, location: editForm.location, email: editForm.email, profilePic: data.imagePath ? `http://localhost/liveonv2/${data.imagePath}` : u.profilePic }));
+        setShowEditProfile(false);
+        toast.success('Profile updated successfully!');
+      } else {
+        toast.error(data.message || 'Failed to update profile');
+      }
+    } catch (err) {
+      toast.error('Error updating profile');
+    }
+  };
+
+  const cancelSaveProfile = () => setShowSaveProfileDialog(false);
+
+  // Remove from system functions
+  const handleRemoveFromSystem = () => {
+    setShowRemoveDialog(true);
+  };
+
+  const confirmRemove = async () => {
+    if (!removeReason.trim()) {
+      toast.error('Please provide a reason for removal');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/request_donor_removal.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          donorId: user.donorId,
+          reason: removeReason.trim()
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success('Removal request sent to administrators successfully');
+        setShowRemoveDialog(false);
+        setRemoveReason('');
+      } else {
+        toast.error(data.message || 'Failed to send removal request');
+      }
+    } catch (error) {
+      console.error('Error sending removal request:', error);
+      toast.error('Error sending removal request');
+    }
+  };
+
+  const cancelRemove = () => {
+    setShowRemoveDialog(false);
+    setRemoveReason('');
+  };
+
+  if (loading) {
+    return (
+      <div className="donor-dashboard-root">
+        <LoadingSpinner 
+          size="60"
+          stroke="4"
+          speed="1"
+          color="#dc2626"
+          text="Loading donor dashboard..."
+          className="full-page"
+        />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorDisplay 
+        error={error}
+        onRetry={() => {
+          setError(null);
+          setLoading(true);
+          // Re-fetch data
+          fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
+            credentials: 'include'
+          })
+            .then(res => {
+              if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+              }
+              return res.json();
+            })
+            .then(data => {
+              if (data.error) {
+                throw new Error(data.error);
+              } else {
+                setUser(data);
+              }
+            })
+            .catch(err => {
+              console.error('Error fetching donor data:', err);
+              setError(err.message || 'Failed to load donor data');
+              toast.error('Failed to load donor data');
+            })
+            .finally(() => {
+              setLoading(false);
+            });
+        }}
+        title="Failed to load donor dashboard"
+        buttonText="Retry"
+      />
+    );
+  }
+
+  if (!user) {
+    return (
+      <ErrorDisplay 
+        error="No donor data available"
+        title="Donor data not found"
+        buttonText="Retry"
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
 
   return (
     <div className="donor-dashboard-container">
-      <aside className="sidebar" style={{ width: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100vh' }}>
-        <div style={{ width: '100%' }}>
-          <div className="logo" style={{ cursor: 'pointer', padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginLeft: 32, marginBottom: 40 }} onClick={() => navigate('/') }>
-            <img src={logo} alt="LiveOn Logo" style={{ height: 120, width: 'auto', display: 'block' }} />
+      <ConfirmDialog
+        open={showLogoutDialog}
+        title="Confirm Logout"
+        message="Are you sure you want to logout?"
+        onConfirm={confirmLogout}
+        onCancel={cancelLogout}
+        confirmText="Logout"
+        cancelText="Cancel"
+      />
+      <ConfirmDialog
+        open={showLogoDialog}
+        title="Confirm Navigation"
+        message="Are you sure you want to go to the home page? You will be logged out."
+        onConfirm={confirmLogo}
+        onCancel={cancelLogo}
+        confirmText="Go Home"
+        cancelText="Cancel"
+      />
+      <ConfirmDialog
+        open={showSaveProfileDialog}
+        title="Confirm Profile Changes"
+        message="Are you sure you want to save these profile changes?"
+        onConfirm={confirmSaveProfile}
+        onCancel={cancelSaveProfile}
+        confirmText="Save Changes"
+        cancelText="Cancel"
+      />
+      {/* Remove from System Modal */}
+      {showRemoveDialog && (
+        <div className="modal-overlay" onClick={cancelRemove}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={cancelRemove}>&times;</button>
+            
+            <div>
+              <h2>Remove from System</h2>
+              <p>Please provide a reason for requesting removal from the donation system. This request will be sent to administrators for review.</p>
+            </div>
+
+            <div className="form-field">
+              <label>Reason for Removal *</label>
+              <textarea
+                value={removeReason}
+                onChange={(e) => setRemoveReason(e.target.value)}
+                placeholder="Please explain why you want to be removed from the system..."
+                rows={4}
+                style={{ width: '100%', padding: '12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: '1rem', resize: 'vertical' }}
+              />
+            </div>
+
+            <div className="action-buttons">
+              <button 
+                type="button" 
+                className="cancel-btn"
+                onClick={cancelRemove}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="save-btn"
+                onClick={confirmRemove}
+                disabled={!removeReason.trim()}
+              >
+                Send Request
+              </button>
+            </div>
+          </div>
         </div>
-        <nav>
-            <ul style={{ padding: 0, margin: 0 }}>
-              <li className={activeSection === 'dashboard' ? 'active' : ''} onClick={() => setActiveSection('dashboard')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+      )}
+      <aside className="sidebar">
+        <div style={{ width: '100%' }}>
+          <div className="logo" onClick={handleLogoClick}>
+            <img src={logo} alt="LiveOn Logo" />
+          </div>
+          <nav>
+            <ul>
+              <li className={activeSection === 'dashboard' ? 'active' : ''} onClick={() => setActiveSection('dashboard')}>
                 <span className="sidebar-label">Dashboard</span>
               </li>
-              <li className={activeSection === 'profile' ? 'active' : ''} onClick={() => setActiveSection('profile')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+              <li className={activeSection === 'profile' ? 'active' : ''} onClick={() => setActiveSection('profile')}>
                 <span className="sidebar-label">Profile</span>
               </li>
-              <li className={activeSection === 'donations' ? 'active' : ''} onClick={() => setActiveSection('donations')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+              <li className={activeSection === 'donations' ? 'active' : ''} onClick={() => setActiveSection('donations')}>
                 <span className="sidebar-label">Donations</span>
               </li>
-              <li className={activeSection === 'rewards' ? 'active' : ''} onClick={() => setActiveSection('rewards')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+              <li className={activeSection === 'rewards' ? 'active' : ''} onClick={() => setActiveSection('rewards')}>
                 <span className="sidebar-label">Rewards</span>
               </li>
-              <li className={activeSection === 'feedback' ? 'active' : ''} onClick={() => setActiveSection('feedback')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+              <li className={activeSection === 'feedback' ? 'active' : ''} onClick={() => setActiveSection('feedback')}>
                 <span className="sidebar-label">Feedback</span>
               </li>
-          </ul>
-        </nav>
+            </ul>
+          </nav>
         </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            width: '90%',
-            margin: '0 auto 24px auto',
-            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 10,
-            padding: '14px 0',
-            fontSize: '1.1rem',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(220,38,38,0.13)',
-            transition: 'background 0.2s',
-          }}
-        >
+        <button className="logout-btn" onClick={handleLogout}>
           <span style={{ fontSize: 20, display: 'flex', alignItems: 'center' }}>⎋</span> Logout
         </button>
       </aside>
@@ -208,7 +437,20 @@ const DonorDashboard = () => {
             <>
           <div className="dashboard-stats-grid">
             {/* Profile Card */}
-            <div className="dashboard-card glassy profile-summary animate-fadein">
+            <div className="dashboard-card glassy profile-summary animate-fadein"
+                 style={{ cursor: 'pointer' }}
+                 onClick={() => {
+                   setEditForm({
+                     donorId: user.donorId,
+                     name: user.name,
+                     bloodType: user.bloodType,
+                     age: user.age,
+                     location: user.location,
+                     email: user.email
+                   });
+                   setShowEditProfile(true);
+                 }}
+            >
               <div className="profile-summary-title gradient-text">Profile Summary</div>
               <div className="profile-summary-details">
                 <img src={user.profilePic} alt="Profile" className="profile-avatar" />
@@ -244,16 +486,50 @@ const DonorDashboard = () => {
                   return (
                     <div style={{
                       display: 'flex',
-                      gap: 28,
-                      background: 'linear-gradient(90deg, #f43f5e 0%, #3b82f6 100%)',
-                      borderRadius: 18,
+                      flexDirection: 'column',
+                      alignItems: 'center',
                       padding: '18px 24px',
-                      boxShadow: '0 2px 8px rgba(37,99,235,0.08)'
+                      minWidth: 320,
+                      margin: '0 auto',
                     }}>
-                      <CountdownCircle value={days} max={180} label="Days" />
-                      <CountdownCircle value={hours} max={24} label="Hours" />
-                      <CountdownCircle value={minutes} max={60} label="Minutes" />
-                      <CountdownCircle value={seconds} max={60} label="Seconds" />
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: '#2d3a8c',
+                        WebkitTextStroke: '0px',
+                        textShadow: 'none',
+                        filter: 'none',
+                        fontWeight: 500,
+                        fontSize: '2.6rem',
+                        letterSpacing: 2,
+                        marginBottom: 4,
+                      }}>
+                        <span style={{color: '#2d3a8c', fontWeight: 700}}>{days}</span>
+                        <span style={{ margin: '0 8px', color: '#2d3a8c' }}>:</span>
+                        <span style={{color: '#2d3a8c', fontWeight: 700}}>{hours.toString().padStart(2, '0')}</span>
+                        <span style={{ margin: '0 8px', color: '#2d3a8c' }}>:</span>
+                        <span style={{color: '#2d3a8c', fontWeight: 700}}>{minutes.toString().padStart(2, '0')}</span>
+                        <span style={{ margin: '0 8px', color: '#2d3a8c' }}>:</span>
+                        <span style={{color: '#2d3a8c', fontWeight: 700}}>{seconds.toString().padStart(2, '0')}</span>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        gap: 38,
+                        color: '#2d3a8c',
+                        WebkitTextStroke: '0px',
+                        textShadow: 'none',
+                        filter: 'none',
+                        fontSize: '1.1rem',
+                        fontWeight: 400,
+                        opacity: 0.85,
+                        letterSpacing: 1,
+                      }}>
+                        <span style={{color: '#2d3a8c'}}>day</span>
+                        <span style={{color: '#2d3a8c'}}>hour</span>
+                        <span style={{color: '#2d3a8c'}}>min</span>
+                        <span style={{color: '#2d3a8c'}}>sec</span>
+                      </div>
                     </div>
                   );
                 })() : countdown === 'Eligible now!' && (
@@ -468,11 +744,11 @@ const DonorDashboard = () => {
             </div>
           </div>
 
-          {/* Call to Action */}
+          {/* Remove from System Option */}
           <div className="dashboard-cta-card glassy animate-fadein">
-            <h3 className="cta-title gradient-text">Ready for your next donation?</h3>
-            <p className="cta-desc">Book your next appointment and keep saving lives!</p>
-            <button className="dashboard-btn primary">Book Next Donation</button>
+            <h3 className="cta-title gradient-text">System Management</h3>
+            <p className="cta-desc">If you no longer wish to be part of the continuous donation program, you can request removal from the system.</p>
+            <button className="dashboard-btn danger" onClick={handleRemoveFromSystem}>Remove from System</button>
           </div>
             </>
           )}
@@ -524,7 +800,7 @@ const DonorDashboard = () => {
                     e.preventDefault();
                     const feedback = e.target.elements.feedback.value.trim();
                     if (!feedback) {
-                      alert('Please enter your feedback.');
+                      toast.error('Please enter your feedback.');
                       return;
                     }
                     try {
@@ -536,13 +812,13 @@ const DonorDashboard = () => {
                       });
                       const data = await res.json();
                       if (data.success) {
-                        alert('Thank you for your feedback!');
+                        toast.success('Thank you for your feedback! It will be reviewed by an admin before being displayed on the homepage.');
                         e.target.reset();
                       } else {
-                        alert(data.message || 'Failed to submit feedback');
+                        toast.error(data.message || 'Failed to submit feedback');
                       }
                     } catch (err) {
-                      alert('Error submitting feedback');
+                      toast.error('Error submitting feedback');
                     }
                   }}
                   style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
@@ -565,103 +841,144 @@ const DonorDashboard = () => {
 
       {/* Edit Profile Modal */}
       {showEditProfile && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(30,41,59,0.25)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="modal-content" style={{ background: '#fff', borderRadius: 18, maxWidth: 480, width: '95%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(59,130,246,0.13)', padding: '2.2rem 2rem', position: 'relative' }}>
-            <button onClick={() => setShowEditProfile(false)} style={{ position: 'absolute', top: 18, right: 18, background: 'none', border: 'none', fontSize: 26, color: '#dc3545', cursor: 'pointer' }}>&times;</button>
-            <h2 style={{ textAlign: 'center', marginBottom: 24, color: '#1e293b', fontWeight: 700 }}>Edit Profile</h2>
-            <form style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Donor ID:
-                <input type="text" value={editForm.donorId} readOnly style={{ background: '#f1f5f9', color: '#64748b', fontWeight: 600, border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', marginTop: 4 }} />
-              </label>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Profile Picture:
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={e => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = ev => {
-                        setEditForm(f => ({ ...f, profilePic: ev.target.result, profilePicFile: file }));
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  style={{ marginTop: 4 }}
-                />
-                {editForm.profilePic && (
+        <div className="modal-overlay" onClick={() => setShowEditProfile(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowEditProfile(false)}>&times;</button>
+            
+            {/* Header */}
+            <div>
+              <h2>Edit Profile</h2>
+              <p>Update your personal information</p>
+            </div>
+
+            <form>
+              {/* Profile Picture Section */}
+              <div className="profile-picture-section">
+                <div>
                   <img
-                    src={editForm.profilePic}
-                    alt="Preview"
-                    style={{ width: 90, height: 90, borderRadius: '50%', objectFit: 'cover', marginTop: 10, border: '3px solid #dc3545', boxShadow: '0 2px 8px rgba(220,53,69,0.13)' }}
+                    src={editForm.profilePic || user.profilePic}
+                    alt="Profile"
                   />
-                )}
-              </label>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Name:
-                <input type="text" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', marginTop: 4 }} />
-              </label>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Blood Type:
-                <select value={editForm.bloodType} onChange={e => setEditForm(f => ({ ...f, bloodType: e.target.value }))} style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', marginTop: 4 }}>
-                  <option value="">Select Blood Group</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                </select>
-              </label>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Age:
-                <input type="number" value={editForm.age} onChange={e => setEditForm(f => ({ ...f, age: e.target.value }))} style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', marginTop: 4 }} />
-              </label>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Location:
-                <input type="text" value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', marginTop: 4 }} />
-              </label>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Email:
-                <input type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', marginTop: 4 }} />
-              </label>
-              <button type="button" className="dashboard-btn primary" style={{ marginTop: 10, fontSize: '1.08rem', padding: '12px 0' }}
-                onClick={async () => {
-                  const formData = new FormData();
-                  formData.append('donorId', editForm.donorId);
-                  formData.append('name', editForm.name);
-                  formData.append('bloodType', editForm.bloodType);
-                  formData.append('age', editForm.age);
-                  formData.append('location', editForm.location);
-                  formData.append('email', editForm.email);
-                  if (editForm.profilePicFile) {
-                    formData.append('profilePicFile', editForm.profilePicFile);
-                  }
-                  try {
-                    const res = await fetch('http://localhost/liveonv2/backend_api/controllers/update_donor_profile.php', {
-                      method: 'POST',
-                      body: formData,
-                      credentials: 'include',
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                      setUser(u => ({ ...u, name: editForm.name, bloodType: editForm.bloodType, age: editForm.age, location: editForm.location, email: editForm.email, profilePic: data.imagePath ? `http://localhost/liveonv2/${data.imagePath}` : u.profilePic }));
-                      setShowEditProfile(false);
-                    } else {
-                      alert(data.message || 'Failed to update profile');
-                    }
-                  } catch (err) {
-                    alert('Error updating profile');
-                  }
-                }}
-              >Save Changes</button>
+                  <label className="change-photo-btn">
+                    Change Photo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={e => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = ev => {
+                            setEditForm(f => ({ ...f, profilePic: ev.target.result, profilePicFile: file }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Form Fields in Single Column */}
+              <div className="form-grid">
+                {/* Donor ID */}
+                <div className="form-field">
+                  <label>Donor ID</label>
+                  <input 
+                    type="text" 
+                    value={editForm.donorId} 
+                    readOnly 
+                  />
+                </div>
+
+                {/* Name */}
+                <div className="form-field">
+                  <label>Full Name</label>
+                  <input 
+                    type="text" 
+                    value={editForm.name} 
+                    onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} 
+                    placeholder="Enter your full name"
+                  />
+                </div>
+
+                {/* Age */}
+                <div className="form-field">
+                  <label>Age</label>
+                  <input 
+                    type="number" 
+                    value={editForm.age} 
+                    onChange={e => setEditForm(f => ({ ...f, age: e.target.value }))} 
+                    placeholder="Enter your age"
+                    min="18"
+                    max="65"
+                  />
+                </div>
+
+                {/* Blood Type */}
+                <div className="form-field">
+                  <label>Blood Type</label>
+                  <select 
+                    value={editForm.bloodType} 
+                    onChange={e => setEditForm(f => ({ ...f, bloodType: e.target.value }))}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '14px', backgroundColor: '#ffffff' }}
+                    required
+                  >
+                    <option value="">Select Blood Type</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                  </select>
+                </div>
+
+                {/* Location */}
+                <div className="form-field">
+                  <label>Location</label>
+                  <input 
+                    type="text" 
+                    value={editForm.location} 
+                    onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} 
+                    placeholder="Enter your location"
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="form-field">
+                  <label>Email Address</label>
+                  <input 
+                    type="email" 
+                    value={editForm.email} 
+                    readOnly 
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="action-buttons">
+                <button 
+                  type="button" 
+                  className="cancel-btn"
+                  onClick={() => setShowEditProfile(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  className="save-btn"
+                  onClick={() => setShowSaveProfileDialog(true)}
+                >
+                  Save Changes
+                </button>
+              </div>
             </form>
           </div>
-      </div>
+        </div>
       )}
     </div>
   );

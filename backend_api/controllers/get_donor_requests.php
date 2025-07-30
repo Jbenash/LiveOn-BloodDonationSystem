@@ -20,11 +20,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-require_once __DIR__ . '/../config/db_connection.php';
+// Allow requests from both development ports
+$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowedOrigins)) {
+    header("Access-Control-Allow-Origin: $origin");
+}
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header('Content-Type: application/json');
+
+require_once __DIR__ . '/../classes/Database.php';
 
 try {
-    $database = new Database();
-    $pdo = $database->connect();
+    $database = Database::getInstance();
+    $pdo = $database->getConnection();
 
     // Only allow MROs to access, and get their hospital_id
     if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'mro') {
@@ -48,14 +59,17 @@ try {
         exit();
     }
 
-    // Now fetch only donor requests for this hospital
-    $sql = "SELECT d.donor_id, u.name AS donor_fullname, u.email AS donor_email, ov.otp_code AS otp_number,
-            d.blood_type AS blood_group, d.preferred_hospital_id,
-            u.status, u.role
-    FROM donors d
-    INNER JOIN users u ON d.user_id = u.user_id
-    LEFT JOIN otp_verification ov ON u.user_id = ov.user_id
-    WHERE u.role = 'donor' AND u.status = 'inactive' AND d.preferred_hospital_id = ?";
+    // Fetch donor requests from the new donor_requests table
+    // Only show pending requests for this MRO's hospital
+    $sql = "SELECT dr.request_id, dr.donor_id, u.name AS donor_fullname, u.email AS donor_email, 
+            ov.otp_code AS otp_number, dr.dob, dr.address, dr.city, dr.preferred_hospital_id,
+            u.status, u.role, dr.created_at
+    FROM donor_requests dr
+    INNER JOIN users u ON dr.user_id = u.user_id
+    LEFT JOIN otp_verification ov ON u.user_id = ov.user_id AND ov.verified = 1
+    WHERE dr.status = 'pending' AND dr.preferred_hospital_id = ?
+    ORDER BY dr.created_at DESC";
+
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$mro_hospital_id]);
     $donors = $stmt->fetchAll();

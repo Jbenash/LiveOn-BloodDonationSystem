@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
+import { toast } from 'sonner';
 import "./AdminDashboard.css";
 import logo from "../../assets/logo.svg";
 import userImg from "../../assets/user.png";
 import { FaBell } from 'react-icons/fa';
+import ConfirmDialog from '../common/ConfirmDialog';
+import ErrorDisplay from '../common/ErrorDisplay';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -61,11 +65,20 @@ const AdminDashboard = () => {
   const [adminNewPassword, setAdminNewPassword] = useState('');
   const [passwordResetLoading, setPasswordResetLoading] = useState(false);
   const [passwordResetError, setPasswordResetError] = useState('');
-  // Dummy data for MROs
-  const [allMROs, setAllMROs] = useState([
-    { mro_id: 'MRO001', name: 'Dr. Silva', email: 'dr.silva@hospital.com', phone: '0771234567', hospital: 'National Hospital' },
-    { mro_id: 'MRO002', name: 'Dr. Perera', email: 'dr.perera@hospital.com', phone: '0779876543', hospital: 'General Hospital' }
-  ]);
+  const [allMROs, setAllMROs] = useState([]);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [showLogoDialog, setShowLogoDialog] = useState(false);
+  const [donorToRemove, setDonorToRemove] = useState(null);
+  const [showRemoveDonorDialog, setShowRemoveDonorDialog] = useState(false);
+  const [userToRemove, setUserToRemove] = useState(null);
+  const [showRemoveUserDialog, setShowRemoveUserDialog] = useState(false);
+  const [hospitalToRemove, setHospitalToRemove] = useState(null);
+  const [showRemoveHospitalDialog, setShowRemoveHospitalDialog] = useState(false);
+  const [mroToRemove, setMroToRemove] = useState(null);
+  const [showRemoveMroDialog, setShowRemoveMroDialog] = useState(false);
+  const [feedbackToAction, setFeedbackToAction] = useState(null);
+  const [showFeedbackActionDialog, setShowFeedbackActionDialog] = useState(false);
+  const [feedbackActionType, setFeedbackActionType] = useState(''); // 'approve' or 'reject'
 
   // Click outside to close notification popup
   useEffect(() => {
@@ -103,7 +116,8 @@ const AdminDashboard = () => {
         const data = await res.json();
         if (data.success) {
           setNotifications(data.notifications);
-          setUnreadCount(data.notifications.filter(n => n.status === 'unread').length);
+          // Only count non-password-reset notifications for the general unread count
+          setUnreadCount(data.notifications.filter(n => n.status === 'unread' && n.type !== 'password_reset').length);
         }
       } catch (e) { /* ignore */ }
     };
@@ -154,7 +168,9 @@ const AdminDashboard = () => {
   }, []);
 
   // Show badge on bell if there are pending password resets
-  const pendingPasswordResets = passwordResetRequests.length;
+  // Only count password reset requests that are NOT already in the notifications list
+  const passwordResetNotifications = notifications.filter(n => n.type === 'password_reset');
+  const pendingPasswordResets = Math.max(0, passwordResetRequests.length - passwordResetNotifications.length);
 
   // Handle click on password reset notification
   const handlePasswordResetClick = (req) => {
@@ -201,55 +217,138 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchAdminData();
+    fetchMROs();
   }, []);
 
-  const fetchAdminData = async () => {
+  const fetchMROs = async () => {
     try {
-      setLoading(true);
-      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/admin_dashboard.php', {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/get_all_mros.php', {
         credentials: 'include'
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch admin data');
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setAllMROs(data.mros || []);
+      } else {
+        console.error('Failed to fetch MROs:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching MROs:', error);
+    }
+  };
+
+  const fetchAdminData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/admin_dashboard.php', {
+        credentials: 'include'
+      });
+
+      // Check if response is ok
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (parseError) {
+          // If it's not JSON, it might be HTML error
+          console.error('Non-JSON response:', errorText);
+          throw new Error(`Server returned ${response.status}: ${response.statusText}. Response was not valid JSON.`);
+        }
+        
+        throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
 
       if (data.error) {
         setError(data.error);
+        toast.error(data.error);
         return;
       }
 
-      setStats(data.stats);
-      setRecentUsers(data.recent_users || []);
-      setRecentRequests(data.recent_requests || []);
-      setAllUsers(data.all_users || []);
-      setAllHospitals(data.all_hospitals || []);
-      setAllDonors(data.all_donors || []);
-      setAllRequests(data.all_requests || []);
-      setAllFeedback(data.all_feedback || []);
-      setAllSuccessStories(data.all_success_stories || []);
+      // Check if we have the expected data structure
+      if (!data.success && !data.stats) {
+        setError('Invalid response format from server');
+        toast.error('Invalid response format from server');
+        return;
+      }
+
+      // Extract data from the response
+      const responseData = data.data || data;
+      
+      setStats(responseData.stats || {});
+      setRecentUsers(responseData.recent_users || []);
+      setRecentRequests(responseData.recent_requests || []);
+      setAllUsers(responseData.all_users || []);
+      setAllHospitals(responseData.all_hospitals || []);
+      setAllDonors(responseData.all_donors || []);
+      setAllRequests(responseData.all_requests || []);
+      setAllFeedback(responseData.all_feedback || []);
+      setAllSuccessStories(responseData.all_success_stories || []);
+      
     } catch (err) {
-      setError('Failed to load dashboard data');
       console.error('Error fetching admin data:', err);
+      
+      let errorMessage = 'Failed to load dashboard data';
+      
+      if (err.message.includes('401')) {
+        errorMessage = 'Please log in as admin to access this dashboard';
+        // Redirect to login
+        window.location.href = '/?login=true';
+      } else if (err.message.includes('403')) {
+        errorMessage = 'Access denied. Admin privileges required.';
+        // Redirect to home
+        window.location.href = '/';
+      } else if (err.message.includes('500')) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (err.message.includes('JSON')) {
+        errorMessage = 'Server returned invalid response. Please check your connection.';
+      }
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  // Use custom dialog for logout
   const handleLogout = () => {
-    fetch('http://localhost/liveonv2/backend_api/controllers/logout.php', {
+    setShowLogoutDialog(true);
+  };
+  const confirmLogout = () => {
+    setShowLogoutDialog(false);
+    fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
       method: 'POST',
-      credentials: 'include',
+      credentials: 'include'
     })
       .then(() => {
-        window.location.href = '/';
+        window.location.href = '/?login=true';
       })
       .catch(() => {
-        window.location.href = '/';
+        window.location.href = '/?login=true';
       });
   };
+  const cancelLogout = () => setShowLogoutDialog(false);
+
+  // Use custom dialog for logo click
+  const handleLogoClick = () => {
+    setShowLogoDialog(true);
+  };
+  const confirmLogo = () => {
+    setShowLogoDialog(false);
+    window.location.href = '/';
+  };
+  const cancelLogo = () => setShowLogoDialog(false);
 
   // Open edit modal
   const handleEditClick = (user) => {
@@ -271,34 +370,36 @@ const AdminDashboard = () => {
 
   // Save edit
   const handleEditSave = async () => {
-    setEditLoading(true);
-    setEditError('');
-    try {
-      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/edit_user.php', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: editUser.user_id,
-          name: editForm.name,
-          phone: editForm.phone,
-          status: editForm.status,
-          password: editForm.password
-        })
-      });
-      const data = await res.json();
-      if (!data.success) {
-        setEditError(data.error || data.message || 'Failed to update user');
+    if (window.confirm('Are you sure you want to save these changes to the user profile?')) {
+      setEditLoading(true);
+      setEditError('');
+      try {
+        const res = await fetch('http://localhost/liveonv2/backend_api/controllers/edit_user.php', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: editUser.user_id,
+            name: editForm.name,
+            phone: editForm.phone,
+            status: editForm.status,
+            password: editForm.password
+          })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          setEditError(data.error || data.message || 'Failed to update user');
+          setEditLoading(false);
+          return;
+        }
+        setEditUser(null);
+        setEditForm({ name: '', phone: '', status: '', password: '' });
+        await fetchAdminData();
+      } catch (err) {
+        setEditError('Failed to update user');
+      } finally {
         setEditLoading(false);
-        return;
       }
-      setEditUser(null);
-      setEditForm({ name: '', phone: '', status: '', password: '' });
-      await fetchAdminData();
-    } catch (err) {
-      setEditError('Failed to update user');
-    } finally {
-      setEditLoading(false);
     }
   };
 
@@ -314,7 +415,18 @@ const AdminDashboard = () => {
   };
   const handleEditHospitalFormChange = (e) => {
     const { name, value } = e.target;
-    setEditHospitalForm(prev => ({ ...prev, [name]: value }));
+    
+    // Phone validation for hospital contact phone
+    if (name === 'contact_phone') {
+      const phoneRegex = /^[0-9]*$/;
+      if (phoneRegex.test(value)) {
+        setEditHospitalForm(prev => ({ ...prev, [name]: value }));
+      } else {
+        toast.error('Phone number can only contain numbers');
+      }
+    } else {
+      setEditHospitalForm(prev => ({ ...prev, [name]: value }));
+    }
   };
   const handleEditHospitalSave = () => {
     // TODO: Implement backend update
@@ -335,11 +447,257 @@ const AdminDashboard = () => {
   };
   const handleEditDonorFormChange = (e) => {
     const { name, value } = e.target;
-    setEditDonorForm(prev => ({ ...prev, [name]: value }));
+    
+    // Phone validation for donor phone
+    if (name === 'phone') {
+      const phoneRegex = /^[0-9]*$/;
+      if (phoneRegex.test(value)) {
+        setEditDonorForm(prev => ({ ...prev, [name]: value }));
+      } else {
+        toast.error('Phone number can only contain numbers');
+      }
+    } else {
+      setEditDonorForm(prev => ({ ...prev, [name]: value }));
+    }
   };
-  const handleEditDonorSave = () => {
-    // TODO: Implement backend update
-    setEditDonor(null);
+  const handleEditDonorSave = async () => {
+    if (!editDonor) return;
+
+    try {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/admin_update_donor.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          donorId: editDonor.donor_id,
+          name: editDonorForm.name,
+          email: editDonorForm.email,
+          phone: editDonorForm.phone,
+          blood_type: editDonorForm.blood_type,
+          city: editDonorForm.city,
+          status: editDonorForm.status
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success('Donor information updated successfully');
+        setEditDonor(null);
+        // Refresh donor data
+        fetchAdminData();
+      } else {
+        toast.error(data.message || 'Failed to update donor information');
+      }
+    } catch (error) {
+      console.error('Error updating donor:', error);
+      toast.error('Error updating donor information');
+    }
+  };
+
+  const handleRemoveDonorClick = (donor) => {
+    setDonorToRemove(donor);
+    setShowRemoveDonorDialog(true);
+  };
+
+  const confirmRemoveDonor = async () => {
+    if (!donorToRemove) return;
+
+    try {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/remove_donor.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          donorId: donorToRemove.donor_id,
+          userId: donorToRemove.user_id
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success('Donor removed successfully');
+        // Remove the donor from the local state
+        setAllDonors(prev => prev.filter(d => d.donor_id !== donorToRemove.donor_id));
+        setShowRemoveDonorDialog(false);
+        setDonorToRemove(null);
+      } else {
+        toast.error(data.message || 'Failed to remove donor');
+      }
+    } catch (error) {
+      console.error('Error removing donor:', error);
+      toast.error('Error removing donor');
+    }
+  };
+
+  const cancelRemoveDonor = () => {
+    setShowRemoveDonorDialog(false);
+    setDonorToRemove(null);
+  };
+
+  const handleRemoveUserClick = (user) => {
+    setUserToRemove(user);
+    setShowRemoveUserDialog(true);
+  };
+
+  const confirmRemoveUser = async () => {
+    if (!userToRemove) return;
+
+    try {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/remove_user.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userToRemove.user_id
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success('User removed successfully');
+        // Remove the user from the local state
+        setAllUsers(prev => prev.filter(u => u.user_id !== userToRemove.user_id));
+        setShowRemoveUserDialog(false);
+        setUserToRemove(null);
+      } else {
+        toast.error(data.message || 'Failed to remove user');
+      }
+    } catch (error) {
+      console.error('Error removing user:', error);
+      toast.error('Error removing user');
+    }
+  };
+
+  const cancelRemoveUser = () => {
+    setShowRemoveUserDialog(false);
+    setUserToRemove(null);
+  };
+
+  const handleRemoveHospitalClick = (hospital) => {
+    setHospitalToRemove(hospital);
+    setShowRemoveHospitalDialog(true);
+  };
+
+  const confirmRemoveHospital = async () => {
+    if (!hospitalToRemove) return;
+
+    try {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/remove_hospital.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hospitalId: hospitalToRemove.hospital_id
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success('Hospital removed successfully');
+        // Remove the hospital from the local state
+        setAllHospitals(prev => prev.filter(h => h.hospital_id !== hospitalToRemove.hospital_id));
+        setShowRemoveHospitalDialog(false);
+        setHospitalToRemove(null);
+      } else {
+        toast.error(data.message || 'Failed to remove hospital');
+      }
+    } catch (error) {
+      console.error('Error removing hospital:', error);
+      toast.error('Error removing hospital');
+    }
+  };
+
+  const cancelRemoveHospital = () => {
+    setShowRemoveHospitalDialog(false);
+    setHospitalToRemove(null);
+  };
+
+  const handleRemoveMroClick = (mro) => {
+    setMroToRemove(mro);
+    setShowRemoveMroDialog(true);
+  };
+
+  const confirmRemoveMro = async () => {
+    if (!mroToRemove) return;
+
+    try {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/remove_mro.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mroId: mroToRemove.mro_id
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success('MRO officer removed successfully');
+        setAllMROs(prev => prev.filter(m => m.mro_id !== mroToRemove.mro_id));
+        setShowRemoveMroDialog(false);
+        setMroToRemove(null);
+        // Refresh MRO data
+        fetchMROs();
+      } else {
+        toast.error(data.message || 'Failed to remove MRO officer');
+      }
+    } catch (error) {
+      console.error('Error removing MRO officer:', error);
+      toast.error('Error removing MRO officer');
+    }
+  };
+
+  const cancelRemoveMro = () => {
+    setShowRemoveMroDialog(false);
+    setMroToRemove(null);
+  };
+
+  const handleFeedbackActionClick = (feedback, action) => {
+    setFeedbackToAction(feedback);
+    setFeedbackActionType(action);
+    setShowFeedbackActionDialog(true);
+  };
+
+  const confirmFeedbackAction = async () => {
+    if (!feedbackToAction || !feedbackActionType) return;
+    
+    try {
+      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/approve_feedback.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feedbackId: feedbackToAction.feedback_id,
+          action: feedbackActionType
+        }),
+        credentials: 'include'
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message);
+        // Refresh feedback data
+        fetchAdminData();
+      } else {
+        toast.error(data.message || 'Failed to ' + feedbackActionType + ' feedback');
+      }
+    } catch (err) {
+      toast.error('Error processing feedback action');
+    }
+    
+    setShowFeedbackActionDialog(false);
+    setFeedbackToAction(null);
+    setFeedbackActionType('');
+  };
+
+  const cancelFeedbackAction = () => {
+    setShowFeedbackActionDialog(false);
+    setFeedbackToAction(null);
+    setFeedbackActionType('');
   };
 
   // Sidebar section definitions
@@ -381,15 +739,17 @@ const AdminDashboard = () => {
     setStoryForm((prev) => ({ ...prev, [name]: value }));
   };
   const handleStorySave = async () => {
-    setStoryLoading(true);
-    setStoryError('');
-    // TODO: Implement API call for add/edit
-    // Example: POST to /backend_api/edit_story.php or /backend_api/add_story.php
-    setTimeout(() => {
-      setStoryLoading(false);
-      setStoryModalOpen(false);
-      fetchAdminData(); // refresh data
-    }, 1000);
+    if (window.confirm('Are you sure you want to save this success story?')) {
+      setStoryLoading(true);
+      setStoryError('');
+      // TODO: Implement API call for add/edit
+      // Example: POST to /backend_api/edit_story.php or /backend_api/add_story.php
+      setTimeout(() => {
+        setStoryLoading(false);
+        setStoryModalOpen(false);
+        fetchAdminData(); // refresh data
+      }, 1000);
+    }
   };
 
   // Open profile modal and prefill with current user info (dummy for now)
@@ -431,9 +791,9 @@ const AdminDashboard = () => {
             <div className="dashboard-overview-grid">
               {[
                 { label: 'Total Users', value: stats.total_users, color: 'stat-blue' },
-                { label: 'Hospitals', value: stats.total_hospitals, color: 'stat-blue' },
-                { label: 'Donors', value: stats.total_donors, color: 'stat-blue' },
-                { label: 'Pending Requests', value: stats.pending_requests, color: 'stat-green' },
+                { label: 'Hospitals', value: stats.total_hospitals, color: 'stat-green' },
+                { label: 'Donors', value: stats.total_donors, color: 'stat-purple' },
+                { label: 'Pending Requests', value: stats.pending_requests, color: 'stat-orange' },
               ].map((card, idx) => (
                 <div className={`overview-card square-card ${card.color}`} key={card.label}>
                   <div className="stat-label">{card.label}</div>
@@ -550,8 +910,8 @@ const AdminDashboard = () => {
                 <option value="mro">MRO</option>
               </select>
             </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table className="admin-table">
+                            <div style={{ overflowX: 'auto' }}>
+                  <table className="admin-table">
                 <thead>
                   <tr>
                     <th>User ID</th>
@@ -560,7 +920,7 @@ const AdminDashboard = () => {
                     <th>Phone</th>
                     <th>Role</th>
                     <th>Status</th>
-                    <th>Action</th>
+                                          <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -573,11 +933,17 @@ const AdminDashboard = () => {
                         <td>{user.phone}</td>
                         <td>{user.role}</td>
                         <td><span className={`status-chip ${user.status}`}>{user.status}</span></td>
-                        <td>
-                          <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em' }} onClick={() => handleEditClick(user)}>
-                            Edit
-                          </button>
-                        </td>
+                            <td style={{ minWidth: '200px', whiteSpace: 'nowrap', padding: '12px 16px' }}>
+      <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em', marginRight: '8px' }} onClick={() => handleEditClick(user)}>
+        Edit
+      </button>
+      <button
+        className="dashboard-btn danger"
+        onClick={() => handleRemoveUserClick(user)}
+      >
+        Remove
+      </button>
+    </td>
                       </tr>
                     ))
                   ) : (
@@ -586,38 +952,6 @@ const AdminDashboard = () => {
                 </tbody>
               </table>
             </div>
-            {/* Edit User Modal */}
-            {editUser && (
-              <div className="modal-overlay" onClick={() => setEditUser(null)}>
-                <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
-                  <h3>Edit User</h3>
-                  <label>
-                    Name:
-                    <input type="text" name="name" value={editForm.name} onChange={handleEditFormChange} />
-                  </label>
-                  <label>
-                    Phone:
-                    <input type="text" name="phone" value={editForm.phone} onChange={handleEditFormChange} />
-                  </label>
-                  <label>
-                    Status:
-                    <select name="status" value={editForm.status} onChange={handleEditFormChange}>
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </label>
-                  <label>
-                    Password:
-                    <input type="password" name="password" value={editForm.password} onChange={handleEditFormChange} placeholder="Leave blank to keep unchanged" />
-                  </label>
-                  {editError && <div className="error-message" style={{ color: 'red', marginTop: 8 }}>{editError}</div>}
-                  <div className="modal-actions" style={{ marginTop: 16 }}>
-                    <button className="dashboard-btn primary" onClick={handleEditSave} disabled={editLoading}>{editLoading ? 'Saving...' : 'Save'}</button>
-                    <button className="dashboard-btn" onClick={() => setEditUser(null)} disabled={editLoading}>Cancel</button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         );
       case 'hospitals':
@@ -662,9 +996,15 @@ const AdminDashboard = () => {
                             <td>{hospital.location}</td>
                             <td>{hospital.contact_email}</td>
                             <td>{hospital.contact_phone}</td>
-                            <td>
-                              <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em' }} onClick={() => handleEditHospitalClick(hospital)}>
+                            <td style={{ minWidth: '200px', whiteSpace: 'nowrap', padding: '12px 16px' }}>
+                              <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em', marginRight: '8px' }} onClick={() => handleEditHospitalClick(hospital)}>
                                 Edit
+                              </button>
+                              <button
+                                className="dashboard-btn danger"
+                                onClick={() => handleRemoveHospitalClick(hospital)}
+                              >
+                                Remove
                               </button>
                             </td>
                           </tr>
@@ -714,9 +1054,15 @@ const AdminDashboard = () => {
                             <td>{mro.name}</td>
                             <td>{mro.email}</td>
                             <td>{mro.phone}</td>
-                            <td>{mro.hospital}</td>
-                            <td>
-                              <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em' }}>Edit</button>
+                            <td>{mro.hospital_name || 'N/A'}</td>
+                            <td style={{ minWidth: '200px', whiteSpace: 'nowrap', padding: '12px 16px' }}>
+                              <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em', marginRight: '8px' }}>Edit</button>
+                              <button
+                                className="dashboard-btn danger"
+                                onClick={() => handleRemoveMroClick(mro)}
+                              >
+                                Remove
+                              </button>
                             </td>
                           </tr>
                         ))
@@ -795,8 +1141,11 @@ const AdminDashboard = () => {
                         <td>{donor.last_donation_date || 'N/A'}</td>
                         <td>{donor.lives_saved}</td>
                         <td>
-                          <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em' }} onClick={() => handleEditDonorClick(donor)}>
+                          <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em', marginRight: '8px' }} onClick={() => handleEditDonorClick(donor)}>
                             Edit
+                          </button>
+                          <button className="dashboard-btn danger" style={{ padding: '4px 12px', fontSize: '0.95em' }} onClick={() => handleRemoveDonorClick(donor)}>
+                            Remove
                           </button>
                         </td>
                       </tr>
@@ -810,18 +1159,127 @@ const AdminDashboard = () => {
             {/* Edit Donor Modal */}
             {editDonor && (
               <div className="modal-overlay" onClick={() => setEditDonor(null)}>
-                <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
-                  <h3>Edit Donor</h3>
-                  <label>Name:<input type="text" name="name" value={editDonorForm.name} onChange={handleEditDonorFormChange} /></label>
-                  <label>Email:<input type="email" name="email" value={editDonorForm.email} onChange={handleEditDonorFormChange} /></label>
-                  <label>Phone:<input type="text" name="phone" value={editDonorForm.phone} onChange={handleEditDonorFormChange} /></label>
-                  <label>Blood Type:<input type="text" name="blood_type" value={editDonorForm.blood_type} onChange={handleEditDonorFormChange} /></label>
-                  <label>City:<input type="text" name="city" value={editDonorForm.city} onChange={handleEditDonorFormChange} /></label>
-                  <label>Status:<input type="text" name="status" value={editDonorForm.status} onChange={handleEditDonorFormChange} /></label>
-                  <div className="modal-actions" style={{ marginTop: 16 }}>
-                    <button className="dashboard-btn primary" onClick={handleEditDonorSave}>Save</button>
-                    <button className="dashboard-btn" onClick={() => setEditDonor(null)}>Cancel</button>
+                <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                    <h3 style={{ margin: 0, color: '#1e293b' }}>Edit Donor</h3>
+                    <button 
+                      onClick={() => setEditDonor(null)} 
+                      style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}
+                    >
+                      &times;
+                    </button>
                   </div>
+                  
+                  <form onSubmit={(e) => { e.preventDefault(); handleEditDonorSave(); }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+                      <div className="form-field">
+                        <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#374151' }}>Name</label>
+                        <input 
+                          type="text" 
+                          name="name" 
+                          value={editDonorForm.name} 
+                          onChange={handleEditDonorFormChange}
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '14px' }}
+                          placeholder="Enter donor name"
+                          required
+                        />
+                      </div>
+                      
+                      <div className="form-field">
+                        <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#374151' }}>Email</label>
+                        <input 
+                          type="email" 
+                          name="email" 
+                          value={editDonorForm.email} 
+                          onChange={handleEditDonorFormChange}
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '14px' }}
+                          placeholder="Enter email address"
+                          required
+                        />
+                      </div>
+                      
+                      <div className="form-field">
+                        <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#374151' }}>Phone</label>
+                        <input 
+                          type="text" 
+                          name="phone" 
+                          value={editDonorForm.phone} 
+                          onChange={handleEditDonorFormChange}
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '14px' }}
+                          placeholder="Enter phone number"
+                          maxLength="10"
+                          required
+                        />
+                      </div>
+                      
+                      <div className="form-field">
+                        <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#374151' }}>Blood Type</label>
+                        <select 
+                          name="blood_type" 
+                          value={editDonorForm.blood_type} 
+                          onChange={handleEditDonorFormChange}
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '14px', backgroundColor: '#ffffff' }}
+                          required
+                        >
+                          <option value="">Select Blood Type</option>
+                          <option value="A+">A+</option>
+                          <option value="A-">A-</option>
+                          <option value="B+">B+</option>
+                          <option value="B-">B-</option>
+                          <option value="AB+">AB+</option>
+                          <option value="AB-">AB-</option>
+                          <option value="O+">O+</option>
+                          <option value="O-">O-</option>
+                        </select>
+                      </div>
+                      
+                      <div className="form-field">
+                        <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#374151' }}>City</label>
+                        <input 
+                          type="text" 
+                          name="city" 
+                          value={editDonorForm.city} 
+                          onChange={handleEditDonorFormChange}
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '14px' }}
+                          placeholder="Enter city"
+                          required
+                        />
+                      </div>
+                      
+                      <div className="form-field">
+                        <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#374151' }}>Status</label>
+                        <select 
+                          name="status" 
+                          value={editDonorForm.status} 
+                          onChange={handleEditDonorFormChange}
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '14px', backgroundColor: '#ffffff' }}
+                          required
+                        >
+                          <option value="">Select Status</option>
+                          <option value="available">Available</option>
+                          <option value="not available">Not Available</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="modal-actions" style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                      <button 
+                        type="button" 
+                        className="dashboard-btn" 
+                        onClick={() => setEditDonor(null)}
+                        style={{ padding: '10px 20px', borderRadius: 8, border: '1.5px solid #e2e8f0', background: '#ffffff', color: '#64748b', cursor: 'pointer' }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="dashboard-btn primary"
+                        style={{ padding: '10px 20px', borderRadius: 8, background: '#2563eb', color: '#ffffff', border: 'none', cursor: 'pointer' }}
+                      >
+                        Save Changes
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
             )}
@@ -898,33 +1356,74 @@ const AdminDashboard = () => {
                 {allFeedback.length > 0 ? (
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                     {allFeedback.slice(0, 10).map(fb => (
-                      <li key={fb.id || fb.user_email + fb.created_at} style={{ marginBottom: 18, borderBottom: '1px solid #e5e7eb', paddingBottom: 10 }}>
-                        <div style={{ fontWeight: 600, color: '#2563eb', marginBottom: 2 }}>
-                          <span style={{ fontWeight: 400, color: '#64748b', marginRight: 6 }}>
-                            From {fb.role === 'donor' ? 'Donor' : fb.role === 'hospital' ? 'Hospital' : fb.role === 'mro' ? 'MRO' : 'User'}:
-                          </span>
-                          {fb.role === 'donor' && (
-                            <>
-                              {fb.donor_name}
-                              {fb.donor_hospital_name && (
+                      <li key={fb.feedback_id || fb.user_email + fb.created_at} style={{ marginBottom: 18, borderBottom: '1px solid #e5e7eb', paddingBottom: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 }}>
+                          <div style={{ fontWeight: 600, color: '#2563eb' }}>
+                            <span style={{ fontWeight: 400, color: '#64748b', marginRight: 6 }}>
+                              From {fb.role === 'donor' ? 'Donor' : fb.role === 'hospital' ? 'Hospital' : fb.role === 'mro' ? 'MRO' : 'User'}:
+                            </span>
+                            {fb.role === 'donor' && (
+                              <>
+                                {fb.donor_name}
+                                {fb.donor_hospital_name && (
+                                  <span style={{ color: '#64748b', fontWeight: 400, fontSize: '0.98em', marginLeft: 4 }}>
+                                    ({fb.donor_hospital_name})
+                                  </span>
+                                )}
+                              </>
+                            )}
+                            {fb.role === 'hospital' && fb.hospital_name}
+                            {fb.role === 'mro' && (
+                              <>
+                                {fb.hospital_name}
                                 <span style={{ color: '#64748b', fontWeight: 400, fontSize: '0.98em', marginLeft: 4 }}>
-                                  ({fb.donor_hospital_name})
+                                  (MRO)
                                 </span>
-                              )}
-                            </>
-                          )}
-                          {fb.role === 'hospital' && fb.hospital_name}
-                          {fb.role === 'mro' && (
-                            <>
-                              {fb.hospital_name}
-                              <span style={{ color: '#64748b', fontWeight: 400, fontSize: '0.98em', marginLeft: 4 }}>
-                                (MRO)
-                              </span>
-                            </>
-                          )}
-                          <span style={{ color: '#64748b', fontWeight: 400, fontSize: '0.98em', marginLeft: 4 }}>
-                            ({fb.user_email})
-                          </span>
+                              </>
+                            )}
+                            <span style={{ color: '#64748b', fontWeight: 400, fontSize: '0.98em', marginLeft: 4 }}>
+                              ({fb.user_email})
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            {fb.approved === 0 && (
+                              <>
+                                <button
+                                  onClick={() => handleFeedbackActionClick(fb, 'approve')}
+                                  style={{
+                                    background: '#10b981',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: 4,
+                                    padding: '4px 8px',
+                                    fontSize: '0.8em',
+                                    cursor: 'pointer',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  ✓ Approve
+                                </button>
+                                <button
+                                  onClick={() => handleFeedbackActionClick(fb, 'reject')}
+                                  style={{
+                                    background: '#ef4444',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: 4,
+                                    padding: '4px 8px',
+                                    fontSize: '0.8em',
+                                    cursor: 'pointer',
+                                    fontWeight: 600
+                                  }}
+                                >
+                                  ✗ Reject
+                                </button>
+                              </>
+                            )}
+                            {fb.approved === 1 && (
+                              <span style={{ color: '#10b981', fontWeight: 600, fontSize: '0.8em' }}>✓ Approved</span>
+                            )}
+                          </div>
                         </div>
                         <div style={{ margin: '6px 0', color: '#1e293b' }}>{fb.message}</div>
                         <div style={{ fontSize: '0.92em', color: '#64748b' }}>{fb.created_at ? new Date(fb.created_at).toLocaleString() : ''}</div>
@@ -966,24 +1465,26 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <div className="admin-dashboard-root">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading dashboard...</p>
-        </div>
+        <LoadingSpinner 
+          size="60"
+          stroke="4"
+          speed="1"
+          color="#2563eb"
+          text="Loading dashboard..."
+          className="full-page"
+        />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="admin-dashboard-root">
-        <div className="error-container">
-          <p>Error: {error}</p>
-          <button onClick={fetchAdminData} className="dashboard-btn primary">
-            Retry
-          </button>
-        </div>
-      </div>
+      <ErrorDisplay 
+        error={error}
+        onRetry={fetchAdminData}
+        title="Failed to load dashboard data"
+        buttonText="Retry"
+      />
     );
   }
 
@@ -992,7 +1493,7 @@ const AdminDashboard = () => {
       {/* Sidebar */}
       <aside className="sidebar">
         <div style={{ width: '100%' }}>
-          <div className="logo" onClick={() => window.location.href = '/'}>
+          <div className="logo" onClick={handleLogoClick}>
             <img src={logo} alt="LiveOn Logo" style={{ height: 120, width: 'auto', display: 'block' }} />
           </div>
           <nav>
@@ -1077,31 +1578,120 @@ const AdminDashboard = () => {
       {/* Modals (edit user, story, etc.) */}
       {editUser && (
         <div className="modal-overlay" onClick={() => setEditUser(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
-            <h3>Edit User</h3>
-            <label>
-              Name:
-              <input type="text" name="name" value={editForm.name} onChange={handleEditFormChange} />
-            </label>
-            <label>
-              Phone:
-              <input type="text" name="phone" value={editForm.phone} onChange={handleEditFormChange} />
-            </label>
-            <label>
-              Status:
-              <select name="status" value={editForm.status} onChange={handleEditFormChange}>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </label>
-            <label>
-              Password:
-              <input type="password" name="password" value={editForm.password} onChange={handleEditFormChange} placeholder="Leave blank to keep unchanged" />
-            </label>
-            {editError && <div className="error-message" style={{ color: 'red', marginTop: 8 }}>{editError}</div>}
-            <div className="modal-actions" style={{ marginTop: 16 }}>
-              <button className="dashboard-btn primary" onClick={handleEditSave} disabled={editLoading}>{editLoading ? 'Saving...' : 'Save'}</button>
-              <button className="dashboard-btn" onClick={() => setEditUser(null)} disabled={editLoading}>Cancel</button>
+          <div className="modal-content edit-user-modal" onClick={e => e.stopPropagation()}>
+            <div className="edit-user-header">
+              <h3>Edit User Profile</h3>
+              <p className="edit-user-subtitle">Update user information and settings</p>
+            </div>
+            
+            <div className="edit-user-form">
+              <div className="form-section">
+                <h4 className="form-section-title">Basic Information</h4>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">
+                      <span className="label-text">Full Name</span>
+                      <span className="required">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      name="name" 
+                      value={editForm.name} 
+                      onChange={handleEditFormChange}
+                      className="form-input"
+                      placeholder="Enter full name"
+                    />
+                  </div>
+                </div>
+                
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">
+                      <span className="label-text">Phone Number</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      name="phone" 
+                      value={editForm.phone} 
+                      onChange={handleEditFormChange}
+                      className="form-input"
+                      placeholder="Enter phone number"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-section">
+                <h4 className="form-section-title">Account Settings</h4>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">
+                      <span className="label-text">Account Status</span>
+                      <span className="required">*</span>
+                    </label>
+                    <select 
+                      name="status" 
+                      value={editForm.status} 
+                      onChange={handleEditFormChange}
+                      className="form-select"
+                    >
+                      <option value="active">🟢 Active</option>
+                      <option value="inactive">🔴 Inactive</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">
+                      <span className="label-text">New Password</span>
+                    </label>
+                    <input 
+                      type="password" 
+                      name="password" 
+                      value={editForm.password} 
+                      onChange={handleEditFormChange}
+                      className="form-input"
+                      placeholder="Leave blank to keep current password"
+                    />
+                    <small className="form-hint">Minimum 6 characters recommended</small>
+                  </div>
+                </div>
+              </div>
+
+              {editError && (
+                <div className="error-message">
+                  <span className="error-icon">⚠️</span>
+                  {editError}
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                className="dashboard-btn secondary" 
+                onClick={() => setEditUser(null)} 
+                disabled={editLoading}
+              >
+                Cancel
+              </button>
+              <button 
+                className="dashboard-btn primary" 
+                onClick={handleEditSave} 
+                disabled={editLoading}
+              >
+                {editLoading ? (
+                  <LoadingSpinner 
+                    size="16" 
+                    stroke="2" 
+                    color="#ffffff" 
+                    text="Saving..."
+                    className="button"
+                  />
+                ) : (
+                  'Save Changes'
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -1178,29 +1768,31 @@ const AdminDashboard = () => {
             <div className="modal-actions" style={{ marginTop: 16, display: 'flex', gap: 12 }}>
               <button className="dashboard-btn primary" onClick={handleAdminPasswordSave} disabled={passwordResetLoading}>{passwordResetLoading ? 'Saving...' : 'Accept'}</button>
               <button className="dashboard-btn" onClick={async () => {
-                setPasswordResetLoading(true);
-                setPasswordResetError('');
-                try {
-                  const res = await fetch('http://localhost/liveonv2/backend_api/controllers/complete_password_reset.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ request_id: selectedResetRequest.request_id, reject: true }),
-                    credentials: 'include'
-                  });
-                  const data = await res.json();
-                  if (data.success) {
-                    closePasswordResetModal();
-                    // Refresh requests
-                    const res2 = await fetch('http://localhost/liveonv2/backend_api/controllers/get_password_reset_requests.php', { credentials: 'include' });
-                    const data2 = await res2.json();
-                    if (data2.success) setPasswordResetRequests(data2.requests);
-                  } else {
-                    setPasswordResetError(data.message || 'Failed to reject request');
+                if (window.confirm('Are you sure you want to reject this password reset request? This action cannot be undone.')) {
+                  setPasswordResetLoading(true);
+                  setPasswordResetError('');
+                  try {
+                    const res = await fetch('http://localhost/liveonv2/backend_api/controllers/complete_password_reset.php', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ request_id: selectedResetRequest.request_id, reject: true }),
+                      credentials: 'include'
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      closePasswordResetModal();
+                      // Refresh requests
+                      const res2 = await fetch('http://localhost/liveonv2/backend_api/controllers/get_password_reset_requests.php', { credentials: 'include' });
+                      const data2 = await res2.json();
+                      if (data2.success) setPasswordResetRequests(data2.requests);
+                    } else {
+                      setPasswordResetError(data.message || 'Failed to reject request');
+                    }
+                  } catch (e) {
+                    setPasswordResetError('Network error');
                   }
-                } catch (e) {
-                  setPasswordResetError('Network error');
+                  setPasswordResetLoading(false);
                 }
-                setPasswordResetLoading(false);
               }} disabled={passwordResetLoading}>Reject</button>
               <button className="dashboard-btn" onClick={closePasswordResetModal} disabled={passwordResetLoading}>Cancel</button>
             </div>
@@ -1244,6 +1836,69 @@ const AdminDashboard = () => {
           </div>
         );
       })()}
+      <ConfirmDialog
+        open={showLogoutDialog}
+        title="Confirm Logout"
+        message="Are you sure you want to logout?"
+        onConfirm={confirmLogout}
+        onCancel={cancelLogout}
+        confirmText="Logout"
+        cancelText="Cancel"
+      />
+      <ConfirmDialog
+        open={showLogoDialog}
+        title="Confirm Navigation"
+        message="Are you sure you want to go to the home page? You will be logged out."
+        onConfirm={confirmLogo}
+        onCancel={cancelLogo}
+        confirmText="Go Home"
+        cancelText="Cancel"
+      />
+      <ConfirmDialog
+        open={showRemoveDonorDialog}
+        title="Remove Donor"
+        message={`Are you sure you want to remove donor ${donorToRemove?.name} (${donorToRemove?.donor_id}) from the system? This will delete all donor records but keep the user account with inactive status.`}
+        onConfirm={confirmRemoveDonor}
+        onCancel={cancelRemoveDonor}
+        confirmText="Remove"
+        cancelText="Cancel"
+      />
+      <ConfirmDialog
+        open={showRemoveUserDialog}
+        title="Remove User"
+        message={`Are you sure you want to remove user ${userToRemove?.name} (${userToRemove?.user_id}) from the system? This will delete all user-related records and set the user status to inactive.`}
+        onConfirm={confirmRemoveUser}
+        onCancel={cancelRemoveUser}
+        confirmText="Remove"
+        cancelText="Cancel"
+      />
+      <ConfirmDialog
+        open={showRemoveHospitalDialog}
+        title="Remove Hospital"
+        message={`Are you sure you want to remove hospital ${hospitalToRemove?.name} (${hospitalToRemove?.hospital_id}) from the system? This will delete all hospital-related records including blood inventory, donations, and requests.`}
+        onConfirm={confirmRemoveHospital}
+        onCancel={cancelRemoveHospital}
+        confirmText="Remove"
+        cancelText="Cancel"
+      />
+      <ConfirmDialog
+        open={showRemoveMroDialog}
+        title="Remove MRO Officer"
+        message={`Are you sure you want to remove MRO officer ${mroToRemove?.name} (${mroToRemove?.mro_id}) from the system? This will delete all MRO-related records and set the associated user account to inactive.`}
+        onConfirm={confirmRemoveMro}
+        onCancel={cancelRemoveMro}
+        confirmText="Remove"
+        cancelText="Cancel"
+      />
+      <ConfirmDialog
+        open={showFeedbackActionDialog}
+        title={`${feedbackActionType === 'approve' ? 'Approve' : 'Reject'} Feedback`}
+        message={`Are you sure you want to ${feedbackActionType} this feedback from ${feedbackToAction?.donor_name || feedbackToAction?.hospital_name || 'User'}? ${feedbackActionType === 'approve' ? 'This feedback will be visible on the homepage.' : 'This feedback will not be displayed on the homepage.'}`}
+        onConfirm={confirmFeedbackAction}
+        onCancel={cancelFeedbackAction}
+        confirmText={feedbackActionType === 'approve' ? 'Approve' : 'Reject'}
+        cancelText="Cancel"
+      />
     </div>
   );
 };

@@ -30,15 +30,15 @@ class Mailer
         $this->mail->isSMTP();
         $this->mail->Host = 'smtp.gmail.com';
         $this->mail->SMTPAuth = true;
-        $this->mail->Username = 'mbenash961030@gmail.com';
-        $this->mail->Password = 'gnvequswehjpwqnv';
+        $this->mail->Username = 'liveonsystem@gmail.com';
+        $this->mail->Password = 'jzjcyywthodnlrew';
         $this->mail->SMTPSecure = 'tls';
         $this->mail->Port = 587;
         $this->mail->isHTML(true);
     }
     public function sendOTP($toEmail, $toName, $otp)
     {
-        $this->mail->setFrom('mbenash961030@gmail.com', 'LiveOn System');
+        $this->mail->setFrom('liveonsystem@gmail.com', 'LiveOn System');
         $this->mail->addAddress($toEmail, $toName);
         $this->mail->Subject = 'LiveOn Registration OTP';
         $this->mail->Body = "<h3>Hello $toName,</h3><p>Your OTP for completing your LiveOn registration is:</p><h2>$otp</h2><p>This code will expire in 10 minutes.</p><br><p>Regards,<br>LiveOn Team</p>";
@@ -81,10 +81,11 @@ class DonorRegistration
         $stmt = $this->pdo->prepare("INSERT INTO users (user_id, name, email, phone, password_hash, role, status) VALUES (?, ?, ?, ?, ?, 'donor', 'inactive')");
         $stmt->execute([$userId, $name, $email, $phone, $passwordHash]);
     }
-    public function registerDonor($donorId, $userId, $dob, $address, $city, $preferredHospitalId)
+    public function storePendingDonorData($userId, $donorId, $dob, $address, $city, $preferredHospitalId)
     {
-        $stmt = $this->pdo->prepare("INSERT INTO donors (donor_id, user_id, dob, address, city, preferred_hospital_id, status) VALUES (?, ?, ?, ?, ?, ?, 'not available')");
-        $stmt->execute([$donorId, $userId, $dob, $address, $city, $preferredHospitalId]);
+        // Store donor data as pending instead of inserting into donors table
+        $stmt = $this->pdo->prepare("INSERT INTO donor_requests (user_id, donor_id, dob, address, city, preferred_hospital_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())");
+        $stmt->execute([$userId, $donorId, $dob, $address, $city, $preferredHospitalId]);
     }
 }
 
@@ -127,17 +128,32 @@ if ($donorReg->isEmailRegistered($email)) {
 
 $userId = 'US' . uniqid();
 $donorId = 'DN' . uniqid();
-$donorReg->registerUser($userId, $fullName, $email, $phone, $passwordHash);
-$donorReg->registerDonor($donorId, $userId, $dob, $address, $city, $preferredHospitalId);
-$otp = $otpManager->generateAndStore($userId);
 
-// Insert notification for new donor registration
-$notifStmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, ?, NOW())");
-$notifStmt->execute([$userId, "New donor registered: $fullName", 'info', 'unread']);
+// Start transaction
+$pdo->beginTransaction();
 
 try {
-    $mailer->sendOTP($email, $fullName, $otp);
-    echo json_encode(["success" => true]);
+    // Only create user record, don't insert into donors table yet
+    $donorReg->registerUser($userId, $fullName, $email, $phone, $passwordHash);
+
+    // Store donor data as pending request instead of creating donor record
+    $donorReg->storePendingDonorData($userId, $donorId, $dob, $address, $city, $preferredHospitalId);
+
+    $otp = $otpManager->generateAndStore($userId);
+
+    // Insert notification for new donor registration
+    $notifStmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, ?, NOW())");
+    $notifStmt->execute([$userId, "New donor registration request: $fullName", 'info', 'unread']);
+
+    $pdo->commit();
+
+    try {
+        $mailer->sendOTP($email, $fullName, $otp);
+        echo json_encode(["success" => true]);
+    } catch (Exception $e) {
+        echo json_encode(["success" => false, "message" => "Email could not be sent. Mailer Error: {$e->getMessage()}"]);
+    }
 } catch (Exception $e) {
-    echo json_encode(["success" => false, "message" => "Email could not be sent. Mailer Error: {$e->getMessage()}"]);
+    $pdo->rollBack();
+    echo json_encode(["success" => false, "message" => "Registration failed: " . $e->getMessage()]);
 }

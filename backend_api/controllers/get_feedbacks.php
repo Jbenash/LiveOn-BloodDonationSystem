@@ -14,12 +14,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/../config/db_connection.php';
+
+// Check if we should only return approved feedback (for homepage)
+$approvedOnly = isset($_GET['approved_only']) && $_GET['approved_only'] === 'true';
+
 try {
     $database = new Database();
     $pdo = $database->connect();
-    // Fetch feedbacks with donor name or hospital name as appropriate
+
+    // Build the SQL query with optional approval filter
     $sql = "
-        SELECT f.message, f.role, f.user_id, f.created_at,
+        SELECT f.feedback_id, f.message, f.role, f.user_id, f.created_at, f.approved,
             CASE 
                 WHEN f.role = 'donor' THEN u.name
                 ELSE NULL
@@ -46,8 +51,15 @@ try {
         LEFT JOIN hospitals h ON f.role = 'hospital' AND f.user_id = h.user_id
         LEFT JOIN mro_officers m ON f.role = 'mro' AND f.user_id = m.user_id
         LEFT JOIN hospitals h2 ON m.hospital_id = h2.hospital_id
-        ORDER BY f.created_at DESC
     ";
+
+    // Add approval filter if requested
+    if ($approvedOnly) {
+        $sql .= " WHERE f.approved = 1";
+    }
+
+    $sql .= " ORDER BY f.created_at DESC";
+
     $stmt = $pdo->query($sql);
     $feedbacks = $stmt->fetchAll(PDO::FETCH_ASSOC);
     echo json_encode(['success' => true, 'feedbacks' => $feedbacks]);

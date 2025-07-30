@@ -40,7 +40,7 @@ try {
     $userId = $row['user_id'];
     // Insert feedback with unique feedback_id
     $feedbackId = 'FB' . substr(uniqid(), -8);
-    $stmt2 = $pdo->prepare("INSERT INTO feedback (feedback_id, message, role, user_id, created_at) VALUES (?, ?, 'donor', ?, NOW())");
+    $stmt2 = $pdo->prepare("INSERT INTO feedback (feedback_id, message, role, user_id, approved, created_at) VALUES (?, ?, 'donor', ?, 0, NOW())");
     $stmt2->execute([$feedbackId, $message, $userId]);
     echo json_encode(["success" => true]);
 } catch (PDOException $e) {

@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/Exceptions.php';
+
 class Database
 {
     private $host;
@@ -49,13 +51,5 @@ class Database
     public function closeConnection()
     {
         $this->conn = null;
-    }
-}
-
-class DatabaseException extends Exception
-{
-    public function __construct($message = "", $code = 0, Exception $previous = null)
-    {
-        parent::__construct($message, $code, $previous);
     }
 }

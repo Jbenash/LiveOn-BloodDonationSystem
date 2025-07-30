@@ -66,6 +66,16 @@ const HomePage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Check for login modal parameter on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('login') === 'true') {
+      openLoginModal();
+      // Clean up the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
   useEffect(() => {
     // Fetch success stories
     fetch('http://localhost/Liveonv2/backend_api/controllers/get_success_stories.php')
@@ -86,7 +96,7 @@ const HomePage = () => {
 
   useEffect(() => {
     // Fetch feedbacks
-    fetch('http://localhost/Liveonv2/backend_api/controllers/get_feedbacks.php')
+    fetch('http://localhost/Liveonv2/backend_api/controllers/get_feedbacks.php?approved_only=true')
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -132,7 +142,6 @@ const HomePage = () => {
   };
 
   const closeLoginModal = () => {
-    console.log('closeLoginModal called');
     setIsLoginModalOpen(false);
     document.body.classList.remove('modal-open');
   };
@@ -143,7 +152,6 @@ const HomePage = () => {
   };
 
   const closeRegModal = () => {
-    console.log('closeRegModal called');
     setIsRegModalOpen(false);
     document.body.classList.remove('modal-open');
   };

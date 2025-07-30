@@ -57,36 +57,56 @@ try {
     $pdo->beginTransaction();
 
     try {
-        // Generate a unique verification_id (e.g., 'MV' + uniqid())
-        $verification_id = 'MV' . substr(uniqid(), -8);
+        // Check if donor request exists
+        $sqlGetRequest = "SELECT user_id, dob, address, city, preferred_hospital_id FROM donor_requests WHERE donor_id = ? AND status = 'pending'";
+        $stmtGetRequest = $pdo->prepare($sqlGetRequest);
+        $stmtGetRequest->execute([$donor_id]);
+        $donorRequest = $stmtGetRequest->fetch();
 
-        // Insert into medical_verifications table
-        $sql = "INSERT INTO medical_verifications (verification_id, donor_id, mro_id, height_cm, weight_kg, medical_history, doctor_notes, verification_date, age) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$verification_id, $donor_id, $mro_id, $height_cm, $weight_kg, $medical_history, $doctor_notes, $verification_date, $age]);
-
-        // Update users table to set status to 'active'
-        // First get the user_id from donors table
-        $sql2 = "SELECT user_id FROM donors WHERE donor_id = ?";
-        $stmt2 = $pdo->prepare($sql2);
-        $stmt2->execute([$donor_id]);
-        $row = $stmt2->fetch();
-
-        if (!$row) {
-            throw new Exception("Donor not found");
+        if (!$donorRequest) {
+            throw new Exception("Donor request not found or already processed");
         }
 
-        $user_id = $row['user_id'];
+        $user_id = $donorRequest['user_id'];
+        $dob = $donorRequest['dob'];
+        $address = $donorRequest['address'];
+        $city = $donorRequest['city'];
+        $preferred_hospital_id = $donorRequest['preferred_hospital_id'];
 
-        // Update users table status to 'active'
+        // Check if donor already exists in donors table (from old flow)
+        $sqlCheckDonor = "SELECT donor_id FROM donors WHERE donor_id = ?";
+        $stmtCheckDonor = $pdo->prepare($sqlCheckDonor);
+        $stmtCheckDonor->execute([$donor_id]);
+        $existingDonor = $stmtCheckDonor->fetch();
+
+        // Update users table to set status to 'active'
         $sql3 = "UPDATE users SET status = 'active' WHERE user_id = ?";
         $stmt3 = $pdo->prepare($sql3);
         $stmt3->execute([$user_id]);
 
-        // Update donors table status to 'available' and blood_type
-        $sql4 = "UPDATE donors SET status = 'available', blood_type = ? WHERE donor_id = ?";
-        $stmt4 = $pdo->prepare($sql4);
-        $stmt4->execute([$blood_group, $donor_id]);
+        // FIRST: Create or update donor record in donors table
+        if ($existingDonor) {
+            // Donor already exists (from old flow) - just update status and blood_type
+            $sql4 = "UPDATE donors SET status = 'available', blood_type = ?, registration_date = ? WHERE donor_id = ?";
+            $stmt4 = $pdo->prepare($sql4);
+            $stmt4->execute([$blood_group, date('Y-m-d'), $donor_id]);
+        } else {
+            // Create new donor record in donors table
+            $sql4 = "INSERT INTO donors (donor_id, user_id, dob, address, city, preferred_hospital_id, blood_type, status, registration_date) VALUES (?, ?, ?, ?, ?, ?, ?, 'available', ?)";
+            $stmt4 = $pdo->prepare($sql4);
+            $stmt4->execute([$donor_id, $user_id, $dob, $address, $city, $preferred_hospital_id, $blood_group, date('Y-m-d')]);
+        }
+
+        // SECOND: Now insert into medical_verifications table (after donor exists)
+        $verification_id = 'MV' . substr(uniqid(), -8);
+        $sql = "INSERT INTO medical_verifications (verification_id, donor_id, mro_id, height_cm, weight_kg, medical_history, doctor_notes, verification_date, age) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$verification_id, $donor_id, $mro_id, $height_cm, $weight_kg, $medical_history, $doctor_notes, $verification_date, $age]);
+
+        // Update donor_requests status to 'approved'
+        $sql5 = "UPDATE donor_requests SET status = 'approved', updated_at = NOW() WHERE donor_id = ?";
+        $stmt5 = $pdo->prepare($sql5);
+        $stmt5->execute([$donor_id]);
 
         // Insert notification for donor verification
         $notifStmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, ?, NOW())");

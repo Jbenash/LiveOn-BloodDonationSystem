@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../classes/Exceptions.php';
+
 abstract class BaseService
 {
     protected $pdo;
@@ -131,21 +133,5 @@ abstract class BaseService
     {
         // Basic phone validation - can be customized
         return preg_match('/^[0-9+\-\s()]+$/', $phone);
-    }
-}
-
-class ValidationException extends Exception
-{
-    private $errors;
-
-    public function __construct(string $message, array $errors = [])
-    {
-        parent::__construct($message);
-        $this->errors = $errors;
-    }
-
-    public function getErrors(): array
-    {
-        return $this->errors;
     }
 }

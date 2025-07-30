@@ -3,14 +3,14 @@ html, body {
   width: 100vw;
   margin: 0;
   padding: 0;
-  background: #f7f7fa;
+  background: #ffffff;
 }
 
 .admin-dashboard-container {
   display: flex;
   height: 100vh;
   width: 100vw;
-  background: #f7f7fa;
+  background: #ffffff;
   font-family: 'Segoe UI', Arial, sans-serif;
   margin: 0 !important;
   padding: 0 !important;
@@ -45,6 +45,51 @@ html, body {
   color: #fff;
   margin-left: 32px;
   margin-bottom: 40px;
+}
+
+/* Loading Animation */
+.dashboard-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #ffffff;
+}
+
+.dashboard-loading-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.dashboard-loading-logo {
+  height: 120px;
+  width: auto;
+  margin-bottom: 20px;
+}
+
+.dashboard-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+.dashboard-loading-text {
+  color: #6b7280;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .sidebar nav ul {
@@ -177,11 +222,25 @@ html, body {
   width: 100%;
   border-collapse: collapse;
   font-size: 1rem;
+  table-layout: auto;
+}
+
+/* Ensure table container allows horizontal scroll if needed */
+.admin-table-container {
+  overflow-x: auto;
+  min-width: 100%;
 }
 
 .admin-table th, .admin-table td {
   padding: 12px 16px;
   text-align: left;
+}
+
+/* Ensure Action column has enough width for buttons */
+.admin-table th:last-child,
+.admin-table td:last-child {
+  min-width: 150px;
+  white-space: nowrap;
 }
 
 .admin-table th {
@@ -209,6 +268,26 @@ html, body {
 
 .dashboard-btn.primary:hover {
   background: #1742a2;
+}
+
+.dashboard-btn.danger {
+  background: #ef4444;
+  color: #fff;
+  border: 2px solid #dc2626;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  min-width: 70px;
+  text-align: center;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.dashboard-btn.danger:hover {
+  background: #dc2626;
 }
 
 .dashboard-btn.disabled {
@@ -268,6 +347,7 @@ html, body {
   margin-bottom: 36px;
 }
 
+/* Dashboard Overview Cards - Enhanced Color Themes */
 .overview-card.square-card {
   aspect-ratio: 1 / 1;
   display: flex;
@@ -283,25 +363,155 @@ html, body {
   margin: 0 4px; /* add a little horizontal space between cards */
   transition: box-shadow 0.2s, transform 0.2s;
   cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+
+.overview-card.square-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--card-accent), var(--card-accent-light));
 }
 
 .overview-card .stat-label {
   font-size: 1.08rem;
   font-weight: 600;
-  color: #2d3a8c;
+  color: var(--card-label-color);
   margin-bottom: 8px;
   text-align: center;
+  z-index: 1;
 }
 
 .overview-card .stat-value {
   font-size: 2.2rem;
   font-weight: 800;
-  color: #2563eb;
+  color: var(--card-value-color);
   text-align: center;
+  z-index: 1;
 }
 
-.overview-card.stat-green .stat-value {
-  color: #22c55e;
+/* Color Theme 1: Blue Theme (Users) */
+.overview-card.stat-blue {
+  --card-accent: #3b82f6;
+  --card-accent-light: #60a5fa;
+  --card-label-color: #1e40af;
+  --card-value-color: #2563eb;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #dbeafe;
+}
+
+.overview-card.stat-blue:hover {
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Color Theme 2: Green Theme (Hospitals) */
+.overview-card.stat-green {
+  --card-accent: #10b981;
+  --card-accent-light: #34d399;
+  --card-label-color: #065f46;
+  --card-value-color: #059669;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  border: 1px solid #bbf7d0;
+}
+
+.overview-card.stat-green:hover {
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Color Theme 3: Purple Theme (Donors) */
+.overview-card.stat-purple {
+  --card-accent: #8b5cf6;
+  --card-accent-light: #a78bfa;
+  --card-label-color: #5b21b6;
+  --card-value-color: #7c3aed;
+  background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+  border: 1px solid #ddd6fe;
+}
+
+.overview-card.stat-purple:hover {
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Color Theme 4: Orange Theme (Pending Requests) */
+.overview-card.stat-orange {
+  --card-accent: #f59e0b;
+  --card-accent-light: #fbbf24;
+  --card-label-color: #92400e;
+  --card-value-color: #d97706;
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+  border: 1px solid #fed7aa;
+}
+
+.overview-card.stat-orange:hover {
+  box-shadow: 0 8px 32px rgba(245, 158, 11, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Color Theme 5: Red Theme (Emergency/Alert) */
+.overview-card.stat-red {
+  --card-accent: #ef4444;
+  --card-accent-light: #f87171;
+  --card-label-color: #991b1b;
+  --card-value-color: #dc2626;
+  background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+  border: 1px solid #fecaca;
+}
+
+.overview-card.stat-red:hover {
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Color Theme 6: Teal Theme (Success/Completed) */
+.overview-card.stat-teal {
+  --card-accent: #14b8a6;
+  --card-accent-light: #2dd4bf;
+  --card-label-color: #0f766e;
+  --card-value-color: #0d9488;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%);
+  border: 1px solid #99f6e4;
+}
+
+.overview-card.stat-teal:hover {
+  box-shadow: 0 8px 32px rgba(20, 184, 166, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Color Theme 7: Indigo Theme (System/Technical) */
+.overview-card.stat-indigo {
+  --card-accent: #6366f1;
+  --card-accent-light: #818cf8;
+  --card-label-color: #3730a3;
+  --card-value-color: #4f46e5;
+  background: linear-gradient(135deg, #ffffff 0%, #eef2ff 100%);
+  border: 1px solid #c7d2fe;
+}
+
+.overview-card.stat-indigo:hover {
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Color Theme 8: Pink Theme (Special/Featured) */
+.overview-card.stat-pink {
+  --card-accent: #ec4899;
+  --card-accent-light: #f472b6;
+  --card-label-color: #9d174d;
+  --card-value-color: #db2777;
+  background: linear-gradient(135deg, #ffffff 0%, #fdf2f8 100%);
+  border: 1px solid #fbcfe8;
+}
+
+.overview-card.stat-pink:hover {
+  box-shadow: 0 8px 32px rgba(236, 72, 153, 0.15);
+  transform: translateY(-2px);
 }
 
 .notification-bell-wrapper {
@@ -545,6 +755,233 @@ html, body {
   font-size: 0.98em;
   width: 100%;
   text-align: left;
+}
+
+/* Edit User Modal Styles */
+.edit-user-modal {
+  max-width: 500px !important;
+  width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.edit-user-header {
+  text-align: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.edit-user-header h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.edit-user-subtitle {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.edit-user-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-section {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.form-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-section-title::before {
+  content: '';
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  border-radius: 2px;
+}
+
+.form-row {
+  margin-bottom: 16px;
+}
+
+.form-row:last-child {
+  margin-bottom: 0;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.label-text {
+  font-weight: 500;
+}
+
+.required {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.form-input {
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
+}
+
+.form-select {
+  width: 100%;
+  padding: 12px 16px;
+  padding-right: 40px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #ffffff;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  color: #374151;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-select option {
+  padding: 8px 12px;
+  background-color: #ffffff;
+  color: #374151;
+}
+
+.form-hint {
+  color: #6b7280;
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+.error-message {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.error-icon {
+  font-size: 1.1rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.dashboard-btn.secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dashboard-btn.secondary:hover:not(:disabled) {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.dashboard-btn.secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+/* Responsive adjustments for edit user modal */
+@media (max-width: 600px) {
+  .edit-user-modal {
+    max-width: 95vw !important;
+    margin: 20px;
+  }
+  
+  .form-section {
+    padding: 16px;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+  }
+  
+  .modal-actions .dashboard-btn {
+    width: 100%;
+  }
 }
 
 /* Hospital Section Tab Buttons */

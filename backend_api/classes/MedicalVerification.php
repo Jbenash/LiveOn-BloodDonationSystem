@@ -1,49 +1,37 @@
 <?php
 
-class MedicalVerification
-{
-    private $conn;
-    private $table = 'medical_verifications';
+require_once __DIR__ . '/BaseModel.php';
 
-    public function __construct(PDO $dbConn)
+class MedicalVerification extends BaseModel
+{
+    protected function getTableName(): string
     {
-        $this->conn = $dbConn;
+        return 'medical_verifications';
+    }
+
+    protected function getPrimaryKey(): string
+    {
+        return 'verification_id';
     }
 
     public function createVerification(array $verificationData): bool
     {
         try {
-            $sql = "INSERT INTO {$this->table} (verification_id, donor_id, mro_id, height_cm, weight_kg, medical_history, doctor_notes, verification_date, age) 
-                    VALUES (:verification_id, :donor_id, :mro_id, :height_cm, :weight_kg, :medical_history, :doctor_notes, :verification_date, :age)";
-
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindValue(':verification_id', $verificationData['verification_id']);
-            $stmt->bindValue(':donor_id', $verificationData['donor_id']);
-            $stmt->bindValue(':mro_id', $verificationData['mro_id']);
-            $stmt->bindValue(':height_cm', $verificationData['height_cm']);
-            $stmt->bindValue(':weight_kg', $verificationData['weight_kg']);
-            $stmt->bindValue(':medical_history', $verificationData['medical_history']);
-            $stmt->bindValue(':doctor_notes', $verificationData['doctor_notes']);
-            $stmt->bindValue(':verification_date', $verificationData['verification_date']);
-            $stmt->bindValue(':age', $verificationData['age']);
-
-            return $stmt->execute();
+            return $this->create($verificationData);
         } catch (PDOException $e) {
-            throw new MedicalVerificationException("Medical verification creation failed: " . $e->getMessage());
+            throw new DatabaseException("Medical verification creation failed: " . $e->getMessage());
         }
     }
 
-    public function getVerificationByDonorId(string $donorId): array|false
+    public function getVerificationByDonorId(string $donorId): ?array
     {
         try {
-            $sql = "SELECT * FROM {$this->table} WHERE donor_id = :donor_id ORDER BY verification_date DESC LIMIT 1";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindValue(':donor_id', $donorId);
-            $stmt->execute();
-
-            return $stmt->fetch();
+            $conditions = ['donor_id' => $donorId];
+            $orderBy = ['verification_date' => 'DESC'];
+            $results = $this->findAll($conditions, $orderBy, 1);
+            return $results[0] ?? null;
         } catch (PDOException $e) {
-            throw new MedicalVerificationException("Medical verification retrieval failed: " . $e->getMessage());
+            throw new DatabaseException("Medical verification retrieval failed: " . $e->getMessage());
         }
     }
 
@@ -51,55 +39,35 @@ class MedicalVerification
     {
         try {
             $sql = "SELECT mv.*, d.donor_id, u.name as donor_name, u.email as donor_email 
-                    FROM {$this->table} mv
+                    FROM {$this->getTableName()} mv
                     JOIN donors d ON mv.donor_id = d.donor_id
                     JOIN users u ON d.user_id = u.user_id
                     ORDER BY mv.verification_date DESC";
 
-            $stmt = $this->conn->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->execute();
 
             return $stmt->fetchAll();
         } catch (PDOException $e) {
-            throw new MedicalVerificationException("Medical verifications retrieval failed: " . $e->getMessage());
+            throw new DatabaseException("Medical verifications retrieval failed: " . $e->getMessage());
         }
     }
 
     public function updateVerification(string $verificationId, array $verificationData): bool
     {
         try {
-            $sql = "UPDATE {$this->table} SET 
-                    height_cm = :height_cm, 
-                    weight_kg = :weight_kg, 
-                    medical_history = :medical_history, 
-                    doctor_notes = :doctor_notes, 
-                    age = :age 
-                    WHERE verification_id = :verification_id";
-
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindValue(':height_cm', $verificationData['height_cm']);
-            $stmt->bindValue(':weight_kg', $verificationData['weight_kg']);
-            $stmt->bindValue(':medical_history', $verificationData['medical_history']);
-            $stmt->bindValue(':doctor_notes', $verificationData['doctor_notes']);
-            $stmt->bindValue(':age', $verificationData['age']);
-            $stmt->bindValue(':verification_id', $verificationId);
-
-            return $stmt->execute();
+            return $this->update($verificationId, $verificationData);
         } catch (PDOException $e) {
-            throw new MedicalVerificationException("Medical verification update failed: " . $e->getMessage());
+            throw new DatabaseException("Medical verification update failed: " . $e->getMessage());
         }
     }
 
     public function deleteVerification(string $verificationId): bool
     {
         try {
-            $sql = "DELETE FROM {$this->table} WHERE verification_id = :verification_id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindValue(':verification_id', $verificationId);
-
-            return $stmt->execute();
+            return $this->delete($verificationId);
         } catch (PDOException $e) {
-            throw new MedicalVerificationException("Medical verification deletion failed: " . $e->getMessage());
+            throw new DatabaseException("Medical verification deletion failed: " . $e->getMessage());
         }
     }
 
@@ -107,34 +75,31 @@ class MedicalVerification
     {
         try {
             // Get total verifications
-            $sql1 = "SELECT COUNT(*) as total_verifications FROM {$this->table}";
-            $stmt1 = $this->conn->prepare($sql1);
-            $stmt1->execute();
-            $totalVerifications = $stmt1->fetchColumn();
+            $totalVerifications = $this->count();
 
             // Get verifications by month
-            $sql2 = "SELECT DATE_FORMAT(verification_date, '%Y-%m') as month, COUNT(*) as count 
-                     FROM {$this->table} 
+            $sql = "SELECT DATE_FORMAT(verification_date, '%Y-%m') as month, COUNT(*) as count 
+                     FROM {$this->getTableName()} 
                      GROUP BY DATE_FORMAT(verification_date, '%Y-%m') 
                      ORDER BY month DESC 
                      LIMIT 6";
-            $stmt2 = $this->conn->prepare($sql2);
-            $stmt2->execute();
-            $verificationsByMonth = $stmt2->fetchAll();
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            $verificationsByMonth = $stmt->fetchAll();
 
             // Get average age
-            $sql3 = "SELECT AVG(age) as average_age FROM {$this->table} WHERE age IS NOT NULL";
-            $stmt3 = $this->conn->prepare($sql3);
-            $stmt3->execute();
-            $averageAge = $stmt3->fetchColumn();
+            $sql = "SELECT AVG(age) as average_age FROM {$this->getTableName()} WHERE age IS NOT NULL";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            $averageAge = $stmt->fetchColumn();
 
             return [
-                'total_verifications' => (int)$totalVerifications,
+                'total_verifications' => $totalVerifications,
                 'verifications_by_month' => $verificationsByMonth,
                 'average_age' => round($averageAge, 1)
             ];
         } catch (PDOException $e) {
-            throw new MedicalVerificationException("Medical verification stats retrieval failed: " . $e->getMessage());
+            throw new DatabaseException("Medical verification stats retrieval failed: " . $e->getMessage());
         }
     }
 
@@ -142,42 +107,64 @@ class MedicalVerification
     {
         try {
             $sql = "SELECT mv.*, d.donor_id, u.name as donor_name 
-                    FROM {$this->table} mv
+                    FROM {$this->getTableName()} mv
                     JOIN donors d ON mv.donor_id = d.donor_id
                     JOIN users u ON d.user_id = u.user_id
                     WHERE mv.verification_date BETWEEN :start_date AND :end_date
                     ORDER BY mv.verification_date DESC";
 
-            $stmt = $this->conn->prepare($sql);
+            $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':start_date', $startDate);
             $stmt->bindValue(':end_date', $endDate);
             $stmt->execute();
 
             return $stmt->fetchAll();
         } catch (PDOException $e) {
-            throw new MedicalVerificationException("Medical verifications by date range retrieval failed: " . $e->getMessage());
+            throw new DatabaseException("Medical verifications by date range retrieval failed: " . $e->getMessage());
         }
     }
 
     public function updateAge(string $donorId, int $age): bool
     {
         try {
-            $sql = "UPDATE {$this->table} SET age = :age WHERE donor_id = :donor_id ORDER BY verification_date DESC LIMIT 1";
-            $stmt = $this->conn->prepare($sql);
+            $sql = "UPDATE {$this->getTableName()} SET age = :age WHERE donor_id = :donor_id ORDER BY verification_date DESC LIMIT 1";
+            $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':age', $age);
             $stmt->bindValue(':donor_id', $donorId);
 
             return $stmt->execute();
         } catch (PDOException $e) {
-            throw new MedicalVerificationException("Age update failed: " . $e->getMessage());
+            throw new DatabaseException("Age update failed: " . $e->getMessage());
         }
     }
-}
 
-class MedicalVerificationException extends Exception
-{
-    public function __construct($message = "", $code = 0, Exception $previous = null)
+    public function getVerificationById(string $verificationId): ?array
     {
-        parent::__construct($message, $code, $previous);
+        try {
+            return $this->findById($verificationId);
+        } catch (PDOException $e) {
+            throw new DatabaseException("Medical verification retrieval failed: " . $e->getMessage());
+        }
+    }
+
+    public function getVerificationsByMroId(string $mroId): array
+    {
+        try {
+            $conditions = ['mro_id' => $mroId];
+            $orderBy = ['verification_date' => 'DESC'];
+            return $this->findAll($conditions, $orderBy);
+        } catch (PDOException $e) {
+            throw new DatabaseException("Medical verifications by MRO retrieval failed: " . $e->getMessage());
+        }
+    }
+
+    public function getRecentVerifications(int $limit = 10): array
+    {
+        try {
+            $orderBy = ['verification_date' => 'DESC'];
+            return $this->findAll([], $orderBy, $limit);
+        } catch (PDOException $e) {
+            throw new DatabaseException("Recent medical verifications retrieval failed: " . $e->getMessage());
+        }
     }
 }

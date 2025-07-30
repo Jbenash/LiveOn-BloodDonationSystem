@@ -32,6 +32,47 @@ if (!$donor_id || !$name || !$blood_type || !$age || !$location || !$email) {
     exit();
 }
 
+// Validate name to prevent numeric input
+if (!preg_match('/^[a-zA-Z\s]+$/', $name) || is_numeric(str_replace(' ', '', $name))) {
+    echo json_encode(["success" => false, "message" => "Name must contain only letters and spaces, and cannot be purely numeric"]);
+    exit();
+}
+
+// Validate age for blood donation eligibility
+if ($age) {
+    $age = (int) $age;
+    if ($age < 18) {
+        echo json_encode(["success" => false, "message" => "You must be at least 18 years old to donate blood"]);
+        exit();
+    } else if ($age > 65) {
+        echo json_encode(["success" => false, "message" => "You must be 65 years old or younger to donate blood"]);
+        exit();
+    }
+}
+
+// Validate phone number format if provided
+$phone = $_POST['phone'] ?? null;
+if ($phone) {
+    // Check if phone contains only digits
+    if (!preg_match('/^[0-9]+$/', $phone)) {
+        echo json_encode(["success" => false, "message" => "Phone number can only contain numbers"]);
+        exit();
+    }
+
+    // Check if phone has exactly 10 digits (Sri Lankan format)
+    if (strlen($phone) !== 10) {
+        echo json_encode(["success" => false, "message" => "Phone number must be exactly 10 digits (Sri Lankan format)"]);
+        exit();
+    }
+}
+
+// Validate blood type
+$validBloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+if (!in_array($blood_type, $validBloodTypes)) {
+    echo json_encode(["success" => false, "message" => "Invalid blood type"]);
+    exit();
+}
+
 // Handle image upload
 $imagePath = null;
 if (isset($_FILES['profilePicFile']) && $_FILES['profilePicFile']['error'] === UPLOAD_ERR_OK) {

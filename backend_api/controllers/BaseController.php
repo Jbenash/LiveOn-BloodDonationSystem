@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../classes/Exceptions.php';
+
 abstract class BaseController
 {
     protected $service;
@@ -151,42 +153,3 @@ abstract class BaseController
         }
     }
 }
-
-class ResponseHandler
-{
-    public function sendJson(array $data, int $statusCode = 200): void
-    {
-        http_response_code($statusCode);
-        echo json_encode($data);
-    }
-
-    public function sendError(int $statusCode, string $message, array $errors = []): void
-    {
-        $response = [
-            'success' => false,
-            'message' => $message
-        ];
-
-        if (!empty($errors)) {
-            $response['errors'] = $errors;
-        }
-
-        $this->sendJson($response, $statusCode);
-    }
-
-    public function sendSuccess(array $data = [], string $message = 'Success'): void
-    {
-        $this->sendJson([
-            'success' => true,
-            'message' => $message,
-            'data' => $data
-        ]);
-    }
-}
-
-// Custom Exceptions
-class InvalidRequestException extends Exception {}
-class UnauthorizedException extends Exception {}
-class ForbiddenException extends Exception {}
-class NotFoundException extends Exception {}
-class MethodNotAllowedException extends Exception {}

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import './HospitalDashboard.css';
 import logo from '../../assets/logo.svg';
 import userImg from '../../assets/user.png';
+import ConfirmDialog from '../common/ConfirmDialog';
+import ErrorDisplay from '../common/ErrorDisplay';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const HospitalDashboard = () => {
   const [hospital, setHospital] = useState(null);
@@ -23,23 +27,44 @@ const HospitalDashboard = () => {
   const [showDonationRequestSentPopup, setShowDonationRequestSentPopup] = useState(false);
   const [selectedBloodType, setSelectedBloodType] = useState(null);
   const [showDonorPopup, setShowDonorPopup] = useState(false);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Custom dialog state
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [showLogoDialog, setShowLogoDialog] = useState(false);
+
   useEffect(() => {
+    setLoading(true);
+    setError(null);
+    
     fetch('http://localhost/liveonv2/backend_api/controllers/hospital_dashboard.php', {
       credentials: 'include'
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        return res.json();
+      })
       .then(data => {
         if (data.error) {
-          alert(data.error);
-          navigate('/login');
+          throw new Error(data.error);
         } else {
           setHospital(data);
           setDonors(data.donors || []);
           setBloodInventory(data.bloodInventory || []);
           setEmergencyRequests(data.emergencyRequests || []);
         }
+      })
+      .catch(err => {
+        console.error('Error fetching hospital data:', err);
+        setError(err.message || 'Failed to load hospital dashboard');
+        toast.error('Failed to load hospital dashboard');
+      })
+      .finally(() => {
+        setLoading(false);
       });
   }, [navigate]);
 
@@ -51,72 +76,148 @@ const HospitalDashboard = () => {
     setShowDonationRequestPopup(true);
   };
 
+  // Use custom dialog for logout
   const handleLogout = () => {
+    setShowLogoutDialog(true);
+  };
+  const confirmLogout = () => {
+    setShowLogoutDialog(false);
     fetch('http://localhost/liveonv2/backend_api/controllers/logout.php', {
       method: 'POST',
       credentials: 'include',
     })
       .then(() => {
-        navigate('/');
+        navigate('/?login=true');
       })
       .catch(() => {
-        navigate('/');
+        navigate('/?login=true');
       });
   };
+  const cancelLogout = () => setShowLogoutDialog(false);
+
+  // Use custom dialog for logo click
+  const handleLogoClick = () => {
+    setShowLogoDialog(true);
+  };
+  const confirmLogo = () => {
+    setShowLogoDialog(false);
+    navigate('/');
+  };
+  const cancelLogo = () => setShowLogoDialog(false);
 
   const donorsByBloodType = (type) => donors.filter(d => d.bloodType === type);
 
-  if (!hospital) return <div>Loading dashboard...</div>;
+  if (loading) {
+    return (
+      <div className="hospital-dashboard-root">
+        <LoadingSpinner 
+          size="60"
+          stroke="4"
+          speed="1"
+          color="#059669"
+          text="Loading hospital dashboard..."
+          className="full-page"
+        />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorDisplay 
+        error={error}
+        onRetry={() => {
+          setError(null);
+          setLoading(true);
+          // Re-fetch data
+          fetch('http://localhost/liveonv2/backend_api/controllers/hospital_dashboard.php', {
+            credentials: 'include'
+          })
+            .then(res => {
+              if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+              }
+              return res.json();
+            })
+            .then(data => {
+              if (data.error) {
+                throw new Error(data.error);
+              } else {
+                setHospital(data);
+                setDonors(data.donors || []);
+                setBloodInventory(data.bloodInventory || []);
+                setEmergencyRequests(data.emergencyRequests || []);
+              }
+            })
+            .catch(err => {
+              console.error('Error fetching hospital data:', err);
+              setError(err.message || 'Failed to load hospital dashboard');
+              toast.error('Failed to load hospital dashboard');
+            })
+            .finally(() => {
+              setLoading(false);
+            });
+        }}
+        title="Failed to load hospital dashboard"
+        buttonText="Retry"
+      />
+    );
+  }
+
+  if (!hospital) {
+    return (
+      <ErrorDisplay 
+        error="No hospital data available"
+        title="Hospital data not found"
+        buttonText="Retry"
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
 
   return (
-    <div className="mro-dashboard-container">
-      <aside className="sidebar" style={{ width: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100vh' }}>
+    <div className="hospital-dashboard-container">
+      <ConfirmDialog
+        open={showLogoutDialog}
+        title="Confirm Logout"
+        message="Are you sure you want to logout?"
+        onConfirm={confirmLogout}
+        onCancel={cancelLogout}
+        confirmText="Logout"
+        cancelText="Cancel"
+      />
+      <ConfirmDialog
+        open={showLogoDialog}
+        title="Confirm Navigation"
+        message="Are you sure you want to go to the home page? You will be logged out."
+        onConfirm={confirmLogo}
+        onCancel={cancelLogo}
+        confirmText="Go Home"
+        cancelText="Cancel"
+      />
+      <aside className="sidebar">
         <div style={{ width: '100%' }}>
-          <div className="logo" style={{ cursor: 'pointer', padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginLeft: 32 }} onClick={() => navigate('/') }>
-            <img src={logo} alt="LiveOn Logo" style={{ height: 120, width: 'auto', display: 'block' }} />
+          <div className="logo" onClick={handleLogoClick}>
+            <img src={logo} alt="LiveOn Logo" />
           </div>
           <nav>
-            <ul style={{ padding: 0, margin: 0 }}>
-              <li className={activeSection === 'Overview' ? 'active' : ''} onClick={() => setActiveSection('Overview')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+            <ul>
+              <li className={activeSection === 'Overview' ? 'active' : ''} onClick={() => setActiveSection('Overview')}>
                 <span className="sidebar-label">Overview</span>
               </li>
-              <li className={activeSection === 'Donors' ? 'active' : ''} onClick={() => setActiveSection('Donors')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+              <li className={activeSection === 'Donors' ? 'active' : ''} onClick={() => setActiveSection('Donors')}>
                 <span className="sidebar-label">Donors</span>
               </li>
-              <li className={activeSection === 'Inventory' ? 'active' : ''} onClick={() => setActiveSection('Inventory')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+              <li className={activeSection === 'Inventory' ? 'active' : ''} onClick={() => setActiveSection('Inventory')}>
                 <span className="sidebar-label">Inventory</span>
               </li>
-              <li className={activeSection === 'Requests' ? 'active' : ''} onClick={() => setActiveSection('Requests')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+              <li className={activeSection === 'Requests' ? 'active' : ''} onClick={() => setActiveSection('Requests')}>
                 <span className="sidebar-label">Requests</span>
               </li>
             </ul>
           </nav>
         </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            width: '90%',
-            margin: '0 auto 24px auto',
-            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 10,
-            padding: '14px 0',
-            fontSize: '1.1rem',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(220,38,38,0.13)',
-            transition: 'background 0.2s',
-          }}
-        >
+        <button className="logout-btn" onClick={handleLogout}>
           <span style={{ fontSize: 20, display: 'flex', alignItems: 'center' }}>⎋</span> Logout
         </button>
       </aside>
@@ -430,41 +531,43 @@ const HospitalDashboard = () => {
                     setEmergencyError('You forgot to enter blood units.');
                     return;
                   }
-                  setEmergencyError('');
-                      fetch('http://localhost/liveonv2/backend_api/controllers/emergency_request.php', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      blood_type: emergencyBloodType,
-                      required_units: emergencyUnits
+                  if (window.confirm(`Are you sure you want to send an emergency request for ${emergencyUnits} units of ${emergencyBloodType} blood? This will notify all available donors.`)) {
+                    setEmergencyError('');
+                        fetch('http://localhost/liveonv2/backend_api/controllers/emergency_request.php', {
+                      method: 'POST',
+                      credentials: 'include',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        blood_type: emergencyBloodType,
+                        required_units: emergencyUnits
+                      })
                     })
-                  })
-                    .then(res => res.json())
-                    .then(data => {
-                      setShowEmergencyPopup(false);
-                      setEmergencyBloodType('');
-                      setEmergencyUnits('');
-                      setShowRequestSentPopup(true);
-                      // Send SMS to all donors with the selected blood group
-                      const relevantDonors = donors.filter(d => d.bloodType === emergencyBloodType);
-                      relevantDonors.forEach(donor => {
-                        if (donor.contact) {
-                          const smsMessage = `Dear ${donor.name}, urgent need for ${emergencyUnits} units of ${emergencyBloodType} blood at ${hospital.name}. Please contact us if you can donate.`;
-                          fetch('http://localhost/liveonv2/backend_api/controllers/send_sms.php', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              phone: donor.contact,
-                              message: smsMessage
-                            })
-                          });
-                        }
+                      .then(res => res.json())
+                      .then(data => {
+                        setShowEmergencyPopup(false);
+                        setEmergencyBloodType('');
+                        setEmergencyUnits('');
+                        setShowRequestSentPopup(true);
+                        // Send SMS to all donors with the selected blood group
+                        const relevantDonors = donors.filter(d => d.bloodType === emergencyBloodType);
+                        relevantDonors.forEach(donor => {
+                          if (donor.contact) {
+                            const smsMessage = `Dear ${donor.name}, urgent need for ${emergencyUnits} units of ${emergencyBloodType} blood at ${hospital.name}. Please contact us if you can donate.`;
+                            fetch('http://localhost/liveonv2/backend_api/controllers/send_sms.php', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                phone: donor.contact,
+                                message: smsMessage
+                              })
+                            });
+                          }
+                        });
+                      })
+                      .catch(err => {
+                        setEmergencyError('Failed to send emergency request');
                       });
-                    })
-                    .catch(err => {
-                      setEmergencyError('Failed to send emergency request');
-                    });
+                  }
                 }}
               >
                 Send to All Donors
@@ -520,45 +623,47 @@ const HospitalDashboard = () => {
                     setDonationError('You forgot to enter the reason.');
                     return;
                   }
-                  setDonationError('');
-                      fetch('http://localhost/liveonv2/backend_api/controllers/send_donation_request.php', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      donorId: donationRequestDonorId,
-                      hospitalName: donationHospitalName,
-                      reason: donationReason
+                  if (window.confirm('Are you sure you want to send this donation request? This will notify the selected donor.')) {
+                    setDonationError('');
+                        fetch('http://localhost/liveonv2/backend_api/controllers/send_donation_request.php', {
+                      method: 'POST',
+                      credentials: 'include',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        donorId: donationRequestDonorId,
+                        hospitalName: donationHospitalName,
+                        reason: donationReason
+                      })
                     })
-                  })
-                    .then(res => res.json())
-                    .then(data => {
-                      setShowDonationRequestPopup(false);
-                      setShowDonationRequestSentPopup(true);
-                          // Find the donor object by ID
-                          const donor = donors.find(d => d.donor_id === donationRequestDonorId);
-                          if (donor && donor.contact) {
-                            const smsMessage = `Dear ${donor.name}, you have a new blood donation request from ${hospital.name}. Reason: ${donationReason}`;
-                            fetch('http://localhost/liveonv2/backend_api/controllers/send_sms.php', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                phone: donor.contact,
-                                message: smsMessage
+                      .then(res => res.json())
+                      .then(data => {
+                        setShowDonationRequestPopup(false);
+                        setShowDonationRequestSentPopup(true);
+                            // Find the donor object by ID
+                            const donor = donors.find(d => d.donor_id === donationRequestDonorId);
+                            if (donor && donor.contact) {
+                              const smsMessage = `Dear ${donor.name}, you have a new blood donation request from ${hospital.name}. Reason: ${donationReason}`;
+                              fetch('http://localhost/liveonv2/backend_api/controllers/send_sms.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  phone: donor.contact,
+                                  message: smsMessage
+                                })
                               })
-                            })
-                              .then(res => res.json())
-                              .then(smsRes => {
-                                // Optionally handle SMS response
-                              })
-                              .catch(err => {
-                                // Optionally handle SMS error
-                              });
-                          }
-                    })
-                    .catch(err => {
-                      setDonationError('Failed to send donation request');
-                    });
+                                .then(res => res.json())
+                                .then(smsRes => {
+                                  // Optionally handle SMS response
+                                })
+                                .catch(err => {
+                                  // Optionally handle SMS error
+                                });
+                            }
+                      })
+                      .catch(err => {
+                        setDonationError('Failed to send donation request');
+                      });
+                  }
                 }}
               >
                 Send Request

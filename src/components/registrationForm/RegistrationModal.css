@@ -247,6 +247,32 @@ select.form-input {
   letter-spacing: 2px;
 }
 
+/* Password Strength Indicator */
+.password-strength-container {
+  margin-top: 8px;
+}
+
+.password-strength-bar {
+  width: 100%;
+  height: 6px;
+  background-color: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.password-strength-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.password-strength-text {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
 .form-error {
   color: #dc2626;
   font-size: 0.85rem;
@@ -410,6 +436,10 @@ select.form-input {
     position: static;
     margin-top: 8px;
   }
+
+  .password-strength-text {
+    font-size: 11px;
+  }
   
   .registration-button {
     padding: 16px 20px;
@@ -442,6 +472,10 @@ select.form-input {
   
   .form-group {
     margin-bottom: 8px;
+  }
+
+  .password-strength-text {
+    font-size: 10px;
   }
 }
 

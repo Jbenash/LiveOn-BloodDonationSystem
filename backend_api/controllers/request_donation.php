@@ -1,11 +1,16 @@
 <?php
 session_start();
 
-header("Access-Control-Allow-Origin: http://localhost:5174");
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Content-Type: application/json");
+header('Content-Type: application/json');
+$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowedOrigins)) {
+    header("Access-Control-Allow-Origin: $origin");
+}
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'hospital') {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);

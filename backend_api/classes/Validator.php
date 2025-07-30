@@ -99,6 +99,24 @@ class Validator
                         $this->addError($field, "The $field must be between 100 and 250 cm.");
                     }
                     break;
+
+                case 'alpha_space':
+                    if ($value && !$this->isAlphaSpace($value)) {
+                        $this->addError($field, "The $field must contain only letters and spaces.");
+                    }
+                    break;
+
+                case 'name':
+                    if ($value && !$this->isValidName($value)) {
+                        $this->addError($field, "The $field must contain only letters and spaces, and cannot be purely numeric.");
+                    }
+                    break;
+
+                case 'dob':
+                    if ($value && !$this->isValidDateOfBirth($value, $parameter)) {
+                        $this->addError($field, "The $field must result in an age between 18 and " . ($parameter ?: 65) . " years for blood donation eligibility.");
+                    }
+                    break;
             }
         }
     }
@@ -131,7 +149,13 @@ class Validator
 
     private function isValidPhone(string $phone): bool
     {
-        return preg_match('/^[0-9+\-\s()]+$/', $phone);
+        // Check if phone contains only digits
+        if (!preg_match('/^[0-9]+$/', $phone)) {
+            return false;
+        }
+
+        // Check if phone has exactly 10 digits (Sri Lankan format)
+        return strlen($phone) === 10;
     }
 
     private function isValidBloodType(string $bloodType): bool
@@ -165,6 +189,48 @@ class Validator
         }
         $height = (int) $height;
         return $height >= 100 && $height <= 250;
+    }
+
+    private function isAlphaSpace(string $value): bool
+    {
+        return preg_match('/^[a-zA-Z\s]+$/', $value);
+    }
+
+    private function isValidName(string $value): bool
+    {
+        // Check if the value contains only letters and spaces
+        if (!preg_match('/^[a-zA-Z\s]+$/', $value)) {
+            return false;
+        }
+
+        // Check if the value is not purely numeric (remove spaces and check)
+        $valueWithoutSpaces = str_replace(' ', '', $value);
+        if (is_numeric($valueWithoutSpaces)) {
+            return false;
+        }
+
+        // Check if the value has at least one letter
+        if (!preg_match('/[a-zA-Z]/', $value)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function isValidDateOfBirth(string $dob, int $maxAge = 65): bool
+    {
+        // First check if it's a valid date format
+        if (!$this->isValidDate($dob)) {
+            return false;
+        }
+
+        // Calculate age from date of birth
+        $birthDate = new DateTime($dob);
+        $currentDate = new DateTime();
+        $age = $currentDate->diff($birthDate)->y;
+
+        // Check if age is within donation eligibility range (18 to maxAge)
+        return $age >= 18 && $age <= $maxAge;
     }
 
     private function addError(string $field, string $message): void

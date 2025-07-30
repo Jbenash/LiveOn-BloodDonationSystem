@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/Exceptions.php';
+
 abstract class BaseModel
 {
     protected $pdo;
@@ -12,10 +14,16 @@ abstract class BaseModel
 
     abstract protected function getTableName(): string;
 
+    protected function getPrimaryKey(): string
+    {
+        return 'id'; // Default primary key, can be overridden by child classes
+    }
+
     protected function findById(string $id): ?array
     {
         try {
-            $sql = "SELECT * FROM {$this->getTableName()} WHERE id = :id";
+            $primaryKey = $this->getPrimaryKey();
+            $sql = "SELECT * FROM {$this->getTableName()} WHERE {$primaryKey} = :id";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute(['id' => $id]);
             $result = $stmt->fetch();
@@ -84,7 +92,8 @@ abstract class BaseModel
                 $setClause[] = "$column = :$column";
             }
 
-            $sql = "UPDATE {$this->getTableName()} SET " . implode(', ', $setClause) . " WHERE id = :id";
+            $primaryKey = $this->getPrimaryKey();
+            $sql = "UPDATE {$this->getTableName()} SET " . implode(', ', $setClause) . " WHERE {$primaryKey} = :id";
             $data['id'] = $id;
 
             $stmt = $this->pdo->prepare($sql);
@@ -97,7 +106,8 @@ abstract class BaseModel
     protected function delete(string $id): bool
     {
         try {
-            $sql = "DELETE FROM {$this->getTableName()} WHERE id = :id";
+            $primaryKey = $this->getPrimaryKey();
+            $sql = "DELETE FROM {$this->getTableName()} WHERE {$primaryKey} = :id";
             $stmt = $this->pdo->prepare($sql);
             return $stmt->execute(['id' => $id]);
         } catch (PDOException $e) {
@@ -141,13 +151,5 @@ abstract class BaseModel
     protected function rollback(): void
     {
         $this->pdo->rollBack();
-    }
-}
-
-class DatabaseException extends Exception
-{
-    public function __construct($message = "", $code = 0, Exception $previous = null)
-    {
-        parent::__construct($message, $code, $previous);
     }
 }

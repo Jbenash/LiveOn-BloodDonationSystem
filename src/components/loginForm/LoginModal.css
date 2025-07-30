@@ -229,6 +229,8 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
+  min-height: 60px;
+  box-sizing: border-box;
 }
 
 .login-button::before {
@@ -283,6 +285,23 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* LoadingSpinner inside login button */
+.login-button .loading-spinner-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 20px;
+  width: auto;
+}
+
+.login-button .loading-spinner-container .loading-text {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #ffffff;
+  font-weight: 600;
 }
 
 /* Footer */

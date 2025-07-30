@@ -435,7 +435,7 @@ html {
 .why-donate-section,
 .success-stories-section,
 .feedback-section {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: #ffffff;
 }
 
 /* Card backgrounds */
@@ -484,7 +484,7 @@ html {
 
 /* Features Section */
 .features-section {
-  background: #fff;
+  background: #ffffff;
   padding: 120px 40px;
   position: relative;
 }
@@ -602,7 +602,7 @@ html {
 /* How It Works Section */
 .how-it-works-section {
   padding: 120px 40px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: #ffffff;
   position: relative;
 }
 

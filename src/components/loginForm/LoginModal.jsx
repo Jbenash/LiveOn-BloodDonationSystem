@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginModal.css';
 import { toast } from 'sonner';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const LoginModal = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -13,7 +14,7 @@ const LoginModal = ({ isOpen, onClose }) => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showRequestSent, setShowRequestSent] = useState(false);
   const [showEmailRequired, setShowEmailRequired] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  // Removed errorMessage state since we're using Sonner toasts
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,7 +27,6 @@ const LoginModal = ({ isOpen, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setErrorMessage("");
 
     try {
       const response = await fetch("http://localhost/liveonv2/backend_api/controllers/user_login.php", {
@@ -54,13 +54,12 @@ const LoginModal = ({ isOpen, onClose }) => {
         }
 
       } else {
-        setErrorMessage(data.message || "Login Failed");
+        toast.error(data.message || "Login Failed");
       }
 
     } catch (err) {
       console.error('Login error:', err);
-      setErrorMessage('Login failed. Please try again.');
-      toast.error(err.message || 'Login failed. Please try again.');
+      toast.error('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -103,10 +102,10 @@ const LoginModal = ({ isOpen, onClose }) => {
       if (data.success) {
         setShowRequestSent(true);
       } else {
-        setErrorMessage(data.message || 'Failed to submit password reset request');
+        toast.error(data.message || 'Failed to submit password reset request');
       }
     } catch (e) {
-      setErrorMessage('Network error');
+      toast.error('Network error');
     }
   };
 
@@ -145,11 +144,6 @@ const LoginModal = ({ isOpen, onClose }) => {
           <div className="login-container">
             <div className="login-card">
               <form onSubmit={handleSubmit} className="login-form">
-                {errorMessage && (
-                  <div style={{ color: '#dc3545', background: '#fff0f1', border: '1px solid #f5c2c7', borderRadius: 8, padding: '12px 18px', marginBottom: 18, fontWeight: 500, textAlign: 'center' }}>
-                    {errorMessage}
-                  </div>
-                )}
                 <div className="form-group">
                   <label htmlFor="username">Email Address</label>
                   <input
@@ -189,12 +183,15 @@ const LoginModal = ({ isOpen, onClose }) => {
                   className="login-button"
                   disabled={isLoading}
                 >
-                  {isLoading ? (
-                    <span className="loading-spinner">
-                      <span className="spinner"></span>
-                      Signing in...
-                    </span>
-                  ) : (
+                                     {isLoading ? (
+                     <LoadingSpinner 
+                       size="16" 
+                       stroke="2" 
+                       color="#ffffff" 
+                       text="Signing in..."
+                       className="button"
+                     />
+                   ) : (
                     <>
                       <span className="btn-text">Sign In</span>
                       <span className="btn-icon">→</span>
@@ -278,12 +275,15 @@ const ForgotPasswordPopup = ({ isOpen, email, onClose, onSubmit }) => {
                 disabled={isSubmitting || !newPassword}
                 onClick={() => { setIsSubmitting(true); onSubmit(newPassword); }}
               >
-                {isSubmitting ? (
-                  <span className="loading-spinner">
-                    <span className="spinner"></span>
-                    Submitting...
-                  </span>
-                ) : (
+                                 {isSubmitting ? (
+                   <LoadingSpinner 
+                     size="16" 
+                     stroke="2" 
+                     color="#ffffff" 
+                     text="Submitting..."
+                     className="button"
+                   />
+                 ) : (
                   <>
                     <span className="btn-text">Submit</span>
                     <span className="btn-icon">✓</span>

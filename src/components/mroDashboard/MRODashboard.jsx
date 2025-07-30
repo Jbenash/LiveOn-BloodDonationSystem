@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { FaUserFriends, FaClipboardList, FaUserCheck, FaCheckCircle } from 'react-icons/fa';
 import logo from '../../assets/logo.svg';
 import { toast } from 'sonner';
+import ConfirmDialog from '../common/ConfirmDialog';
+import ErrorDisplay from '../common/ErrorDisplay';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const MRODashboard = () => {
   const navigate = useNavigate();
@@ -43,6 +46,8 @@ const MRODashboard = () => {
   const [verificationDateTime, setVerificationDateTime] = useState('');
   // Add hospitalId state
   const [hospitalId, setHospitalId] = useState("");
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [showLogoDialog, setShowLogoDialog] = useState(false);
 
   // Auth check: redirect to home if not logged in as MRO
   useEffect(() => {
@@ -170,10 +175,20 @@ const MRODashboard = () => {
   const handleSubmitDonorDetails = async () => {
     if (!popupDonor) return;
     setSubmitStatus("");
+    
+    // Validate age for blood donation eligibility
+    const age = parseInt(formData.age);
+    if (age < 18) {
+      toast.error('Donor must be at least 18 years old to be medically verified for blood donation');
+      return;
+    } else if (age > 65) {
+      toast.error('Donor must be 65 years old or younger to be medically verified for blood donation');
+      return;
+    }
+    
     // Prepare data for backend
     const donor_id = popupDonor.donor_id;
-    console.log('popupDonor:', popupDonor); // Debug: check what's in popupDonor
-    console.log('donor_id:', donor_id); // Debug: check donor_id value
+
     const mro_id = 'MRO001'; // Replace with actual logged-in MRO ID if available
     const payload = {
       donor_id: donor_id,
@@ -187,7 +202,7 @@ const MRODashboard = () => {
       age: formData.age,
       full_name: popupDonor.fullName || popupDonor.donor_fullname || ''
     };
-    console.log('payload:', payload); // Debug: check the payload being sent
+
     try {
       const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/save_medical_verification.php', {
         method: 'POST',
@@ -245,7 +260,7 @@ const MRODashboard = () => {
       bloodType: donor.blood_group || '', 
       volume: '' 
     });
-    console.log("donatePopupDonor:", donor);
+
   };
   const handleCloseDonatePopup = () => {
     setShowDonatePopup(false);
@@ -267,7 +282,7 @@ const MRODashboard = () => {
       donor_id: donatePopupDonor.donor_id,
       blood_type: donateForm.bloodType,
       donation_date: donationDateTime, // send the exact timestamp
-      volume: donateForm.volume,
+      units_donated: donateForm.volume,
       hospital_id: hospitalId // <-- include hospital_id
     };
     
@@ -292,10 +307,10 @@ const MRODashboard = () => {
         setDonateForm({ bloodType: '', donationDate: '', volume: '' });
         setDonationTimestamp('');
       } else {
-        alert('Error: ' + (data.error || 'Failed to save donation'));
+        toast.error('Error: ' + (data.error || 'Failed to save donation'));
       }
     } catch (err) {
-      alert('Error: ' + err.message);
+      toast.error('Error: ' + err.message);
     }
   };
 
@@ -314,7 +329,7 @@ const MRODashboard = () => {
       });
       setDonorRequests(prev => prev.filter(d => d.donor_id !== rejectDonorId));
     } catch (err) {
-      alert('Failed to reject donor.');
+      toast.error('Failed to reject donor.');
     }
     setShowRejectConfirm(false);
     setRejectDonorId(null);
@@ -416,17 +431,32 @@ const MRODashboard = () => {
   };
 
   // Add logout handler
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    setShowLogoutDialog(true);
+  };
+  const confirmLogout = async () => {
+    setShowLogoutDialog(false);
     try {
       await fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
         method: 'POST',
         credentials: 'include',
       });
-      navigate('/');
     } catch (error) {
-      alert('Logout failed');
+      toast.error('Logout failed');
     }
+    navigate('/?login=true');
   };
+  const cancelLogout = () => setShowLogoutDialog(false);
+
+  // Use custom dialog for logo click
+  const handleLogoClick = () => {
+    setShowLogoDialog(true);
+  };
+  const confirmLogo = () => {
+    setShowLogoDialog(false);
+    navigate('/');
+  };
+  const cancelLogo = () => setShowLogoDialog(false);
 
   const overviewCards = [
     {
@@ -459,58 +489,82 @@ const MRODashboard = () => {
     },
   ];
 
+  // Show loading animation while initial data is being fetched
+  if (loading && donorRequests.length === 0) {
+    return (
+      <div className="mro-dashboard-root">
+        <LoadingSpinner 
+          size="60"
+          stroke="4"
+          speed="1"
+          color="#7c3aed"
+          text="Loading MRO dashboard..."
+          className="full-page"
+        />
+      </div>
+    );
+  }
+
+  // Show error display if there's an error
+  if (error) {
+    return (
+      <ErrorDisplay 
+        error={error}
+        onRetry={() => {
+          setError(null);
+          setLoading(true);
+          // Re-fetch data
+          fetch("http://localhost/Liveonv2/backend_api/controllers/get_donor_requests.php", {
+            credentials: "include"
+          })
+            .then((res) => {
+              if (!res.ok) throw new Error("Network response was not ok");
+              return res.json();
+            })
+            .then((data) => {
+              setDonorRequests(data);
+              setLoading(false);
+            })
+            .catch((err) => {
+              setError(err.message);
+              setLoading(false);
+              toast.error('Failed to fetch donor requests: ' + err.message);
+            });
+        }}
+        title="Failed to load MRO dashboard"
+        buttonText="Retry"
+      />
+    );
+  }
+
   return (
     <div className="mro-dashboard-container">
-      <aside className="sidebar" style={{ width: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100vh' }}>
+      <aside className="sidebar">
         <div style={{ width: '100%' }}>
-          <div className="logo" style={{ cursor: 'pointer', padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginLeft: 32 }} onClick={() => navigate('/') }>
-            <img src={logo} alt="LiveOn Logo" style={{ height: 120, width: 'auto', display: 'block' }} />
+          <div className="logo" onClick={handleLogoClick}>
+            <img src={logo} alt="LiveOn Logo" />
           </div>
-        <nav>
-            <ul style={{ padding: 0, margin: 0 }}>
-              <li className={activeSection === "Overview" ? "active" : ""} onClick={() => setActiveSection("Overview")}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+          <nav>
+            <ul>
+              <li className={activeSection === "Overview" ? "active" : ""} onClick={() => setActiveSection("Overview")}>
                 <span className="sidebar-label">Overview</span>
               </li>
-              <li className={activeSection === "Donor Requests" ? "active" : ""} onClick={() => setActiveSection("Donor Requests")}
-                  style={{ position: 'relative', display: 'flex', alignItems: 'center', fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s' }}>
+              <li className={activeSection === "Donor Requests" ? "active" : ""} onClick={() => setActiveSection("Donor Requests")}>
                 <span className="sidebar-label">Donor Requests</span>
                 {filteredDonorRequests.length > 0 && (
-                  <span className="sidebar-badge" style={{ background: '#dc2626', color: '#fff', borderRadius: '50%', minWidth: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, marginLeft: 12 }}>{filteredDonorRequests.length}</span>
+                  <span className="sidebar-badge">{filteredDonorRequests.length}</span>
                 )}
               </li>
-              <li className={activeSection === "Donor Registration Logs" ? "active" : ""} onClick={() => setActiveSection("Donor Registration Logs")}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+              <li className={activeSection === "Donor Registration Logs" ? "active" : ""} onClick={() => setActiveSection("Donor Registration Logs")}>
                 <span className="sidebar-label">Donor Registration Logs</span>
               </li>
-              <li className={activeSection === "Donation Logs" ? "active" : ""} onClick={() => setActiveSection("Donation Logs")}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+              <li className={activeSection === "Donation Logs" ? "active" : ""} onClick={() => setActiveSection("Donation Logs")}>
                 <span className="sidebar-label">Donation Logs</span>
               </li>
-          </ul>
-        </nav>
+            </ul>
+          </nav>
         </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            width: '90%',
-            margin: '0 auto 24px auto',
-            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 10,
-            padding: '14px 0',
-            fontSize: '1.1rem',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(220,38,38,0.13)',
-            transition: 'background 0.2s',
-          }}
-        >
+        <button className="logout-btn" onClick={handleLogout}>
           <span style={{ fontSize: 20, display: 'flex', alignItems: 'center' }}>⎋</span> Logout
         </button>
       </aside>
@@ -1007,6 +1061,24 @@ const MRODashboard = () => {
           )}
         </div>
       </main>
+      <ConfirmDialog
+        open={showLogoutDialog}
+        title="Confirm Logout"
+        message="Are you sure you want to logout?"
+        onConfirm={confirmLogout}
+        onCancel={cancelLogout}
+        confirmText="Logout"
+        cancelText="Cancel"
+      />
+      <ConfirmDialog
+        open={showLogoDialog}
+        title="Confirm Navigation"
+        message="Are you sure you want to go to the home page? You will be logged out."
+        onConfirm={confirmLogo}
+        onCancel={cancelLogo}
+        confirmText="Go Home"
+        cancelText="Cancel"
+      />
     </div>
   );
 };
