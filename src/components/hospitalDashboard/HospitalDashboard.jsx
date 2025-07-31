@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './HospitalDashboard.css';
 import logo from '../../assets/logo.svg';
 import userImg from '../../assets/user.png';
+import { Avatar } from 'flowbite-react';
 
 const HospitalDashboard = () => {
   const [hospital, setHospital] = useState(null);
@@ -592,12 +593,20 @@ const HospitalDashboard = () => {
               {donorsByBloodType(selectedBloodType).length > 0 ? (
                 donorsByBloodType(selectedBloodType).map((donor, idx) => (
                   <div className="profile-summary-card" key={idx}>
-                    <img
-                      src={donor.profilePic || userImg}
-                      alt={donor.name}
-                      className="profile-avatar"
-                      style={{ width: 70, height: 70, borderRadius: '50%', objectFit: 'cover', border: '2px solid #3b82f6', marginRight: 20 }}
-                    />
+                                                               <Avatar
+                        img={donor.profilePic || null}
+                        alt={donor.name}
+                        size="lg"
+                        rounded
+                        placeholderInitials={donor.name ? donor.name.substring(0, 2).toUpperCase() : "DN"}
+                        className="custom-avatar"
+                        style={{ 
+                          marginRight: 20,
+                          backgroundColor: '#6b7280',
+                          color: '#ffffff',
+                          border: '2px solid #6b7280'
+                        }}
+                      />
                     <div className="profile-summary-text">
                       <div><span className="label">Donor ID:</span> {donor.donor_id || '-'}</div>
                       <div><span className="label">Name:</span> {donor.name}</div>

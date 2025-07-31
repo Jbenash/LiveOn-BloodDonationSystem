@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import "./AdminDashboard.css";
 import logo from "../../assets/logo.svg";
 import userImg from "../../assets/user.png";
-import { FaBell } from 'react-icons/fa';
+import { FaBell, FaEnvelope } from 'react-icons/fa';
+import { Avatar } from 'flowbite-react';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -41,6 +42,12 @@ const AdminDashboard = () => {
   const [storyLoading, setStoryLoading] = useState(false);
   const [storyError, setStoryError] = useState('');
   const [isAddStory, setIsAddStory] = useState(false);
+  // System activities state (for notification bell)
+  const [systemActivities, setSystemActivities] = useState([]);
+  const [showSystemActivities, setShowSystemActivities] = useState(false);
+  const [systemActivitiesUnreadCount, setSystemActivitiesUnreadCount] = useState(0);
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const systemActivitiesWrapperRef = useRef(null);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -61,6 +68,12 @@ const AdminDashboard = () => {
   const [adminNewPassword, setAdminNewPassword] = useState('');
   const [passwordResetLoading, setPasswordResetLoading] = useState(false);
   const [passwordResetError, setPasswordResetError] = useState('');
+  // Mail messages state
+  const [adminMessages, setAdminMessages] = useState([]);
+  const [showMailMessages, setShowMailMessages] = useState(false);
+  const [mailUnreadCount, setMailUnreadCount] = useState(0);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const mailWrapperRef = useRef(null);
   // Dummy data for MROs
   const [allMROs, setAllMROs] = useState([
     { mro_id: 'MRO001', name: 'Dr. Silva', email: 'dr.silva@hospital.com', phone: '0771234567', hospital: 'National Hospital' },
@@ -73,70 +86,87 @@ const AdminDashboard = () => {
       if (notificationWrapperRef.current && !notificationWrapperRef.current.contains(event.target)) {
         setShowNotifications(false);
       }
+      if (systemActivitiesWrapperRef.current && !systemActivitiesWrapperRef.current.contains(event.target)) {
+        setShowSystemActivities(false);
+      }
+      if (mailWrapperRef.current && !mailWrapperRef.current.contains(event.target)) {
+        setShowMailMessages(false);
+      }
     }
     // Bind the event listener
-    if (showNotifications) {
+    if (showNotifications || showSystemActivities || showMailMessages) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
       // Unbind the event listener on clean up
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showNotifications]);
+  }, [showNotifications, showSystemActivities, showMailMessages]);
 
   // Helper to add a notification
   const addNotification = (message, type = 'info') => {
-    setNotifications(prev => [{
-      message,
-      type,
-      timestamp: new Date().toLocaleString(),
-      id: Date.now() + Math.random()
-    }, ...prev]);
-    setUnreadCount(c => c + 1);
+    // This function is kept for backward compatibility but not used in the new system
+    console.log('Notification:', message, type);
   };
 
-  // Fetch notifications from backend
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await fetch('http://localhost/liveonv2/backend_api/controllers/get_notifications.php', { credentials: 'include' });
-        const data = await res.json();
-        if (data.success) {
-          setNotifications(data.notifications);
-          setUnreadCount(data.notifications.filter(n => n.status === 'unread').length);
-        }
-      } catch (e) { /* ignore */ }
-    };
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Mark all as read
-  const markNotificationsRead = async () => {
+  // Fetch admin messages
+  const fetchAdminMessages = async () => {
     try {
-      await fetch('http://localhost/liveonv2/backend_api/controllers/mark_notifications_read.php', { method: 'POST', credentials: 'include' });
-      setUnreadCount(0);
-      // Optionally refetch notifications
-      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/get_notifications.php', { credentials: 'include' });
-      const data = await res.json();
-      if (data.success) setNotifications(data.notifications);
-    } catch (e) { /* ignore */ }
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/get_admin_messages.php', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setAdminMessages(data.messages);
+        setMailUnreadCount(data.unread_count);
+      } else {
+        console.error('Failed to fetch admin messages:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching admin messages:', error);
+    }
   };
 
-  // Mark a single notification as read
-  const markNotificationRead = async (notification_id) => {
+  // Mark message as read
+  const markMessageAsRead = async (messageId) => {
     try {
-      await fetch('http://localhost/liveonv2/backend_api/controllers/mark_notification_read.php', {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/mark_message_read.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ notification_id })
+        body: JSON.stringify({ message_id: messageId })
       });
-      // Update UI
-      setNotifications(prev => prev.map(n => n.notification_id === notification_id ? { ...n, status: 'read' } : n));
-      setUnreadCount(c => Math.max(0, c - 1));
-    } catch (e) { /* ignore */ }
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update the message status locally
+        setAdminMessages(prev => prev.map(msg => 
+          msg.id == messageId ? { ...msg, status: 'read' } : msg
+        ));
+        setMailUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+    }
+  };
+
+  // Fetch notifications from backend (keeping for backward compatibility)
+  useEffect(() => {
+    // Old notification system - now replaced by system activities
+    // Keeping this for any legacy code that might still reference it
+  }, []);
+
+  // Mark all as read (keeping for backward compatibility)
+  const markNotificationsRead = async () => {
+    // Old notification system - now replaced by system activities
+    console.log('Mark notifications as read - deprecated');
+  };
+
+  // Mark a single notification as read (keeping for backward compatibility)
+  const markNotificationRead = async (notification_id) => {
+    // Old notification system - now replaced by system activities
+    console.log('Mark notification as read - deprecated');
   };
 
   // Fetch password reset requests
@@ -199,8 +229,29 @@ const AdminDashboard = () => {
     setPasswordResetLoading(false);
   };
 
+  // Fetch system activities
+  const fetchSystemActivities = async () => {
+    try {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/get_system_activities.php', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setSystemActivities(data.activities);
+        setSystemActivitiesUnreadCount(data.unread_count);
+      } else {
+        console.error('Failed to fetch system activities:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching system activities:', error);
+    }
+  };
+
   useEffect(() => {
     fetchAdminData();
+    fetchAdminMessages(); // Fetch messages on mount
+    fetchSystemActivities(); // Fetch system activities on mount
   }, []);
 
   const fetchAdminData = async () => {
@@ -1019,53 +1070,73 @@ const AdminDashboard = () => {
         <div className="dashboard-section dashboard-header">
           <h1>Admin Dashboard</h1>
           <div className="dashboard-user-info">
-            {/* Notification Bell */}
-            <div className="notification-bell-wrapper" ref={notificationWrapperRef}>
-              <button className="notification-bell" onClick={() => { setShowNotifications(v => !v); if (!showNotifications) markNotificationsRead(); }}>
+            {/* System Activities Bell */}
+            <div className="notification-bell-wrapper" ref={systemActivitiesWrapperRef}>
+              <button className="notification-bell" onClick={() => { setShowSystemActivities(v => !v); }}>
                 <FaBell size={22} />
-                {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+                {systemActivitiesUnreadCount > 0 && <span className="notification-badge">{systemActivitiesUnreadCount}</span>}
                 {pendingPasswordResets > 0 && <span className="notification-badge" style={{ right: '-28px', background: '#f59e42' }}>{pendingPasswordResets}</span>}
               </button>
-              {showNotifications && (
-                <div className="notification-dropdown" ref={notificationWrapperRef} onClick={e => e.stopPropagation()}>
-                  <div className="notification-dropdown-header">Notifications</div>
-                  {notifications.filter((n, idx, arr) => n.type !== 'password_reset' || arr.findIndex(x => x.type === 'password_reset' && x.message === n.message) === idx).map((n) => (
-                    n.type === 'password_reset' ? (
+              {showSystemActivities && (
+                <div className="notification-dropdown" ref={systemActivitiesWrapperRef} onClick={e => e.stopPropagation()}>
+                  <div className="notification-dropdown-header">System Activities</div>
+                  {systemActivities.length > 0 ? (
+                    systemActivities.map((activity) => (
                       <div
-                        key={n.notification_id}
-                        className="notification-item info"
-                        style={{ background: '#fef9c3', color: '#b45309', cursor: 'pointer' }}
-                        onClick={async () => {
-                          // Find the matching password reset request
-                          const req = passwordResetRequests.find(r => n.message.includes(r.email) && n.status === 'unread');
-                          if (req) {
-                            handlePasswordResetClick(req);
-                          } else {
-                            setSelectedNotification(n);
-                          }
-                        }}
-                      >
-                        <div className="notification-message">{n.message}</div>
-                        <div className="notification-timestamp">Click to review</div>
-                      </div>
-                    ) : (
-                      <div
-                        key={n.notification_id}
+                        key={activity.id}
                         className="notification-item"
-                        onClick={() => setSelectedNotification(n)}
+                        onClick={() => setSelectedActivity(activity)}
                       >
-                        <div className="notification-message">{n.message}</div>
-                        <div className="notification-timestamp">{n.timestamp}</div>
+                        <div className="notification-message">{activity.message}</div>
+                        <div className="notification-timestamp">{activity.timestamp ? new Date(activity.timestamp).toLocaleString() : ''}</div>
                       </div>
-                    )
-                  ))}
-                  {notifications.length === 0 && (
-                    <div className="notification-empty">No notifications</div>
+                    ))
+                  ) : (
+                    <div className="notification-empty">No recent activities</div>
                   )}
                 </div>
               )}
             </div>
-            <img src={profileForm.photoPreview || userImg} alt="User" className="dashboard-user-avatar" style={{ cursor: 'pointer' }} onClick={openProfileModal} />
+            {/* Mail Messages */}
+            <div className="mail-messages-wrapper" ref={mailWrapperRef}>
+              <button className="mail-messages-bell" onClick={() => { setShowMailMessages(v => !v); }}>
+                <FaEnvelope size={22} />
+                {mailUnreadCount > 0 && <span className="notification-badge">{mailUnreadCount}</span>}
+              </button>
+              {showMailMessages && (
+                <div className="mail-messages-dropdown" ref={mailWrapperRef} onClick={e => e.stopPropagation()}>
+                  <div className="mail-messages-dropdown-header">Messages & Requests</div>
+                  {adminMessages.length > 0 ? (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                      {adminMessages.map(msg => (
+                        <li key={msg.id} style={{ marginBottom: 10, padding: '10px 15px', borderBottom: '1px solid #e5e7eb', cursor: 'pointer' }} onClick={() => { setSelectedMessage(msg); markMessageAsRead(msg.id); }}>
+                          <div style={{ fontWeight: 600, color: '#2563eb' }}>{msg.subject}</div>
+                          <div style={{ margin: '4px 0', color: '#1e293b' }}>{msg.message}</div>
+                          <div style={{ fontSize: '0.92em', color: '#64748b' }}>{msg.created_at ? new Date(msg.created_at).toLocaleString() : ''}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div style={{ padding: '1.5rem', color: '#64748b' }}>No messages.</div>
+                  )}
+                </div>
+              )}
+            </div>
+            <Avatar 
+              img={profileForm.photoPreview || null} 
+              alt="User" 
+              size="md"
+              rounded
+              placeholderInitials="AD"
+              className="custom-avatar"
+              style={{ 
+                cursor: 'pointer',
+                backgroundColor: '#6b7280',
+                color: '#ffffff',
+                border: '3px solid #6b7280'
+              }} 
+              onClick={openProfileModal}
+            />
             <span className="dashboard-user-name" style={{ cursor: 'pointer' }} onClick={openProfileModal}>Welcome, Admin</span>
           </div>
         </div>
@@ -1144,7 +1215,23 @@ const AdminDashboard = () => {
             </label>
             <label>
               Profile Photo:
-              <input type="file" name="photo" accept="image/*" onChange={handleProfileFormChange} />
+              <div className="custom-file-input">
+                <input 
+                  type="file" 
+                  name="photo" 
+                  accept="image/*" 
+                  onChange={handleProfileFormChange}
+                  id="profile-photo-input"
+                  style={{ display: 'none' }}
+                />
+                <label htmlFor="profile-photo-input" className="file-input-button">
+                  <span className="file-input-icon">📷</span>
+                  <span className="file-input-text">Choose Photo</span>
+                </label>
+                <span className="file-input-filename">
+                  {profileForm.photo ? profileForm.photo.name : 'No file chosen'}
+                </span>
+              </div>
             </label>
             {profileForm.photoPreview && (
               <img src={profileForm.photoPreview} alt="Preview" className="avatar-preview" />
@@ -1244,6 +1331,52 @@ const AdminDashboard = () => {
           </div>
         );
       })()}
+      {/* Mail Message Details Modal */}
+      {selectedMessage && (
+        <div className="modal-overlay" onClick={() => setSelectedMessage(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            <h3>Message Details</h3>
+            <div style={{ marginBottom: 10 }}><strong>Subject:</strong> {selectedMessage.subject}</div>
+            <div style={{ marginBottom: 10 }}><strong>Message:</strong> {selectedMessage.message}</div>
+            <div style={{ marginBottom: 10 }}><strong>From:</strong> {selectedMessage.sender_name} ({selectedMessage.sender_email})</div>
+            <div style={{ marginBottom: 10 }}><strong>Sent At:</strong> {selectedMessage.created_at ? new Date(selectedMessage.created_at).toLocaleString() : ''}</div>
+            <div style={{ marginBottom: 10 }}><strong>Status:</strong> {selectedMessage.status || 'Unread'}</div>
+            <div className="modal-actions" style={{ marginTop: 16 }}>
+              <button className="dashboard-btn" onClick={() => setSelectedMessage(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* System Activity Details Modal */}
+      {selectedActivity && (
+        <div className="modal-overlay" onClick={() => setSelectedActivity(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+            <h3>System Activity Details</h3>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Type:</strong> {selectedActivity.type.replace('_', ' ').toUpperCase()}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Message:</strong> {selectedActivity.message}
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <strong>Timestamp:</strong> {selectedActivity.timestamp ? new Date(selectedActivity.timestamp).toLocaleString() : 'N/A'}
+            </div>
+            <button 
+              onClick={() => setSelectedActivity(null)}
+              style={{ 
+                background: '#2563eb', 
+                color: 'white', 
+                border: 'none', 
+                padding: '8px 16px', 
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
