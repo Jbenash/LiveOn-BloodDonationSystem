@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './DonorDashboard.css';
 import logo from '../../assets/logo.svg';
 import CountdownCircle from './CountdownCircle';
+import { Avatar } from 'flowbite-react';
 
 const DonorDashboard = () => {
   const [user, setUser] = useState(null);
@@ -156,7 +157,20 @@ const DonorDashboard = () => {
             <h1 style={{ margin: 0 }}>Donor Dashboard</h1>
           </header>
             <div className="dashboard-user-info">
-            <img src={user.profilePic} alt="Profile" className="dashboard-user-avatar" onClick={() => setActiveSection('profile')} />
+                            <Avatar 
+                  img={user.profilePic || null} 
+                  alt="Profile" 
+                  size="md"
+                  rounded
+                  placeholderInitials={user.name ? user.name.substring(0, 2).toUpperCase() : "DN"}
+                  className="custom-avatar"
+                  style={{
+                    backgroundColor: '#6b7280',
+                    color: '#ffffff',
+                    border: '2px solid #6b7280'
+                  }}
+                  onClick={() => setActiveSection('profile')}
+                />
               <span className="dashboard-user-name">Welcome, {user.name}</span>
             </div>
           </div>

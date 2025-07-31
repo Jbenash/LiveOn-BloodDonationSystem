@@ -172,8 +172,7 @@ const MRODashboard = () => {
     setSubmitStatus("");
     // Prepare data for backend
     const donor_id = popupDonor.donor_id;
-    console.log('popupDonor:', popupDonor); // Debug: check what's in popupDonor
-    console.log('donor_id:', donor_id); // Debug: check donor_id value
+
     const mro_id = 'MRO001'; // Replace with actual logged-in MRO ID if available
     const payload = {
       donor_id: donor_id,
@@ -187,7 +186,7 @@ const MRODashboard = () => {
       age: formData.age,
       full_name: popupDonor.fullName || popupDonor.donor_fullname || ''
     };
-    console.log('payload:', payload); // Debug: check the payload being sent
+
     try {
       const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/save_medical_verification.php', {
         method: 'POST',
@@ -245,7 +244,7 @@ const MRODashboard = () => {
       bloodType: donor.blood_group || '', 
       volume: '' 
     });
-    console.log("donatePopupDonor:", donor);
+
   };
   const handleCloseDonatePopup = () => {
     setShowDonatePopup(false);

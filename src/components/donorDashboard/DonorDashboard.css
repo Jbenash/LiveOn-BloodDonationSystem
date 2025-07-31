@@ -89,13 +89,33 @@
   align-items: center;
   gap: 0.9rem;
 }
-.dashboard-user-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #3b82f6;
-  box-shadow: 0 4px 16px rgba(59,130,246,0.10);
+/* Flowbite Avatar styling for donor dashboard */
+.dashboard-user-info .flowbite-avatar,
+.dashboard-user-info .flowbite-avatar * {
+  border: 2px solid #6b7280 !important;
+  box-shadow: 0 4px 16px rgba(107,114,128,0.10) !important;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+}
+
+.dashboard-user-info .flowbite-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(107,114,128,0.15) !important;
+}
+
+/* Style the placeholder initials - more specific selectors */
+.dashboard-user-info .flowbite-avatar .flowbite-avatar-initials,
+.dashboard-user-info .flowbite-avatar span,
+.dashboard-user-info .flowbite-avatar div[data-testid="flowbite-avatar-initials"] {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 1.1rem !important;
+}
+
+/* Force override for any Flowbite default styles */
+.dashboard-user-info .flowbite-avatar * {
+  color: #ffffff !important;
 }
 .dashboard-user-name {
   font-weight: 600;
