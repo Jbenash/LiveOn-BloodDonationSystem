@@ -42,6 +42,17 @@ const HomePage = () => {
   const [feedbacksError, setFeedbacksError] = useState(null);
   const [donorFeedbackIdx, setDonorFeedbackIdx] = useState(0);
   const [hospitalFeedbackIdx, setHospitalFeedbackIdx] = useState(0);
+  
+  // Contact form state
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactMessageType, setContactMessageType] = useState('');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -168,6 +179,48 @@ const HomePage = () => {
   };
   const prevStory = () => {
     setStoryIdx((prev) => (successStories.length ? (prev - 1 + successStories.length) % successStories.length : 0));
+  };
+
+  // Contact form handlers
+  const handleContactFormChange = (e) => {
+    const { name, value } = e.target;
+    setContactForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    setContactSubmitting(true);
+    setContactMessage('');
+    setContactMessageType('');
+
+    try {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_contact_form.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contactForm)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setContactMessage(data.message);
+        setContactMessageType('success');
+        setContactForm({ name: '', email: '', subject: '', message: '' });
+      } else {
+        setContactMessage(data.error || 'Failed to send message');
+        setContactMessageType('error');
+      }
+    } catch (error) {
+      setContactMessage('Network error. Please try again.');
+      setContactMessageType('error');
+    } finally {
+      setContactSubmitting(false);
+    }
   };
 
   return (
@@ -477,6 +530,72 @@ const HomePage = () => {
       )}
 
       {/* Contact Section */}
+      <section id="contact" className="contact-section">
+        <div className="section-header">
+          <h2 className="section-title">Contact Us</h2>
+          <p className="section-subtitle">Get in touch with us for any questions or support</p>
+        </div>
+        <div className="contact-form-container">
+          <form className="contact-form" onSubmit={handleContactSubmit}>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="contact-name">Name</label>
+                <input
+                  type="text"
+                  id="contact-name"
+                  name="name"
+                  value={contactForm.name}
+                  onChange={handleContactFormChange}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="contact-email">Email</label>
+                <input
+                  type="email"
+                  id="contact-email"
+                  name="email"
+                  value={contactForm.email}
+                  onChange={handleContactFormChange}
+                  required
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="contact-subject">Subject</label>
+              <input
+                type="text"
+                id="contact-subject"
+                name="subject"
+                value={contactForm.subject}
+                onChange={handleContactFormChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="contact-message">Message</label>
+              <textarea
+                id="contact-message"
+                name="message"
+                value={contactForm.message}
+                onChange={handleContactFormChange}
+                rows="5"
+                required
+              ></textarea>
+            </div>
+            <button type="submit" className="contact-submit-btn" disabled={contactSubmitting}>
+              {contactSubmitting ? 'Sending...' : 'Send Message'}
+            </button>
+            {contactMessage && (
+              <div className={`contact-message ${contactMessageType}`}>
+                {contactMessage}
+              </div>
+            )}
+          </form>
+        </div>
+      </section>
+
+      {/* Feedback Section */}
       <section id="feedback" className="feedback-section">
         <div className="section-header">
           <h2 className="section-title">Feedback</h2>

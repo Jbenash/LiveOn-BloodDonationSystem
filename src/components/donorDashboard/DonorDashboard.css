@@ -1,5 +1,10 @@
 /* Remove animated backgrounds */
-.donor-dashboard-root, .dashboard-background, .dashboard-grid, .dashboard-particles { display: none !important; }
+.donor-dashboard-root,
+.dashboard-background,
+.dashboard-grid,
+.dashboard-particles {
+  display: none !important;
+}
 
 /* Main Dashboard Container */
 .donor-dashboard-container {
@@ -80,7 +85,8 @@
   display: block;
 }
 
-.sidebar nav ul li.active, .sidebar nav ul li:hover {
+.sidebar nav ul li.active,
+.sidebar nav ul li:hover {
   background: #3b82f6;
   color: #fff;
   font-weight: 600;
@@ -101,7 +107,7 @@
   cursor: pointer;
   letter-spacing: 0.5px;
   padding: 14px 0;
-  box-shadow: 0 2px 8px rgba(220,38,38,0.13);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.13);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -425,8 +431,13 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Responsive Design */
@@ -434,6 +445,7 @@
   .donor-dashboard-container {
     flex-direction: column;
   }
+
   .sidebar {
     width: 100%;
     min-width: 0;
@@ -445,16 +457,19 @@
     min-height: unset;
     height: auto;
   }
+
   .logo {
     margin: 0 24px 0 24px;
     font-size: 1.2rem;
   }
+
   .sidebar nav ul {
     display: flex;
     flex-direction: row;
     width: auto;
     margin-left: 24px;
   }
+
   .sidebar nav ul li {
     border-radius: 8px 8px 0 0;
     margin-bottom: 0;
@@ -462,11 +477,13 @@
     padding: 10px 18px;
     font-size: 0.98rem;
   }
+
   .dashboard-main {
     padding: 24px 12px;
     flex-direction: column !important;
     gap: 0 !important;
   }
+
   .dashboard-section {
     padding: 18px 10px 16px 10px;
   }
@@ -476,13 +493,17 @@
   .dashboard-header h1 {
     font-size: 1.2rem;
   }
+
   .dashboard-section h2 {
     font-size: 1rem;
   }
-  .dashboard-table th, .dashboard-table td {
+
+  .dashboard-table th,
+  .dashboard-table td {
     padding: 8px 6px;
     font-size: 0.92rem;
   }
+
   .dashboard-main {
     padding: 10px 2px;
   }
@@ -497,33 +518,41 @@
     min-width: 0;
     height: auto;
   }
+
   .logo {
     margin: 0 0 12px 16px;
     font-size: 1rem;
   }
+
   .sidebar nav ul {
     flex-direction: column;
     margin-left: 0;
   }
+
   .sidebar nav ul li {
     margin-right: 0;
     margin-bottom: 6px;
     padding: 8px 12px;
     font-size: 0.95rem;
   }
+
   .dashboard-main {
     padding: 2px;
     flex-direction: column !important;
     gap: 0 !important;
   }
+
   .dashboard-section {
     padding: 8px 2px 8px 2px;
     border-radius: 8px;
   }
-  .dashboard-table th, .dashboard-table td {
+
+  .dashboard-table th,
+  .dashboard-table td {
     padding: 6px 2px;
     font-size: 0.85rem;
   }
+
   .dashboard-header {
     flex-direction: column;
     align-items: flex-start;
@@ -535,20 +564,20 @@
   .dashboard-header {
     padding: 1.5rem;
   }
-  
+
   .dashboard-header h1 {
     font-size: 1.5rem;
   }
-  
+
   .dashboard-card {
     padding: 1.5rem;
   }
-  
+
   .profile-summary-details {
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .profile-avatar {
     width: 100px;
     height: 100px;
@@ -596,20 +625,25 @@
   width: 100%;
   gap: 2rem;
 }
+
 .dashboard-header-row .dashboard-title {
   margin-bottom: 0;
   font-size: 2rem;
 }
+
 .dashboard-header-row .dashboard-user-info {
   gap: 0.7rem;
 }
+
 .dashboard-header-row .dashboard-user-avatar {
   width: 38px;
   height: 38px;
 }
+
 .dashboard-header-row .dashboard-user-name {
   font-size: 1.05rem;
 }
+
 /* Remove extra margin from dashboard-title in header */
 .dashboard-header .dashboard-title {
   margin-bottom: 0;
@@ -872,25 +906,25 @@
     padding: 2rem 1.5rem;
     margin: 20px;
   }
-  
+
   .modal-content .form-grid {
     grid-template-columns: 1fr;
     gap: 24px;
   }
-  
+
   .modal-content .form-column {
     gap: 24px;
   }
-  
+
   .modal-content .action-buttons {
     flex-direction: column;
     gap: 16px;
   }
-  
+
   .modal-content h2 {
     font-size: 1.6rem;
   }
-  
+
   .modal-content .profile-picture-section img {
     width: 120px;
     height: 120px;
@@ -901,12 +935,12 @@
   .modal-content {
     padding: 1.5rem 1rem;
   }
-  
+
   .modal-content .form-field input {
     padding: 14px 16px;
     font-size: 1rem;
   }
-  
+
   .modal-content .close-btn {
     top: 16px;
     right: 16px;

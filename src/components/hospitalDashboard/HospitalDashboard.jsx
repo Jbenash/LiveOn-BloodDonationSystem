@@ -38,7 +38,7 @@ const HospitalDashboard = () => {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    
+
     fetch('http://localhost/liveonv2/backend_api/controllers/hospital_dashboard.php', {
       credentials: 'include'
     })
@@ -110,7 +110,7 @@ const HospitalDashboard = () => {
   if (loading) {
     return (
       <div className="hospital-dashboard-root">
-        <LoadingSpinner 
+        <LoadingSpinner
           size="60"
           stroke="4"
           speed="1"
@@ -124,7 +124,7 @@ const HospitalDashboard = () => {
 
   if (error) {
     return (
-      <ErrorDisplay 
+      <ErrorDisplay
         error={error}
         onRetry={() => {
           setError(null);
@@ -166,7 +166,7 @@ const HospitalDashboard = () => {
 
   if (!hospital) {
     return (
-      <ErrorDisplay 
+      <ErrorDisplay
         error="No hospital data available"
         title="Hospital data not found"
         buttonText="Retry"
@@ -287,47 +287,47 @@ const HospitalDashboard = () => {
               {/* Blood Inventory and Emergency Requests */}
               <div style={{ display: 'flex', gap: '28px', marginBottom: '36px' }}>
                 {/* Blood Inventory */}
-        <div className="dashboard-section" style={{ flex: 1, padding: '24px', borderRadius: '16px', boxShadow: '0 2px 8px rgba(30,41,59,0.04)' }}>
+                <div className="dashboard-section" style={{ flex: 1, padding: '24px', borderRadius: '16px', boxShadow: '0 2px 8px rgba(30,41,59,0.04)' }}>
                   <h2 style={{ color: '#2d3a8c', fontWeight: 700, marginBottom: 18 }}>Blood Inventory</h2>
-                      <div className="inventory-list">
-                        {bloodInventory.length > 0 ? (
-                          bloodInventory.map((item, idx) => {
-                            const width = Math.min(100, (item.units / 20) * 100);
-                            const levelClass = item.units < 4 ? 'low' : item.units < 10 ? 'medium' : 'high';
-                            return (
-                              <div className="inventory-item" key={idx}>
-                                <span className="blood-type">{item.type}</span>
-                                <div
+                  <div className="inventory-list">
+                    {bloodInventory.length > 0 ? (
+                      bloodInventory.map((item, idx) => {
+                        const width = Math.min(100, (item.units / 20) * 100);
+                        const levelClass = item.units < 4 ? 'low' : item.units < 10 ? 'medium' : 'high';
+                        return (
+                          <div className="inventory-item" key={idx}>
+                            <span className="blood-type">{item.type}</span>
+                            <div
                               className="inventory-bar-container clickable"
-                                  onClick={() => {
-                                    setSelectedBloodType(item.type);
-                                    setShowDonorPopup(true);
-                                  }}
-                                  style={{ cursor: 'pointer' }}
-                                >
+                              onClick={() => {
+                                setSelectedBloodType(item.type);
+                                setShowDonorPopup(true);
+                              }}
+                              style={{ cursor: 'pointer' }}
+                            >
                               <div className={`inventory-bar ${levelClass}`} style={{ width: `${width}%` }}>
-                                    <span className="inventory-bar-label">{item.units}</span>
+                                <span className="inventory-bar-label">{item.units}</span>
 
-                                  </div>
-                                </div>
-                                <span className="inventory-units">{item.units} units</span>
                               </div>
-                            );
-                          })
-                        ) : (
-                          <div>No blood inventory data</div>
-                        )}
-                      </div>
-                    </div>
+                            </div>
+                            <span className="inventory-units">{item.units} units</span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div>No blood inventory data</div>
+                    )}
+                  </div>
+                </div>
                 {/* Emergency Requests */}
                 <div className="dashboard-section" style={{ flex: 1, padding: '24px', borderRadius: '16px', boxShadow: '0 2px 8px rgba(30,41,59,0.04)' }}>
                   <h2 style={{ color: '#2d3a8c', fontWeight: 700, marginBottom: 18 }}>Emergency Requests</h2>
-                      <button className="dashboard-btn primary" onClick={() => setShowEmergencyPopup(true)}>
-                        SEND EMERGENCY REQUEST
-                      </button>
+                  <button className="dashboard-btn primary" onClick={() => setShowEmergencyPopup(true)}>
+                    SEND EMERGENCY REQUEST
+                  </button>
                   <div className="emergency-warning" style={{ marginTop: 16 }}>
-                        <span className="warning-icon">⚠️</span> Low blood volume detected for O- and AB+
-                      </div>
+                    <span className="warning-icon">⚠️</span> Low blood volume detected for O- and AB+
+                  </div>
                   {/* Emergency Request Log */}
                   {emergencyRequests.length > 0 ? (
                     <div style={{ marginTop: '1.5rem' }}>
@@ -416,71 +416,71 @@ const HospitalDashboard = () => {
           {activeSection === 'Inventory' && (
             <section className="dashboard-section">
               <h2>Blood Inventory</h2>
-                <div className="inventory-list">
-                  {bloodInventory.length > 0 ? (
-                    bloodInventory.map((item, idx) => {
-                      const width = Math.min(100, (item.units / 20) * 100);
-                      const levelClass = item.units < 4 ? 'low' : item.units < 10 ? 'medium' : 'high';
-                      return (
-                        <div className="inventory-item" key={idx}>
-                          <span className="blood-type">{item.type}</span>
-                          <div
-                            className="inventory-bar-container clickable"
-                            onClick={() => {
-                              setSelectedBloodType(item.type);
-                              setShowDonorPopup(true);
-                            }}
-                            style={{ cursor: 'pointer' }}
-                          >
+              <div className="inventory-list">
+                {bloodInventory.length > 0 ? (
+                  bloodInventory.map((item, idx) => {
+                    const width = Math.min(100, (item.units / 20) * 100);
+                    const levelClass = item.units < 4 ? 'low' : item.units < 10 ? 'medium' : 'high';
+                    return (
+                      <div className="inventory-item" key={idx}>
+                        <span className="blood-type">{item.type}</span>
+                        <div
+                          className="inventory-bar-container clickable"
+                          onClick={() => {
+                            setSelectedBloodType(item.type);
+                            setShowDonorPopup(true);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
                           <div className={`inventory-bar ${levelClass}`} style={{ width: `${width}%` }}>
-                              <span className="inventory-bar-label">{item.units}</span>
-                            </div>
+                            <span className="inventory-bar-label">{item.units}</span>
                           </div>
-                          <span className="inventory-units">{item.units} units</span>
                         </div>
-                      );
-                    })
-                  ) : (
-                    <div>No blood inventory data</div>
-                  )}
-                </div>
+                        <span className="inventory-units">{item.units} units</span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div>No blood inventory data</div>
+                )}
+              </div>
             </section>
           )}
           {activeSection === 'Requests' && (
             <section className="dashboard-section">
               <h2>Emergency Requests</h2>
-                  <button className="dashboard-btn primary" onClick={() => setShowEmergencyPopup(true)}>
-                    SEND EMERGENCY REQUEST
-                  </button>
+              <button className="dashboard-btn primary" onClick={() => setShowEmergencyPopup(true)}>
+                SEND EMERGENCY REQUEST
+              </button>
               <div className="emergency-warning" style={{ marginTop: 16 }}>
-                    <span className="warning-icon">⚠️</span> Low blood volume detected for O- and AB+
+                <span className="warning-icon">⚠️</span> Low blood volume detected for O- and AB+
               </div>
               {/* Emergency Request Log */}
               {emergencyRequests.length > 0 ? (
                 <div style={{ marginTop: '1.5rem' }}>
                   <h3 style={{ color: '#2563eb', marginBottom: 12 }}>Emergency Request Log</h3>
                   <table className="dashboard-table">
-                      <thead>
-                        <tr>
-                          <th>Blood Type</th>
-                          <th>Status</th>
-                          <th>Required Units</th>
-                          <th>Time Sent</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {emergencyRequests.map((req, idx) => (
-                          <tr key={idx}>
-                            <td>{req.bloodType}</td>
-                            <td>
+                    <thead>
+                      <tr>
+                        <th>Blood Type</th>
+                        <th>Status</th>
+                        <th>Required Units</th>
+                        <th>Time Sent</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {emergencyRequests.map((req, idx) => (
+                        <tr key={idx}>
+                          <td>{req.bloodType}</td>
+                          <td>
                             <span className={`status ${req.status === 'Critical' ? 'unavailable' : 'available'}`}>{req.status}</span>
-                            </td>
-                            <td>{req.requiredUnits}</td>
-                            <td>{new Date(req.createdAt).toLocaleString()}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                          </td>
+                          <td>{req.requiredUnits}</td>
+                          <td>{new Date(req.createdAt).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
                 <div style={{ marginTop: '1.5rem' }}>No emergency requests found.</div>
@@ -488,157 +488,157 @@ const HospitalDashboard = () => {
             </section>
           )}
           {/* Popups/Modals (reuse existing logic) */}
-      {showEmergencyPopup && (
+          {showEmergencyPopup && (
             <div className="popup-overlay">
               <div className="popup-form">
                 <button className="popup-close" onClick={() => setShowEmergencyPopup(false)}>&times;</button>
-            <h3>Send Emergency Request</h3>
-            <label>
-              Blood Type:
-              <select value={emergencyBloodType} onChange={e => setEmergencyBloodType(e.target.value)}>
-                <option value="">Select</option>
-                <option value="A+">A+</option>
-                <option value="A-">A-</option>
-                <option value="B+">B+</option>
-                <option value="B-">B-</option>
-                <option value="AB+">AB+</option>
-                <option value="AB-">AB-</option>
-                <option value="O+">O+</option>
-                <option value="O-">O-</option>
-              </select>
-            </label>
-            <label>
-              Required Units:
-              <input
-                type="number"
-                min="1"
-                value={emergencyUnits}
-                onChange={e => setEmergencyUnits(e.target.value)}
-              />
-            </label>
-            {emergencyError && <div className="error-message" style={{ color: 'red', marginTop: '0.5rem' }}>{emergencyError}</div>}
-            <div className="modal-actions">
-              <button
-                className="dashboard-btn primary"
-                onClick={() => {
-                  if (!emergencyBloodType && !emergencyUnits) {
-                    setEmergencyError('You have to enter both blood type and required units.');
-                    return;
-                  } else if (!emergencyBloodType) {
-                    setEmergencyError('You forgot to enter blood type.');
-                    return;
-                  } else if (!emergencyUnits) {
-                    setEmergencyError('You forgot to enter blood units.');
-                    return;
-                  }
-                  if (window.confirm(`Are you sure you want to send an emergency request for ${emergencyUnits} units of ${emergencyBloodType} blood? This will notify all available donors.`)) {
-                    setEmergencyError('');
+                <h3>Send Emergency Request</h3>
+                <label>
+                  Blood Type:
+                  <select value={emergencyBloodType} onChange={e => setEmergencyBloodType(e.target.value)}>
+                    <option value="">Select</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                  </select>
+                </label>
+                <label>
+                  Required Units:
+                  <input
+                    type="number"
+                    min="1"
+                    value={emergencyUnits}
+                    onChange={e => setEmergencyUnits(e.target.value)}
+                  />
+                </label>
+                {emergencyError && <div className="error-message" style={{ color: 'red', marginTop: '0.5rem' }}>{emergencyError}</div>}
+                <div className="modal-actions">
+                  <button
+                    className="dashboard-btn primary"
+                    onClick={() => {
+                      if (!emergencyBloodType && !emergencyUnits) {
+                        setEmergencyError('You have to enter both blood type and required units.');
+                        return;
+                      } else if (!emergencyBloodType) {
+                        setEmergencyError('You forgot to enter blood type.');
+                        return;
+                      } else if (!emergencyUnits) {
+                        setEmergencyError('You forgot to enter blood units.');
+                        return;
+                      }
+                      if (window.confirm(`Are you sure you want to send an emergency request for ${emergencyUnits} units of ${emergencyBloodType} blood? This will notify all available donors.`)) {
+                        setEmergencyError('');
                         fetch('http://localhost/liveonv2/backend_api/controllers/emergency_request.php', {
-                      method: 'POST',
-                      credentials: 'include',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        blood_type: emergencyBloodType,
-                        required_units: emergencyUnits
-                      })
-                    })
-                      .then(res => res.json())
-                      .then(data => {
-                        setShowEmergencyPopup(false);
-                        setEmergencyBloodType('');
-                        setEmergencyUnits('');
-                        setShowRequestSentPopup(true);
-                        // Send SMS to all donors with the selected blood group
-                        const relevantDonors = donors.filter(d => d.bloodType === emergencyBloodType);
-                        relevantDonors.forEach(donor => {
-                          if (donor.contact) {
-                            const smsMessage = `Dear ${donor.name}, urgent need for ${emergencyUnits} units of ${emergencyBloodType} blood at ${hospital.name}. Please contact us if you can donate.`;
-                            fetch('http://localhost/liveonv2/backend_api/controllers/send_sms.php', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                phone: donor.contact,
-                                message: smsMessage
-                              })
+                          method: 'POST',
+                          credentials: 'include',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            blood_type: emergencyBloodType,
+                            required_units: emergencyUnits
+                          })
+                        })
+                          .then(res => res.json())
+                          .then(data => {
+                            setShowEmergencyPopup(false);
+                            setEmergencyBloodType('');
+                            setEmergencyUnits('');
+                            setShowRequestSentPopup(true);
+                            // Send SMS to all donors with the selected blood group
+                            const relevantDonors = donors.filter(d => d.bloodType === emergencyBloodType);
+                            relevantDonors.forEach(donor => {
+                              if (donor.contact) {
+                                const smsMessage = `Dear ${donor.name}, urgent need for ${emergencyUnits} units of ${emergencyBloodType} blood at ${hospital.name}. Please contact us if you can donate.`;
+                                fetch('http://localhost/liveonv2/backend_api/controllers/send_sms.php', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    phone: donor.contact,
+                                    message: smsMessage
+                                  })
+                                });
+                              }
                             });
-                          }
-                        });
-                      })
-                      .catch(err => {
-                        setEmergencyError('Failed to send emergency request');
-                      });
-                  }
-                }}
-              >
-                Send to All Donors
-              </button>
-              <button className="dashboard-btn" onClick={() => { setShowEmergencyPopup(false); setEmergencyError(''); }}>
-                Cancel
-              </button>
+                          })
+                          .catch(err => {
+                            setEmergencyError('Failed to send emergency request');
+                          });
+                      }
+                    }}
+                  >
+                    Send to All Donors
+                  </button>
+                  <button className="dashboard-btn" onClick={() => { setShowEmergencyPopup(false); setEmergencyError(''); }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-      {showRequestSentPopup && (
+          )}
+          {showRequestSentPopup && (
             <div className="popup-overlay">
               <div className="popup-form">
-            <h3>Request Sent</h3>
-            <p>Your emergency request has been sent successfully!</p>
-            <div className="modal-actions">
-              <button className="dashboard-btn primary" onClick={() => setShowRequestSentPopup(false)}>
-                OK
-              </button>
+                <h3>Request Sent</h3>
+                <p>Your emergency request has been sent successfully!</p>
+                <div className="modal-actions">
+                  <button className="dashboard-btn primary" onClick={() => setShowRequestSentPopup(false)}>
+                    OK
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-      {showDonationRequestPopup && (
+          )}
+          {showDonationRequestPopup && (
             <div className="popup-overlay">
               <div className="popup-form">
                 <button className="popup-close" onClick={() => setShowDonationRequestPopup(false)}>&times;</button>
-            <h3>Request Donation</h3>
-            <label>
-              Hospital Name:
-              <input
-                type="text"
-                value={donationHospitalName}
-                onChange={e => setDonationHospitalName(e.target.value)}
-                disabled
-              />
-            </label>
-            <label>
-              Reason:
-              <textarea
-                value={donationReason}
-                onChange={e => setDonationReason(e.target.value)}
-                placeholder="Enter the reason for the donation request"
-              />
-            </label>
-            {donationError && <div className="error-message" style={{ color: 'red', marginTop: '0.5rem' }}>{donationError}</div>}
-            <div className="modal-actions">
-              <button
-                className="dashboard-btn primary"
-                onClick={() => {
-                  if (!donationReason) {
-                    setDonationError('You forgot to enter the reason.');
-                    return;
-                  }
-                  if (window.confirm('Are you sure you want to send this donation request? This will notify the selected donor.')) {
-                    setDonationError('');
+                <h3>Request Donation</h3>
+                <label>
+                  Hospital Name:
+                  <input
+                    type="text"
+                    value={donationHospitalName}
+                    onChange={e => setDonationHospitalName(e.target.value)}
+                    disabled
+                  />
+                </label>
+                <label>
+                  Reason:
+                  <textarea
+                    value={donationReason}
+                    onChange={e => setDonationReason(e.target.value)}
+                    placeholder="Enter the reason for the donation request"
+                  />
+                </label>
+                {donationError && <div className="error-message" style={{ color: 'red', marginTop: '0.5rem' }}>{donationError}</div>}
+                <div className="modal-actions">
+                  <button
+                    className="dashboard-btn primary"
+                    onClick={() => {
+                      if (!donationReason) {
+                        setDonationError('You forgot to enter the reason.');
+                        return;
+                      }
+                      if (window.confirm('Are you sure you want to send this donation request? This will notify the selected donor.')) {
+                        setDonationError('');
                         fetch('http://localhost/liveonv2/backend_api/controllers/send_donation_request.php', {
-                      method: 'POST',
-                      credentials: 'include',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        donorId: donationRequestDonorId,
-                        hospitalName: donationHospitalName,
-                        reason: donationReason
-                      })
-                    })
-                      .then(res => res.json())
-                      .then(data => {
-                        setShowDonationRequestPopup(false);
-                        setShowDonationRequestSentPopup(true);
+                          method: 'POST',
+                          credentials: 'include',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            donorId: donationRequestDonorId,
+                            hospitalName: donationHospitalName,
+                            reason: donationReason
+                          })
+                        })
+                          .then(res => res.json())
+                          .then(data => {
+                            setShowDonationRequestPopup(false);
+                            setShowDonationRequestSentPopup(true);
                             // Find the donor object by ID
                             const donor = donors.find(d => d.donor_id === donationRequestDonorId);
                             if (donor && donor.contact) {
@@ -659,69 +659,77 @@ const HospitalDashboard = () => {
                                   // Optionally handle SMS error
                                 });
                             }
-                      })
-                      .catch(err => {
-                        setDonationError('Failed to send donation request');
-                      });
-                  }
-                }}
-              >
-                Send Request
-              </button>
-              <button className="dashboard-btn" onClick={() => setShowDonationRequestPopup(false)}>
-                Cancel
-              </button>
+                          })
+                          .catch(err => {
+                            setDonationError('Failed to send donation request');
+                          });
+                      }
+                    }}
+                  >
+                    Send Request
+                  </button>
+                  <button className="dashboard-btn" onClick={() => setShowDonationRequestPopup(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-      {showDonationRequestSentPopup && (
+          )}
+          {showDonationRequestSentPopup && (
             <div className="popup-overlay">
               <div className="popup-form">
-            <h3>Request Sent</h3>
-            <p>Your donation request has been sent successfully!</p>
-            <div className="modal-actions">
-              <button className="dashboard-btn primary" onClick={() => setShowDonationRequestSentPopup(false)}>
-                OK
-              </button>
+                <h3>Request Sent</h3>
+                <p>Your donation request has been sent successfully!</p>
+                <div className="modal-actions">
+                  <button className="dashboard-btn primary" onClick={() => setShowDonationRequestSentPopup(false)}>
+                    OK
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-      {/* Donor Popup Modal */}
-      {showDonorPopup && (
+          )}
+          {/* Donor Popup Modal */}
+          {showDonorPopup && (
             <div className="popup-overlay" onClick={() => setShowDonorPopup(false)}>
               <div className="popup-form donor-popup" onClick={e => e.stopPropagation()}>
-            <h3>Donors with Blood Type: {selectedBloodType}</h3>
-            <div className="donor-cards-list">
-              {donorsByBloodType(selectedBloodType).length > 0 ? (
-                donorsByBloodType(selectedBloodType).map((donor, idx) => (
-                  <div className="profile-summary-card" key={idx}>
-                    <img
-                      src={donor.profilePic || userImg}
-                      alt={donor.name}
-                      className="profile-avatar"
-                      style={{ width: 70, height: 70, borderRadius: '50%', objectFit: 'cover', border: '2px solid #3b82f6', marginRight: 20 }}
-                    />
-                    <div className="profile-summary-text">
-                      <div><span className="label">Donor ID:</span> {donor.donor_id || '-'}</div>
-                      <div><span className="label">Name:</span> {donor.name}</div>
-                      <div><span className="label">Blood Type:</span> {donor.bloodType}</div>
-                      <div><span className="label">Age:</span> {donor.age || '-'}</div>
-                      <div><span className="label">Location:</span> {donor.location}</div>
-                      <div><span className="label">Email:</span> {donor.email || '-'}</div>
-                      <div><span className="label">Phone:</span> {donor.contact || '-'}</div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div style={{ padding: '1.5rem' }}>No donors found for this blood type.</div>
-              )}
+                <h3>Donors with Blood Type: {selectedBloodType}</h3>
+                <div className="donor-cards-list">
+                  {donorsByBloodType(selectedBloodType).length > 0 ? (
+                    donorsByBloodType(selectedBloodType).map((donor, idx) => (
+                      <div className="profile-summary-card" key={idx}>
+                        <Avatar
+                          img={donor.profilePic || null}
+                          alt={donor.name}
+                          size="lg"
+                          rounded
+                          placeholderInitials={donor.name ? donor.name.substring(0, 2).toUpperCase() : "DN"}
+                          className="custom-avatar"
+                          style={{
+                            marginRight: 20,
+                            backgroundColor: '#6b7280',
+                            color: '#ffffff',
+                            border: '2px solid #6b7280'
+                          }}
+                        />
+                        <div className="profile-summary-text">
+                          <div><span className="label">Donor ID:</span> {donor.donor_id || '-'}</div>
+                          <div><span className="label">Name:</span> {donor.name}</div>
+                          <div><span className="label">Blood Type:</span> {donor.bloodType}</div>
+                          <div><span className="label">Age:</span> {donor.age || '-'}</div>
+                          <div><span className="label">Location:</span> {donor.location}</div>
+                          <div><span className="label">Email:</span> {donor.email || '-'}</div>
+                          <div><span className="label">Phone:</span> {donor.contact || '-'}</div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '1.5rem' }}>No donors found for this blood type.</div>
+                  )}
+                </div>
+                <button className="dashboard-btn primary" onClick={() => setShowDonorPopup(false)} style={{ marginTop: '1.5rem' }}>Close</button>
+              </div>
             </div>
-            <button className="dashboard-btn primary" onClick={() => setShowDonorPopup(false)} style={{ marginTop: '1.5rem' }}>Close</button>
-          </div>
-        </div>
-      )}
+          )}
         </div>
       </main>
     </div>

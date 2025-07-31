@@ -27,7 +27,7 @@ const DonorDashboard = () => {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    
+
     fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
       credentials: 'include'
     })
@@ -195,7 +195,7 @@ const DonorDashboard = () => {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         toast.success('Removal request sent to administrators successfully');
         setShowRemoveDialog(false);
@@ -217,7 +217,7 @@ const DonorDashboard = () => {
   if (loading) {
     return (
       <div className="donor-dashboard-root">
-        <LoadingSpinner 
+        <LoadingSpinner
           size="60"
           stroke="4"
           speed="1"
@@ -231,7 +231,7 @@ const DonorDashboard = () => {
 
   if (error) {
     return (
-      <ErrorDisplay 
+      <ErrorDisplay
         error={error}
         onRetry={() => {
           setError(null);
@@ -270,7 +270,7 @@ const DonorDashboard = () => {
 
   if (!user) {
     return (
-      <ErrorDisplay 
+      <ErrorDisplay
         error="No donor data available"
         title="Donor data not found"
         buttonText="Retry"
@@ -313,7 +313,7 @@ const DonorDashboard = () => {
         <div className="modal-overlay" onClick={cancelRemove}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="close-btn" onClick={cancelRemove}>&times;</button>
-            
+
             <div>
               <h2>Remove from System</h2>
               <p>Please provide a reason for requesting removal from the donation system. This request will be sent to administrators for review.</p>
@@ -331,15 +331,15 @@ const DonorDashboard = () => {
             </div>
 
             <div className="action-buttons">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="cancel-btn"
                 onClick={cancelRemove}
               >
                 Cancel
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="save-btn"
                 onClick={confirmRemove}
                 disabled={!removeReason.trim()}
@@ -384,11 +384,24 @@ const DonorDashboard = () => {
           <header className="dashboard-header" style={{ margin: 0 }}>
             <h1 style={{ margin: 0 }}>Donor Dashboard</h1>
           </header>
-            <div className="dashboard-user-info">
-            <img src={user.profilePic} alt="Profile" className="dashboard-user-avatar" onClick={() => setActiveSection('profile')} />
-              <span className="dashboard-user-name">Welcome, {user.name}</span>
-            </div>
+          <div className="dashboard-user-info">
+            <Avatar
+              img={user.profilePic || null}
+              alt="Profile"
+              size="md"
+              rounded
+              placeholderInitials={user.name ? user.name.substring(0, 2).toUpperCase() : "DN"}
+              className="custom-avatar"
+              style={{
+                backgroundColor: '#6b7280',
+                color: '#ffffff',
+                border: '2px solid #6b7280'
+              }}
+              onClick={() => setActiveSection('profile')}
+            />
+            <span className="dashboard-user-name">Welcome, {user.name}</span>
           </div>
+        </div>
         <div className="dashboard-content">
           {activeSection === 'profile' && (
             <div className="dashboard-stats-grid">
@@ -435,34 +448,34 @@ const DonorDashboard = () => {
           )}
           {activeSection === 'dashboard' && (
             <>
-          <div className="dashboard-stats-grid">
-            {/* Profile Card */}
-            <div className="dashboard-card glassy profile-summary animate-fadein"
-                 style={{ cursor: 'pointer' }}
-                 onClick={() => {
-                   setEditForm({
-                     donorId: user.donorId,
-                     name: user.name,
-                     bloodType: user.bloodType,
-                     age: user.age,
-                     location: user.location,
-                     email: user.email
-                   });
-                   setShowEditProfile(true);
-                 }}
-            >
-              <div className="profile-summary-title gradient-text">Profile Summary</div>
-              <div className="profile-summary-details">
-                <img src={user.profilePic} alt="Profile" className="profile-avatar" />
-                <div className="profile-summary-text">
+              <div className="dashboard-stats-grid">
+                {/* Profile Card */}
+                <div className="dashboard-card glassy profile-summary animate-fadein"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setEditForm({
+                      donorId: user.donorId,
+                      name: user.name,
+                      bloodType: user.bloodType,
+                      age: user.age,
+                      location: user.location,
+                      email: user.email
+                    });
+                    setShowEditProfile(true);
+                  }}
+                >
+                  <div className="profile-summary-title gradient-text">Profile Summary</div>
+                  <div className="profile-summary-details">
+                    <img src={user.profilePic} alt="Profile" className="profile-avatar" />
+                    <div className="profile-summary-text">
                       <div><span className="label">Donor ID:</span> {user.donorId}</div>
-                  <div><span className="label">Name:</span> {user.name}</div>
-                  <div><span className="label">Blood Type:</span> {user.bloodType}</div>
-                  <div><span className="label">Age:</span> {user.age}</div>
-                  <div><span className="label">Location:</span> {user.location}</div>
-                  <div><span className="label">Email:</span> {user.email}</div>
-                </div>
-              </div>
+                      <div><span className="label">Name:</span> {user.name}</div>
+                      <div><span className="label">Blood Type:</span> {user.bloodType}</div>
+                      <div><span className="label">Age:</span> {user.age}</div>
+                      <div><span className="label">Location:</span> {user.location}</div>
+                      <div><span className="label">Email:</span> {user.email}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
               {/* Countdown Box - moved here */}
@@ -504,13 +517,13 @@ const DonorDashboard = () => {
                         letterSpacing: 2,
                         marginBottom: 4,
                       }}>
-                        <span style={{color: '#2d3a8c', fontWeight: 700}}>{days}</span>
+                        <span style={{ color: '#2d3a8c', fontWeight: 700 }}>{days}</span>
                         <span style={{ margin: '0 8px', color: '#2d3a8c' }}>:</span>
-                        <span style={{color: '#2d3a8c', fontWeight: 700}}>{hours.toString().padStart(2, '0')}</span>
+                        <span style={{ color: '#2d3a8c', fontWeight: 700 }}>{hours.toString().padStart(2, '0')}</span>
                         <span style={{ margin: '0 8px', color: '#2d3a8c' }}>:</span>
-                        <span style={{color: '#2d3a8c', fontWeight: 700}}>{minutes.toString().padStart(2, '0')}</span>
+                        <span style={{ color: '#2d3a8c', fontWeight: 700 }}>{minutes.toString().padStart(2, '0')}</span>
                         <span style={{ margin: '0 8px', color: '#2d3a8c' }}>:</span>
-                        <span style={{color: '#2d3a8c', fontWeight: 700}}>{seconds.toString().padStart(2, '0')}</span>
+                        <span style={{ color: '#2d3a8c', fontWeight: 700 }}>{seconds.toString().padStart(2, '0')}</span>
                       </div>
                       <div style={{
                         display: 'flex',
@@ -525,10 +538,10 @@ const DonorDashboard = () => {
                         opacity: 0.85,
                         letterSpacing: 1,
                       }}>
-                        <span style={{color: '#2d3a8c'}}>day</span>
-                        <span style={{color: '#2d3a8c'}}>hour</span>
-                        <span style={{color: '#2d3a8c'}}>min</span>
-                        <span style={{color: '#2d3a8c'}}>sec</span>
+                        <span style={{ color: '#2d3a8c' }}>day</span>
+                        <span style={{ color: '#2d3a8c' }}>hour</span>
+                        <span style={{ color: '#2d3a8c' }}>min</span>
+                        <span style={{ color: '#2d3a8c' }}>sec</span>
                       </div>
                     </div>
                   );
@@ -550,13 +563,13 @@ const DonorDashboard = () => {
                     Eligible now!
                   </div>
                 )}
-            </div>
+              </div>
               <div className="dashboard-stats-grid">
-            {/* Donation Stats */}
-            <div className="dashboard-card glassy donation-stats animate-fadein">
-              <div className="donation-stats-title gradient-text">Donation Statistics</div>
-              <div className="donation-stats-grid">
-                <div className="donation-stat">
+                {/* Donation Stats */}
+                <div className="dashboard-card glassy donation-stats animate-fadein">
+                  <div className="donation-stats-title gradient-text">Donation Statistics</div>
+                  <div className="donation-stats-grid">
+                    <div className="donation-stat">
                       {/* Total Donations SVG - Provided by user */}
                       <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="32" height="32">
@@ -593,41 +606,41 @@ const DonorDashboard = () => {
                           </g>
                         </svg>
                       </span>
-                  <div className="stat-value stat-blue">{user.totalDonations}</div>
-                  <div className="stat-label">Total Donations</div>
-                </div>
-                <div className="donation-stat">
+                      <div className="stat-value stat-blue">{user.totalDonations}</div>
+                      <div className="stat-label">Total Donations</div>
+                    </div>
+                    <div className="donation-stat">
                       {/* Last Donation SVG - Provided by user */}
                       <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>
                         <svg xmlns="http://www.w3.org/2000/svg" xmlSpace="preserve" width="32" height="32" viewBox="0 0 2048 2048" style={{ shapeRendering: 'geometricPrecision', textRendering: 'geometricPrecision', imageRendering: 'optimizeQuality', fillRule: 'evenodd', clipRule: 'evenodd' }}>
                           <defs>
-                            <clipPath id="id0"><path d="M1024-.001c565.541 0 1024 458.46 1024 1024s-458.461 1024-1024 1024c-565.541 0-1024-458.461-1024-1024 0-565.541 458.461-1024 1024-1024z"/></clipPath>
+                            <clipPath id="id0"><path d="M1024-.001c565.541 0 1024 458.46 1024 1024s-458.461 1024-1024 1024c-565.541 0-1024-458.461-1024-1024 0-565.541 458.461-1024 1024-1024z" /></clipPath>
                             <style>{`.fil17{fill:#223539}.fil7{fill:#263238}.fil1{fill:#f57c00}.fil6{fill:#0091ea;fill-rule:nonzero}`}</style>
                           </defs>
                           <g id="Layer_x0020_1">
                             <path d="M1024-.001c565.541 0 1024 458.46 1024 1024s-458.461 1024-1024 1024c-565.541 0-1024-458.461-1024-1024 0-565.541 458.461-1024 1024-1024z" style={{ fill: '#ff9800' }} />
                             <g style={{ clipPath: 'url(#id0)' }}>
                               <g id="_466417432">
-                                <path className="fil1" d="M871.208 468.827 2007.09 1604.71l1.06 1.17.95 1.27.83 1.36.69 1.44.56 1.51.4 1.58.25 1.64.09 1.68L876.035 480.482l-.085-1.685-.251-1.636-.405-1.58-.555-1.514-.693-1.441-.826-1.359-.949-1.269z"/>
-                                <path className="fil1" d="M681.671 468.827 1817.55 1604.71l1.07 1.17.95 1.27.82 1.36.69 1.44.56 1.51.4 1.58.25 1.64.09 1.68L686.499 480.482l-.085-1.685-.251-1.636-.405-1.58-.555-1.514-.693-1.441-.826-1.359-.95-1.269z"/>
-                                <path className="fil1" d="m1485.59 1485.59 1135.88 1135.88-5.77 5.63-5.9 5.5-6.03 5.35-6.16 5.21-6.29 5.06-6.41 4.91-6.52 4.76-6.65 4.61-6.76 4.45-6.87 4.29-6.98 4.13-7.09 3.96-7.2 3.79-7.29 3.63-7.39 3.45-7.49 3.28-7.59 3.1-7.67 2.74-7.77 2.55-7.94 2.36-8.01 2.16-8.09 1.98-8.16 1.78-8.24 1.57-8.31 1.38-8.38 1.17-8.44.97-8.5.75-8.56.55-8.62.32-8.67.11L1248 1584l8.67-.11 8.62-.33 8.56-.54 8.5-.76 8.44-.96 8.38-1.17 8.31-1.38 8.23-1.57 8.17-1.78 8.09-1.98 8.01-2.16 7.93-2.36 7.85-2.54 7.77-2.74 7.67-2.92 7.58-3.09 7.49-3.28 7.4-3.45 7.29-3.63 7.2-3.79 7.08-3.97 6.99-4.12 6.87-4.29 6.76-4.45 6.64-4.61 6.53-4.76 6.41-4.91 6.29-5.07 6.15-5.21 6.03-5.35 5.9-5.49z"/>
-                                <path className="fil1" d="M912.073 1255.11 2047.95 2391h-72.39L839.675 1255.11z"/>
-                                <path className="fil1" d="M839.675 1255.11 1975.56 2391h-333.45L506.233 1255.11z"/>
-                                <path className="fil1" d="m1248 1584 1135.88 1135.88-8.67-.11-8.62-.32-8.56-.55-8.5-.75-8.44-.97-8.38-1.17-8.31-1.38-8.23-1.57-8.17-1.78-8.09-1.98-8.01-2.16-7.93-2.36-7.85-2.55-7.77-2.74-7.67-2.91-7.58-3.1-7.49-3.28-7.4-3.45-7.29-3.63-7.2-3.79-7.08-3.96-6.99-4.13-6.87-4.29-6.76-4.45-6.64-4.61-6.53-4.76-6.41-4.91-6.29-5.06-6.16-5.21-6.03-5.35-1135.88-1135.89 6.03 5.35 6.16 5.21 6.29 5.07 6.41 4.91 6.52 4.76 6.65 4.61 6.76 4.45 6.87 4.29 6.98 4.12 7.09 3.97 7.2 3.79 7.29 3.63 7.39 3.45 7.49 3.28 7.59 3.09 7.67 2.92 7.77 2.74 7.84 2.54 7.94 2.36 8.01 2.17 8.09 1.98 8.16 1.77 8.24 1.58 8.31 1.38 8.38 1.17 8.44.96 8.5.76 8.56.54 8.62.33z"/>
-                                <path className="fil1" d="M506.233 1255.11 1642.11 2391l-2.16-.06-2.14-.16-2.11-.27-2.08-.38-2.04-.47-2-.57-1.96-.67-1.92-.75-1.87-.85-1.82-.94-1.77-1.02-1.71-1.09-1.66-1.18-1.6-1.26-1.53-1.33L477.859 1244.12l1.533 1.33 1.597 1.25 1.656 1.18 1.714 1.1 1.769 1.02 1.82.94 1.871.84 1.917.76 1.96.67 2.002.57 2.041.47 2.077.37 2.109.28 2.14.16z"/>
-                                <path className="fil1" d="M686.499 480.482 1822.38 1616.36v65.93L686.499 546.403z"/>
-                                <path className="fil1" d="M876.035 480.482 2011.92 1616.36v65.93L876.035 546.403z"/>
-                                <path className="fil1" d="M1255.11 747.806 2390.99 1883.69v164.27L1255.11 912.073z"/>
-                                <path className="fil1" d="m1584 1248 1135.88 1135.88-.11 8.67-.33 8.62-.54 8.56-.75 8.51-.97 8.44-1.17 8.37-1.38 8.31-1.58 8.24-1.77 8.16-1.98 8.09-2.17 8.02-2.36 7.93-2.54 7.85-2.74 7.76-2.92 7.67-3.09 7.59-3.28 7.49-3.45 7.39-3.63 7.3-3.79 7.19-3.97 7.09-4.12 6.98-4.29 6.87-4.45 6.76-4.61 6.65-4.76 6.53-4.91 6.4-5.07 6.29-5.21 6.16-5.35 6.03-5.49 5.9-5.63 5.77-1135.88-1135.88 5.63-5.77 5.49-5.9 5.35-6.03 5.21-6.16 5.06-6.29 4.92-6.41 4.76-6.52 4.6-6.65 4.45-6.76 4.29-6.87 4.13-6.98 3.96-7.09 3.8-7.2 3.63-7.29 3.45-7.39 3.27-7.5 3.1-7.58 2.92-7.67 2.73-7.77 2.55-7.85 2.36-7.93 2.17-8.01 1.97-8.09 1.78-8.17 1.58-8.23 1.38-8.31 1.17-8.38.96-8.44.76-8.5.54-8.56.33-8.62z"/>
-                                <path className="fil1" d="M1061.81 469.998 2197.69 1605.88l.95 1.27.82 1.36.7 1.44.55 1.51.41 1.58.25 1.64.08 1.68L1065.57 480.482l-.08-1.685-.25-1.636-.41-1.58-.55-1.514-.7-1.441-.82-1.359z"/>
-                                <path className="fil1" d="M1065.57 480.482 2201.45 1616.36v65.93L1065.57 546.403z"/>
-                                <path className="fil1" d="M1255.11 546.404 2390.99 1682.29v16.48L1255.11 562.885z"/>
-                                <path className="fil1" d="M1255.11 562.885 2390.99 1698.77v161.19L1255.11 724.077z"/>
-                                <path className="fil1" d="M1255.11 724.077 2390.99 1859.96v3.62L1255.11 727.701z"/>
-                                <path className="fil1" d="M1255.11 727.701 2390.99 1863.58v17.95L1255.11 745.649z"/>
-                                <path className="fil1" d="M1255.11 745.649 2390.99 1881.53v2.16L1255.11 747.806z"/>
-                                <path className="fil1" d="m1496.71 1022.08 1135.88 1135.89 5.35 6.03 5.21 6.16 5.07 6.28 4.91 6.41 4.76 6.53 4.61 6.64 4.45 6.76 4.29 6.88 4.12 6.98 3.97 7.09 3.79 7.19 3.63 7.29 3.45 7.4 3.28 7.49 3.09 7.58 2.92 7.68 2.74 7.76 2.54 7.85 2.36 7.93 2.17 8.01 1.98 8.09 1.77 8.17 1.58 8.24 1.38 8.3 1.17 8.38.97 8.44.75 8.5.54 8.56.33 8.62.11 8.67L1584 1248l-.11-8.67-.33-8.62-.54-8.56-.76-8.5-.96-8.44-1.17-8.38-1.38-8.31-1.58-8.24-1.78-8.16-1.97-8.09-2.17-8.01-2.36-7.93-2.55-7.85-2.73-7.77-2.92-7.67-3.1-7.58-3.27-7.5-3.45-7.39-3.63-7.29-3.8-7.2-3.96-7.09-4.13-6.98-4.29-6.87-4.45-6.76-4.6-6.64-4.76-6.53-4.92-6.41-5.06-6.29-5.21-6.16z"/>
-                                <path className="fil1" d="M1255.11 912.073c89.956 1.87 171.226 39.093 230.472 98.341 60.804 60.803 98.413 144.804 98.413 237.586 0 92.782-37.609 176.783-98.413 237.587-60.804 60.804-144.804 98.413-237.586 98.413-92.783 0-176.783-37.609-237.587-98.413-59.247-59.246-96.47-140.517-98.34-230.473H506.23c-11.63 0-22.194-4.747-29.84-12.393-7.646-7.648-12.394-18.21-12.394-29.842V546.405h189.536v-65.922c0-9.103 7.38-16.482 16.482-16.482s16.482 7.38 16.482 16.482v65.921h156.573v-65.92c0-9.104 7.38-16.483 16.482-16.483s16.481 7.38 16.481 16.482v65.921h156.573v-65.92c0-9.104 7.38-16.483 16.483-16.483 9.101 0 16.482 7.38 16.482 16.482v65.921h173.059l16.482.001v365.669z"/>
+                                <path className="fil1" d="M871.208 468.827 2007.09 1604.71l1.06 1.17.95 1.27.83 1.36.69 1.44.56 1.51.4 1.58.25 1.64.09 1.68L876.035 480.482l-.085-1.685-.251-1.636-.405-1.58-.555-1.514-.693-1.441-.826-1.359-.949-1.269z" />
+                                <path className="fil1" d="M681.671 468.827 1817.55 1604.71l1.07 1.17.95 1.27.82 1.36.69 1.44.56 1.51.4 1.58.25 1.64.09 1.68L686.499 480.482l-.085-1.685-.251-1.636-.405-1.58-.555-1.514-.693-1.441-.826-1.359-.95-1.269z" />
+                                <path className="fil1" d="m1485.59 1485.59 1135.88 1135.88-5.77 5.63-5.9 5.5-6.03 5.35-6.16 5.21-6.29 5.06-6.41 4.91-6.52 4.76-6.65 4.61-6.76 4.45-6.87 4.29-6.98 4.13-7.09 3.96-7.2 3.79-7.29 3.63-7.39 3.45-7.49 3.28-7.59 3.1-7.67 2.74-7.77 2.55-7.94 2.36-8.01 2.16-8.09 1.98-8.16 1.78-8.24 1.57-8.31 1.38-8.38 1.17-8.44.97-8.5.75-8.56.55-8.62.32-8.67.11L1248 1584l8.67-.11 8.62-.33 8.56-.54 8.5-.76 8.44-.96 8.38-1.17 8.31-1.38 8.23-1.57 8.17-1.78 8.09-1.98 8.01-2.16 7.93-2.36 7.85-2.54 7.77-2.74 7.67-2.92 7.58-3.09 7.49-3.28 7.4-3.45 7.29-3.63 7.2-3.79 7.08-3.97 6.99-4.12 6.87-4.29 6.76-4.45 6.64-4.61 6.53-4.76 6.41-4.91 6.29-5.07 6.15-5.21 6.03-5.35 5.9-5.49z" />
+                                <path className="fil1" d="M912.073 1255.11 2047.95 2391h-72.39L839.675 1255.11z" />
+                                <path className="fil1" d="M839.675 1255.11 1975.56 2391h-333.45L506.233 1255.11z" />
+                                <path className="fil1" d="m1248 1584 1135.88 1135.88-8.67-.11-8.62-.32-8.56-.55-8.5-.75-8.44-.97-8.38-1.17-8.31-1.38-8.23-1.57-8.17-1.78-8.09-1.98-8.01-2.16-7.93-2.36-7.85-2.55-7.77-2.74-7.67-2.91-7.58-3.1-7.49-3.28-7.4-3.45-7.29-3.63-7.2-3.79-7.08-3.96-6.99-4.13-6.87-4.29-6.76-4.45-6.64-4.61-6.53-4.76-6.41-4.91-6.29-5.06-6.16-5.21-6.03-5.35-1135.88-1135.89 6.03 5.35 6.16 5.21 6.29 5.07 6.41 4.91 6.52 4.76 6.65 4.61 6.76 4.45 6.87 4.29 6.98 4.12 7.09 3.97 7.2 3.79 7.29 3.63 7.39 3.45 7.49 3.28 7.59 3.09 7.67 2.92 7.77 2.74 7.84 2.54 7.94 2.36 8.01 2.17 8.09 1.98 8.16 1.77 8.24 1.58 8.31 1.38 8.38 1.17 8.44.96 8.5.76 8.56.54 8.62.33z" />
+                                <path className="fil1" d="M506.233 1255.11 1642.11 2391l-2.16-.06-2.14-.16-2.11-.27-2.08-.38-2.04-.47-2-.57-1.96-.67-1.92-.75-1.87-.85-1.82-.94-1.77-1.02-1.71-1.09-1.66-1.18-1.6-1.26-1.53-1.33L477.859 1244.12l1.533 1.33 1.597 1.25 1.656 1.18 1.714 1.1 1.769 1.02 1.82.94 1.871.84 1.917.76 1.96.67 2.002.57 2.041.47 2.077.37 2.109.28 2.14.16z" />
+                                <path className="fil1" d="M686.499 480.482 1822.38 1616.36v65.93L686.499 546.403z" />
+                                <path className="fil1" d="M876.035 480.482 2011.92 1616.36v65.93L876.035 546.403z" />
+                                <path className="fil1" d="M1255.11 747.806 2390.99 1883.69v164.27L1255.11 912.073z" />
+                                <path className="fil1" d="m1584 1248 1135.88 1135.88-.11 8.67-.33 8.62-.54 8.56-.75 8.51-.97 8.44-1.17 8.37-1.38 8.31-1.58 8.24-1.77 8.16-1.98 8.09-2.17 8.02-2.36 7.93-2.54 7.85-2.74 7.76-2.92 7.67-3.09 7.59-3.28 7.49-3.45 7.39-3.63 7.3-3.79 7.19-3.97 7.09-4.12 6.98-4.29 6.87-4.45 6.76-4.61 6.65-4.76 6.53-4.91 6.4-5.07 6.29-5.21 6.16-5.35 6.03-5.49 5.9-5.63 5.77-1135.88-1135.88 5.63-5.77 5.49-5.9 5.35-6.03 5.21-6.16 5.06-6.29 4.92-6.41 4.76-6.52 4.6-6.65 4.45-6.76 4.29-6.87 4.13-6.98 3.96-7.09 3.8-7.2 3.63-7.29 3.45-7.39 3.27-7.5 3.1-7.58 2.92-7.67 2.73-7.77 2.55-7.85 2.36-7.93 2.17-8.01 1.97-8.09 1.78-8.17 1.58-8.23 1.38-8.31 1.17-8.38.96-8.44.76-8.5.54-8.56.33-8.62z" />
+                                <path className="fil1" d="M1061.81 469.998 2197.69 1605.88l.95 1.27.82 1.36.7 1.44.55 1.51.41 1.58.25 1.64.08 1.68L1065.57 480.482l-.08-1.685-.25-1.636-.41-1.58-.55-1.514-.7-1.441-.82-1.359z" />
+                                <path className="fil1" d="M1065.57 480.482 2201.45 1616.36v65.93L1065.57 546.403z" />
+                                <path className="fil1" d="M1255.11 546.404 2390.99 1682.29v16.48L1255.11 562.885z" />
+                                <path className="fil1" d="M1255.11 562.885 2390.99 1698.77v161.19L1255.11 724.077z" />
+                                <path className="fil1" d="M1255.11 724.077 2390.99 1859.96v3.62L1255.11 727.701z" />
+                                <path className="fil1" d="M1255.11 727.701 2390.99 1863.58v17.95L1255.11 745.649z" />
+                                <path className="fil1" d="M1255.11 745.649 2390.99 1881.53v2.16L1255.11 747.806z" />
+                                <path className="fil1" d="m1496.71 1022.08 1135.88 1135.89 5.35 6.03 5.21 6.16 5.07 6.28 4.91 6.41 4.76 6.53 4.61 6.64 4.45 6.76 4.29 6.88 4.12 6.98 3.97 7.09 3.79 7.19 3.63 7.29 3.45 7.4 3.28 7.49 3.09 7.58 2.92 7.68 2.74 7.76 2.54 7.85 2.36 7.93 2.17 8.01 1.98 8.09 1.77 8.17 1.58 8.24 1.38 8.3 1.17 8.38.97 8.44.75 8.5.54 8.56.33 8.62.11 8.67L1584 1248l-.11-8.67-.33-8.62-.54-8.56-.76-8.5-.96-8.44-1.17-8.38-1.38-8.31-1.58-8.24-1.78-8.16-1.97-8.09-2.17-8.01-2.36-7.93-2.55-7.85-2.73-7.77-2.92-7.67-3.1-7.58-3.27-7.5-3.45-7.39-3.63-7.29-3.8-7.2-3.96-7.09-4.13-6.98-4.29-6.87-4.45-6.76-4.6-6.64-4.76-6.53-4.92-6.41-5.06-6.29-5.21-6.16z" />
+                                <path className="fil1" d="M1255.11 912.073c89.956 1.87 171.226 39.093 230.472 98.341 60.804 60.803 98.413 144.804 98.413 237.586 0 92.782-37.609 176.783-98.413 237.587-60.804 60.804-144.804 98.413-237.586 98.413-92.783 0-176.783-37.609-237.587-98.413-59.247-59.246-96.47-140.517-98.34-230.473H506.23c-11.63 0-22.194-4.747-29.84-12.393-7.646-7.648-12.394-18.21-12.394-29.842V546.405h189.536v-65.922c0-9.103 7.38-16.482 16.482-16.482s16.482 7.38 16.482 16.482v65.921h156.573v-65.92c0-9.104 7.38-16.483 16.482-16.483s16.481 7.38 16.481 16.482v65.921h156.573v-65.92c0-9.104 7.38-16.483 16.483-16.483 9.101 0 16.482 7.38 16.482 16.482v65.921h173.059l16.482.001v365.669z" />
                               </g>
                             </g>
                             <path d="M1024-.001c565.541 0 1024 458.46 1024 1024s-458.461 1024-1024 1024c-565.541 0-1024-458.461-1024-1024 0-565.541 458.461-1024 1024-1024z" style={{ fill: 'none' }} />
@@ -662,9 +675,9 @@ const DonorDashboard = () => {
                             : user.lastDonation.slice(0, 10))
                           : 'N/A'
                       }</div>
-                  <div className="stat-label">Last Donation</div>
-                </div>
-                <div className="donation-stat">
+                      <div className="stat-label">Last Donation</div>
+                    </div>
+                    <div className="donation-stat">
                       {/* Next Eligible SVG - Provided by user */}
                       <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>
                         <svg xmlns="http://www.w3.org/2000/svg" xmlSpace="preserve" width="32" height="32" viewBox="0 0 2048 2048" style={{ shapeRendering: 'geometricPrecision', textRendering: 'geometricPrecision', imageRendering: 'optimizeQuality', fillRule: 'evenodd', clipRule: 'evenodd' }}>
@@ -705,10 +718,10 @@ const DonorDashboard = () => {
                           </g>
                         </svg>
                       </span>
-                  <div className="stat-value stat-blue">{user.nextEligible}</div>
-                  <div className="stat-label">Next Eligible</div>
-                </div>
-                <div className="donation-stat">
+                      <div className="stat-value stat-blue">{user.nextEligible}</div>
+                      <div className="stat-label">Next Eligible</div>
+                    </div>
+                    <div className="donation-stat">
                       {/* Lives Saved SVG - Provided by user */}
                       <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>
                         <svg version="1.1" id="Icon_Set" xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 512 512" width="32" height="32" style={{ enableBackground: 'new 0 0 512 512' }} xmlSpace="preserve">
@@ -730,26 +743,26 @@ const DonorDashboard = () => {
                           </g>
                         </svg>
                       </span>
-                  <div className="stat-value stat-green">{user.livesSaved}</div>
-                  <div className="stat-label">Lives Saved</div>
+                      <div className="stat-value stat-green">{user.livesSaved}</div>
+                      <div className="stat-label">Lives Saved</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reward Section */}
+                <div className="dashboard-card glassy reward-stats animate-fadein">
+                  <div className="reward-title gradient-text">Reward Points & Ranking</div>
+                  <div className="reward-points stat-green">{user.points} Points</div>
+                  <div className="reward-rank">Rank: {user.rank}</div>
                 </div>
               </div>
-            </div>
 
-            {/* Reward Section */}
-            <div className="dashboard-card glassy reward-stats animate-fadein">
-              <div className="reward-title gradient-text">Reward Points & Ranking</div>
-              <div className="reward-points stat-green">{user.points} Points</div>
-              <div className="reward-rank">Rank: {user.rank}</div>
-            </div>
-          </div>
-
-          {/* Remove from System Option */}
-          <div className="dashboard-cta-card glassy animate-fadein">
-            <h3 className="cta-title gradient-text">System Management</h3>
-            <p className="cta-desc">If you no longer wish to be part of the continuous donation program, you can request removal from the system.</p>
-            <button className="dashboard-btn danger" onClick={handleRemoveFromSystem}>Remove from System</button>
-          </div>
+              {/* Remove from System Option */}
+              <div className="dashboard-cta-card glassy animate-fadein">
+                <h3 className="cta-title gradient-text">System Management</h3>
+                <p className="cta-desc">If you no longer wish to be part of the continuous donation program, you can request removal from the system.</p>
+                <button className="dashboard-btn danger" onClick={handleRemoveFromSystem}>Remove from System</button>
+              </div>
             </>
           )}
           {activeSection === 'donations' && (
@@ -831,7 +844,7 @@ const DonorDashboard = () => {
                   />
                   <button type="submit" className="dashboard-btn primary" style={{ fontSize: '1.08rem', padding: '12px 0' }}>Submit Feedback</button>
                 </form>
-          </div>
+              </div>
             </div>
           )}
           {/* Add similar blocks for Donations, Rewards, Feedback, etc. if needed */}
@@ -844,7 +857,7 @@ const DonorDashboard = () => {
         <div className="modal-overlay" onClick={() => setShowEditProfile(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="close-btn" onClick={() => setShowEditProfile(false)}>&times;</button>
-            
+
             {/* Header */}
             <div>
               <h2>Edit Profile</h2>
@@ -885,20 +898,20 @@ const DonorDashboard = () => {
                 {/* Donor ID */}
                 <div className="form-field">
                   <label>Donor ID</label>
-                  <input 
-                    type="text" 
-                    value={editForm.donorId} 
-                    readOnly 
+                  <input
+                    type="text"
+                    value={editForm.donorId}
+                    readOnly
                   />
                 </div>
 
                 {/* Name */}
                 <div className="form-field">
                   <label>Full Name</label>
-                  <input 
-                    type="text" 
-                    value={editForm.name} 
-                    onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} 
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="Enter your full name"
                   />
                 </div>
@@ -906,10 +919,10 @@ const DonorDashboard = () => {
                 {/* Age */}
                 <div className="form-field">
                   <label>Age</label>
-                  <input 
-                    type="number" 
-                    value={editForm.age} 
-                    onChange={e => setEditForm(f => ({ ...f, age: e.target.value }))} 
+                  <input
+                    type="number"
+                    value={editForm.age}
+                    onChange={e => setEditForm(f => ({ ...f, age: e.target.value }))}
                     placeholder="Enter your age"
                     min="18"
                     max="65"
@@ -919,8 +932,8 @@ const DonorDashboard = () => {
                 {/* Blood Type */}
                 <div className="form-field">
                   <label>Blood Type</label>
-                  <select 
-                    value={editForm.bloodType} 
+                  <select
+                    value={editForm.bloodType}
                     onChange={e => setEditForm(f => ({ ...f, bloodType: e.target.value }))}
                     style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '14px', backgroundColor: '#ffffff' }}
                     required
@@ -940,10 +953,10 @@ const DonorDashboard = () => {
                 {/* Location */}
                 <div className="form-field">
                   <label>Location</label>
-                  <input 
-                    type="text" 
-                    value={editForm.location} 
-                    onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} 
+                  <input
+                    type="text"
+                    value={editForm.location}
+                    onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))}
                     placeholder="Enter your location"
                   />
                 </div>
@@ -951,25 +964,25 @@ const DonorDashboard = () => {
                 {/* Email */}
                 <div className="form-field">
                   <label>Email Address</label>
-                  <input 
-                    type="email" 
-                    value={editForm.email} 
-                    readOnly 
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    readOnly
                   />
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="action-buttons">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="cancel-btn"
                   onClick={() => setShowEditProfile(false)}
                 >
                   Cancel
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="save-btn"
                   onClick={() => setShowSaveProfileDialog(true)}
                 >

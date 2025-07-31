@@ -238,13 +238,26 @@
   gap: 0.9rem;
 }
 
-.dashboard-user-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #3b82f6;
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.10);
+/* Flowbite Avatar styling for hospital dashboard */
+.profile-summary-card .flowbite-avatar,
+.profile-summary-card .flowbite-avatar * {
+  border: 2px solid #6b7280 !important;
+  box-shadow: 0 4px 12px rgba(107,114,128,0.15) !important;
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+}
+
+/* Style the placeholder initials - more specific selectors */
+.profile-summary-card .flowbite-avatar .flowbite-avatar-initials,
+.profile-summary-card .flowbite-avatar span,
+.profile-summary-card .flowbite-avatar div[data-testid="flowbite-avatar-initials"] {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 1.3rem !important;
+}
+
+/* Force override for any Flowbite default styles */
+.profile-summary-card .flowbite-avatar * {
+  color: #ffffff !important;
 }
 
 .dashboard-user-name {

@@ -1,3 +1,89 @@
 html {
   font-size: 16px !important;
+}
+
+/* Global Flowbite Avatar Overrides */
+.flowbite-avatar {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  border: 2px solid #6b7280 !important;
+}
+
+.flowbite-avatar *,
+.flowbite-avatar span,
+.flowbite-avatar div {
+  color: #ffffff !important;
+  background-color: transparent !important;
+}
+
+.flowbite-avatar .flowbite-avatar-initials,
+.flowbite-avatar [data-testid="flowbite-avatar-initials"] {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  background-color: transparent !important;
+}
+
+/* Custom Avatar Class */
+.custom-avatar {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  border: 2px solid #6b7280 !important;
+}
+
+.custom-avatar *,
+.custom-avatar span,
+.custom-avatar div {
+  color: #ffffff !important;
+  background-color: transparent !important;
+}
+
+.custom-avatar .flowbite-avatar-initials,
+.custom-avatar [data-testid="flowbite-avatar-initials"] {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  background-color: transparent !important;
+}
+
+/* Dashboard specific overrides */
+.dashboard-user-info .flowbite-avatar {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  border: 3px solid #6b7280 !important;
+}
+
+.profile-summary-card .flowbite-avatar {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  border: 2px solid #6b7280 !important;
+}
+
+/* Force override for any Flowbite default styles */
+.flowbite-avatar * {
+  color: #ffffff !important;
+  background-color: transparent !important;
+}
+
+/* Additional override for any remaining text elements */
+.flowbite-avatar span,
+.flowbite-avatar div,
+.flowbite-avatar p,
+.flowbite-avatar * {
+  color: #ffffff !important;
+  background-color: transparent !important;
+}
+
+/* Ultra aggressive override for all possible text elements */
+.flowbite-avatar *,
+.flowbite-avatar span,
+.flowbite-avatar div,
+.flowbite-avatar p,
+.flowbite-avatar h1,
+.flowbite-avatar h2,
+.flowbite-avatar h3,
+.flowbite-avatar h4,
+.flowbite-avatar h5,
+.flowbite-avatar h6,
+.flowbite-avatar label,
+.flowbite-avatar input,
+.flowbite-avatar textarea,
+.flowbite-avatar select,
+.flowbite-avatar button {
+  color: #ffffff !important;
+  background-color: transparent !important;
 } 
