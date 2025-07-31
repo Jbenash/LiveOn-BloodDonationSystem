@@ -1,6 +1,11 @@
 <?php
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+// Allow both development ports
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if ($origin === 'http://localhost:5173' || $origin === 'http://localhost:5174') {
+    header('Access-Control-Allow-Origin: ' . $origin);
+}
+header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
@@ -27,28 +32,29 @@ try {
     // Fetch system activities from various tables
     $activities = [];
 
-    // 1. Recent user registrations
+    // 1. Recent user registrations (using registration_date from donors table as proxy)
     $userQuery = "SELECT 
-                    user_id,
-                    name,
-                    email,
-                    role,
-                    created_at
-                  FROM users 
-                  WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-                  ORDER BY created_at DESC 
+                    u.user_id,
+                    u.name,
+                    u.email,
+                    u.role,
+                    COALESCE(d.registration_date, CURDATE()) as registration_date
+                  FROM users u
+                  LEFT JOIN donors d ON u.user_id = d.user_id
+                  WHERE u.role IN ('donor', 'hospital', 'mro')
+                  ORDER BY COALESCE(d.registration_date, CURDATE()) DESC 
                   LIMIT 10";
-    
+
     $stmt = $pdo->prepare($userQuery);
     $stmt->execute();
     $recentUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     foreach ($recentUsers as $user) {
         $activities[] = [
             'id' => 'user_' . $user['user_id'],
             'type' => 'user_registration',
             'message' => "New {$user['role']} registered: {$user['name']} ({$user['email']})",
-            'timestamp' => $user['created_at'],
+            'timestamp' => $user['registration_date'],
             'status' => 'unread'
         ];
     }
@@ -58,19 +64,20 @@ try {
                         d.donation_id,
                         d.donor_id,
                         d.blood_type,
-                        d.volume,
+                        d.units_donated as volume,
                         d.donation_date,
-                        dn.name as donor_name
+                        u.name as donor_name
                       FROM donations d
                       LEFT JOIN donors dn ON d.donor_id = dn.donor_id
+                      LEFT JOIN users u ON dn.user_id = u.user_id
                       WHERE d.donation_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                       ORDER BY d.donation_date DESC 
                       LIMIT 10";
-    
+
     $stmt = $pdo->prepare($donationQuery);
     $stmt->execute();
     $recentDonations = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     foreach ($recentDonations as $donation) {
         $activities[] = [
             'id' => 'donation_' . $donation['donation_id'],
@@ -86,20 +93,20 @@ try {
                       dr.request_id,
                       dr.hospital_id,
                       dr.blood_type,
-                      dr.volume_needed,
+                      dr.reason as volume_needed,
                       dr.status,
-                      dr.created_at,
+                      dr.request_date as created_at,
                       h.name as hospital_name
                     FROM donation_requests dr
                     LEFT JOIN hospitals h ON dr.hospital_id = h.hospital_id
-                    WHERE dr.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-                    ORDER BY dr.created_at DESC 
+                    WHERE dr.request_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                    ORDER BY dr.request_date DESC 
                     LIMIT 10";
-    
+
     $stmt = $pdo->prepare($requestQuery);
     $stmt->execute();
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     foreach ($recentRequests as $request) {
         $activities[] = [
             'id' => 'request_' . $request['request_id'],
@@ -110,22 +117,21 @@ try {
         ];
     }
 
-    // 4. Recent feedback (excluding admin contact messages)
+    // 4. Recent feedback
     $feedbackQuery = "SELECT 
                        feedback_id,
                        message,
                        role,
                        created_at
                      FROM feedback 
-                     WHERE type != 'admin_contact' 
-                     AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                     WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                      ORDER BY created_at DESC 
                      LIMIT 10";
-    
+
     $stmt = $pdo->prepare($feedbackQuery);
     $stmt->execute();
     $recentFeedback = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     foreach ($recentFeedback as $feedback) {
         $activities[] = [
             'id' => 'feedback_' . $feedback['feedback_id'],
@@ -137,12 +143,12 @@ try {
     }
 
     // Sort all activities by timestamp (newest first)
-    usort($activities, function($a, $b) {
+    usort($activities, function ($a, $b) {
         return strtotime($b['timestamp']) - strtotime($a['timestamp']);
     });
 
     // Get unread count
-    $unreadCount = count(array_filter($activities, function($activity) {
+    $unreadCount = count(array_filter($activities, function ($activity) {
         return $activity['status'] === 'unread';
     }));
 
@@ -151,7 +157,6 @@ try {
         'activities' => $activities,
         'unread_count' => $unreadCount
     ]);
-
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
@@ -159,4 +164,3 @@ try {
     http_response_code(500);
     echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
 }
-?>

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../classes/Exceptions.php';
+require_once __DIR__ . '/../classes/Validator.php';
 
 abstract class BaseController
 {

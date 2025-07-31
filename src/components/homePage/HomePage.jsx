@@ -24,8 +24,7 @@ const HomePage = () => {
     'features',
     'why-donate',
     'success-stories',
-    'feedback',
-    'contact'
+    'feedback'
   ];
   const [activeSection, setActiveSection] = useState('how-it-works');
   const [showArticle, setShowArticle] = useState(false);
@@ -43,16 +42,7 @@ const HomePage = () => {
   const [donorFeedbackIdx, setDonorFeedbackIdx] = useState(0);
   const [hospitalFeedbackIdx, setHospitalFeedbackIdx] = useState(0);
   
-  // Contact form state
-  const [contactForm, setContactForm] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: ''
-  });
-  const [contactSubmitting, setContactSubmitting] = useState(false);
-  const [contactMessage, setContactMessage] = useState('');
-  const [contactMessageType, setContactMessageType] = useState('');
+
 
   useEffect(() => {
     const handleScroll = () => {
@@ -181,47 +171,7 @@ const HomePage = () => {
     setStoryIdx((prev) => (successStories.length ? (prev - 1 + successStories.length) % successStories.length : 0));
   };
 
-  // Contact form handlers
-  const handleContactFormChange = (e) => {
-    const { name, value } = e.target;
-    setContactForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
 
-  const handleContactSubmit = async (e) => {
-    e.preventDefault();
-    setContactSubmitting(true);
-    setContactMessage('');
-    setContactMessageType('');
-
-    try {
-      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_contact_form.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(contactForm)
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setContactMessage(data.message);
-        setContactMessageType('success');
-        setContactForm({ name: '', email: '', subject: '', message: '' });
-      } else {
-        setContactMessage(data.error || 'Failed to send message');
-        setContactMessageType('error');
-      }
-    } catch (error) {
-      setContactMessage('Network error. Please try again.');
-      setContactMessageType('error');
-    } finally {
-      setContactSubmitting(false);
-    }
-  };
 
   return (
     <div className="homepage-root">
@@ -238,7 +188,6 @@ const HomePage = () => {
             <li onClick={() => handleNavLinkClick('why-donate')} className={activeSection === 'why-donate' ? 'active' : ''}>Why Donate</li>
             <li onClick={() => handleNavLinkClick('success-stories')} className={activeSection === 'success-stories' ? 'active' : ''}>Success Stories</li>
             <li onClick={() => handleNavLinkClick('feedback')} className={activeSection === 'feedback' ? 'active' : ''}>Feedback</li>
-            <li onClick={() => handleNavLinkClick('contact')} className={activeSection === 'contact' ? 'active' : ''}>Contact</li>
           </ul>
 
           <button className="mobile-menu-btn" onClick={toggleMenu}>
@@ -253,7 +202,6 @@ const HomePage = () => {
             <li onClick={() => handleNavLinkClick('why-donate')} className={activeSection === 'why-donate' ? 'active' : ''}>Why Donate</li>
             <li onClick={() => handleNavLinkClick('success-stories')} className={activeSection === 'success-stories' ? 'active' : ''}>Success Stories</li>
             <li onClick={() => handleNavLinkClick('feedback')} className={activeSection === 'feedback' ? 'active' : ''}>Feedback</li>
-            <li onClick={() => handleNavLinkClick('contact')} className={activeSection === 'contact' ? 'active' : ''}>Contact</li>
           </ul>
         </div>
       </nav>
@@ -529,71 +477,7 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* Contact Section */}
-      <section id="contact" className="contact-section">
-        <div className="section-header">
-          <h2 className="section-title">Contact Us</h2>
-          <p className="section-subtitle">Get in touch with us for any questions or support</p>
-        </div>
-        <div className="contact-form-container">
-          <form className="contact-form" onSubmit={handleContactSubmit}>
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="contact-name">Name</label>
-                <input
-                  type="text"
-                  id="contact-name"
-                  name="name"
-                  value={contactForm.name}
-                  onChange={handleContactFormChange}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="contact-email">Email</label>
-                <input
-                  type="email"
-                  id="contact-email"
-                  name="email"
-                  value={contactForm.email}
-                  onChange={handleContactFormChange}
-                  required
-                />
-              </div>
-            </div>
-            <div className="form-group">
-              <label htmlFor="contact-subject">Subject</label>
-              <input
-                type="text"
-                id="contact-subject"
-                name="subject"
-                value={contactForm.subject}
-                onChange={handleContactFormChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="contact-message">Message</label>
-              <textarea
-                id="contact-message"
-                name="message"
-                value={contactForm.message}
-                onChange={handleContactFormChange}
-                rows="5"
-                required
-              ></textarea>
-            </div>
-            <button type="submit" className="contact-submit-btn" disabled={contactSubmitting}>
-              {contactSubmitting ? 'Sending...' : 'Send Message'}
-            </button>
-            {contactMessage && (
-              <div className={`contact-message ${contactMessageType}`}>
-                {contactMessage}
-              </div>
-            )}
-          </form>
-        </div>
-      </section>
+
 
       {/* Feedback Section */}
       <section id="feedback" className="feedback-section">
@@ -677,7 +561,6 @@ const HomePage = () => {
               <li>Help Center</li>
               <li>Privacy Policy</li>
               <li>Terms of Service</li>
-              <li>Contact Us</li>
             </ul>
           </div>
           

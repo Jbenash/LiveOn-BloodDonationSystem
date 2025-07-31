@@ -49,6 +49,27 @@ const MRODashboard = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showLogoDialog, setShowLogoDialog] = useState(false);
 
+  // Browser back button handling
+  useEffect(() => {
+    const handlePopState = (e) => {
+      // Prevent browser back button from working normally
+      e.preventDefault();
+      setShowLogoutDialog(true);
+      // Push the current state back to prevent navigation
+      window.history.pushState(null, null, window.location.pathname);
+    };
+
+    // Add event listeners
+    window.addEventListener('popstate', handlePopState);
+    
+    // Push current state to prevent immediate back navigation
+    window.history.pushState(null, null, window.location.pathname);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   // Auth check: redirect to home if not logged in as MRO
   useEffect(() => {
     fetch("http://localhost/Liveonv2/backend_api/controllers/get_donor_requests.php", { credentials: 'include' })
@@ -441,10 +462,23 @@ const MRODashboard = () => {
         method: 'POST',
         credentials: 'include',
       });
+      // Clear browser history to prevent going back to dashboard
+      window.history.pushState(null, null, '/');
+      window.history.pushState(null, null, '/');
+      window.history.pushState(null, null, '/');
+      window.history.go(-3);
+      // Navigate to home page
+      navigate('/?login=true');
     } catch (error) {
       toast.error('Logout failed');
+      // Clear browser history to prevent going back to dashboard
+      window.history.pushState(null, null, '/');
+      window.history.pushState(null, null, '/');
+      window.history.pushState(null, null, '/');
+      window.history.go(-3);
+      // Navigate to home page
+      navigate('/?login=true');
     }
-    navigate('/?login=true');
   };
   const cancelLogout = () => setShowLogoutDialog(false);
 

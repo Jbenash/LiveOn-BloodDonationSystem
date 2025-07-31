@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Avatar } from 'flowbite-react';
 import './DonorDashboard.css';
 import logo from '../../assets/logo.svg';
 import ConfirmDialog from '../common/ConfirmDialog';
@@ -23,6 +24,27 @@ const DonorDashboard = () => {
   const [removeReason, setRemoveReason] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Browser back button handling
+  useEffect(() => {
+    const handlePopState = (e) => {
+      // Prevent browser back button from working normally
+      e.preventDefault();
+      setShowLogoutDialog(true);
+      // Push the current state back to prevent navigation
+      window.history.pushState(null, null, window.location.pathname);
+    };
+
+    // Add event listeners
+    window.addEventListener('popstate', handlePopState);
+    
+    // Push current state to prevent immediate back navigation
+    window.history.pushState(null, null, window.location.pathname);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -119,10 +141,22 @@ const DonorDashboard = () => {
       credentials: 'include'
     })
       .then(() => {
+        // Clear browser history to prevent going back to dashboard
+        window.history.pushState(null, null, '/');
+        window.history.pushState(null, null, '/');
+        window.history.pushState(null, null, '/');
+        window.history.go(-3);
+        // Navigate to home page
         navigate('/?login=true');
       })
       .catch(error => {
         console.error("Logout failed:", error);
+        // Clear browser history to prevent going back to dashboard
+        window.history.pushState(null, null, '/');
+        window.history.pushState(null, null, '/');
+        window.history.pushState(null, null, '/');
+        window.history.go(-3);
+        // Navigate to home page
         navigate('/?login=true');
       });
   };

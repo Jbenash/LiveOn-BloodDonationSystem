@@ -1,6 +1,11 @@
 <?php
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+// Allow both development ports
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if ($origin === 'http://localhost:5173' || $origin === 'http://localhost:5174') {
+    header('Access-Control-Allow-Origin: ' . $origin);
+}
+header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
@@ -10,12 +15,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 session_start();
 
-// Debug session
-error_log("Session data: " . print_r($_SESSION, true));
-
 // Check if user is logged in and is admin
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    error_log("Unauthorized access - user_id: " . ($_SESSION['user_id'] ?? 'not set') . ", role: " . ($_SESSION['role'] ?? 'not set'));
     http_response_code(401);
     echo json_encode(['error' => 'Unauthorized access']);
     exit;
@@ -30,16 +31,16 @@ try {
 
     // Fetch admin contact messages from feedback table
     $query = "SELECT 
-                feedback_id as id,
-                name,
-                email,
-                subject,
-                message,
-                created_at,
-                status
-              FROM feedback 
-              WHERE type = 'admin_contact' 
-              ORDER BY created_at DESC 
+                f.feedback_id as id,
+                u.name,
+                u.email,
+                f.message,
+                f.created_at,
+                CASE WHEN f.approved = 1 THEN 'read' ELSE 'unread' END as status
+              FROM feedback f
+              LEFT JOIN users u ON f.user_id = u.user_id
+              WHERE f.role IN ('donor', 'hospital', 'mro')
+              ORDER BY f.created_at DESC 
               LIMIT 50";
 
     $stmt = $pdo->prepare($query);
@@ -49,13 +50,13 @@ try {
     // Get unread count
     $unreadQuery = "SELECT COUNT(*) as unread_count 
                     FROM feedback 
-                    WHERE type = 'admin_contact' AND status = 'unread'";
+                    WHERE approved = 0 AND role IN ('donor', 'hospital', 'mro')";
     $unreadStmt = $pdo->prepare($unreadQuery);
     $unreadStmt->execute();
     $unreadResult = $unreadStmt->fetch(PDO::FETCH_ASSOC);
     $unreadCount = $unreadResult['unread_count'];
 
-    error_log("Found " . count($messages) . " messages, " . $unreadCount . " unread");
+
 
     echo json_encode([
         'success' => true,

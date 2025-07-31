@@ -5,6 +5,9 @@ import logo from "../../assets/logo.svg";
 import userImg from "../../assets/user.png";
 import { FaBell, FaEnvelope } from 'react-icons/fa';
 import { Avatar } from 'flowbite-react';
+import LoadingSpinner from '../common/LoadingSpinner';
+import ErrorDisplay from '../common/ErrorDisplay';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -49,11 +52,14 @@ const AdminDashboard = () => {
   const [systemActivitiesUnreadCount, setSystemActivitiesUnreadCount] = useState(0);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const systemActivitiesWrapperRef = useRef(null);
+  const [showMailMessages, setShowMailMessages] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [mailUnreadCount, setMailUnreadCount] = useState(0);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const notificationWrapperRef = useRef(null);
+  const mailWrapperRef = useRef(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: '', email: '', password: '', photo: null, photoPreview: null });
   const [profileLoading, setProfileLoading] = useState(false);
@@ -83,6 +89,36 @@ const AdminDashboard = () => {
   const [feedbackToAction, setFeedbackToAction] = useState(null);
   const [showFeedbackActionDialog, setShowFeedbackActionDialog] = useState(false);
   const [feedbackActionType, setFeedbackActionType] = useState(''); // 'approve' or 'reject'
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [adminMessages, setAdminMessages] = useState([]);
+  
+  // Detail modal states
+  const [selectedUserDetail, setSelectedUserDetail] = useState(null);
+  const [selectedHospitalDetail, setSelectedHospitalDetail] = useState(null);
+  const [selectedDonorDetail, setSelectedDonorDetail] = useState(null);
+  const [selectedMroDetail, setSelectedMroDetail] = useState(null);
+  const [selectedRequestDetail, setSelectedRequestDetail] = useState(null);
+
+  // Browser back button handling
+  useEffect(() => {
+    const handlePopState = (e) => {
+      // Prevent browser back button from working normally
+      e.preventDefault();
+      setShowLogoutDialog(true);
+      // Push the current state back to prevent navigation
+      window.history.pushState(null, null, window.location.pathname);
+    };
+
+    // Add event listeners
+    window.addEventListener('popstate', handlePopState);
+    
+    // Push current state to prevent immediate back navigation
+    window.history.pushState(null, null, window.location.pathname);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   // Click outside to close notification popup
   useEffect(() => {
@@ -131,27 +167,6 @@ const AdminDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Mark all as read
-  const markNotificationsRead = async () => {
-    // Fetch admin messages
-    const fetchAdminMessages = async () => {
-      try {
-        const response = await fetch('http://localhost/liveonv2/backend_api/controllers/get_admin_messages.php', {
-          credentials: 'include'
-        });
-        const data = await response.json();
-
-        if (data.success) {
-          setAdminMessages(data.messages);
-          setMailUnreadCount(data.unread_count);
-        } else {
-          console.error('Failed to fetch admin messages:', data.error);
-        }
-      } catch (error) {
-        console.error('Error fetching admin messages:', error);
-      }
-    };
-
     // Mark message as read
     const markMessageAsRead = async (messageId) => {
       try {
@@ -168,20 +183,15 @@ const AdminDashboard = () => {
           setAdminMessages(prev => prev.map(msg =>
             msg.id == messageId ? { ...msg, status: 'read' } : msg
           ));
-          setMailUnreadCount(prev => Math.max(0, prev - 1));
+          // Refresh the unread count from server
+          fetchAdminMessages();
         }
       } catch (error) {
         console.error('Error marking message as read:', error);
       }
     };
 
-    // Fetch notifications from backend (keeping for backward compatibility)
-    useEffect(() => {
-      // Old notification system - now replaced by system activities
-      // Keeping this for any legacy code that might still reference it
-    }, []);
-
-    // Mark all as read (keeping for backward compatibility)
+    // Mark all as read
     const markNotificationsRead = async () => {
       // Old notification system - now replaced by system activities
       console.log('Mark notifications as read - deprecated');
@@ -274,11 +284,73 @@ const AdminDashboard = () => {
       }
     };
 
+    const fetchAdminMessages = async () => {
+      try {
+        const response = await fetch('http://localhost/liveonv2/backend_api/controllers/get_admin_messages.php', {
+          credentials: 'include'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          setAdminMessages(data.messages || []);
+          setMailUnreadCount(data.unread_count || 0);
+        } else {
+          console.error('Failed to fetch admin messages:', data.error);
+        }
+      } catch (error) {
+        console.error('Error fetching admin messages:', error);
+      }
+    };
+
+
+
     useEffect(() => {
+      // Check if user is logged in before fetching data
+      const checkAuthAndFetchData = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          
+          // First check if we have a valid session
+          const sessionResponse = await fetch('http://localhost/liveonv2/backend_api/controllers/check_session.php', {
+            credentials: 'include'
+          });
+          
+          const sessionData = await sessionResponse.json();
+          
+          if (!sessionData.session_status.session_started || !sessionData.session_status.is_admin) {
+            // Not logged in or not admin - redirect to login
+            window.location.href = '/?login=true';
+            return;
+          }
+          
+          // User is logged in and is admin - fetch data
       fetchAdminData();
       fetchMROs();
-      fetchAdminMessages(); // Fetch messages on mount
-      fetchSystemActivities(); // Fetch system activities on mount
+          fetchAdminMessages();
+          fetchSystemActivities();
+          
+          // Set up periodic refresh for admin messages and system activities
+          const messageInterval = setInterval(fetchAdminMessages, 30000); // Refresh every 30 seconds
+          const activitiesInterval = setInterval(fetchSystemActivities, 30000); // Refresh every 30 seconds
+          
+          // Cleanup intervals on component unmount
+          return () => {
+            clearInterval(messageInterval);
+            clearInterval(activitiesInterval);
+          };
+        } catch (error) {
+          console.error('Auth check failed:', error);
+          setError('Authentication check failed. Please log in.');
+          setLoading(false);
+          // Redirect to login on error
+          setTimeout(() => {
+            window.location.href = '/?login=true';
+          }, 2000);
+        }
+      };
+      
+      checkAuthAndFetchData();
     }, []);
 
     const fetchMROs = async () => {
@@ -305,7 +377,6 @@ const AdminDashboard = () => {
 
     const fetchAdminData = async () => {
       try {
-        setLoading(true);
         setError(null);
 
         const response = await fetch('http://localhost/liveonv2/backend_api/controllers/admin_dashboard.php', {
@@ -393,9 +464,21 @@ const AdminDashboard = () => {
         credentials: 'include'
       })
         .then(() => {
+          // Clear browser history to prevent going back to dashboard
+          window.history.pushState(null, null, '/');
+          window.history.pushState(null, null, '/');
+          window.history.pushState(null, null, '/');
+          window.history.go(-3);
+          // Navigate to home page
           window.location.href = '/?login=true';
         })
         .catch(() => {
+          // Clear browser history to prevent going back to dashboard
+          window.history.pushState(null, null, '/');
+          window.history.pushState(null, null, '/');
+          window.history.pushState(null, null, '/');
+          window.history.go(-3);
+          // Navigate to home page
           window.location.href = '/?login=true';
         });
     };
@@ -761,6 +844,35 @@ const AdminDashboard = () => {
       setFeedbackActionType('');
     };
 
+    // Detail modal click handlers
+    const handleUserRowClick = (user) => {
+      setSelectedUserDetail(user);
+    };
+
+    const handleHospitalRowClick = (hospital) => {
+      setSelectedHospitalDetail(hospital);
+    };
+
+    const handleDonorRowClick = (donor) => {
+      setSelectedDonorDetail(donor);
+    };
+
+    const handleMroRowClick = (mro) => {
+      setSelectedMroDetail(mro);
+    };
+
+    const handleRequestRowClick = (request) => {
+      setSelectedRequestDetail(request);
+    };
+
+    const closeDetailModal = () => {
+      setSelectedUserDetail(null);
+      setSelectedHospitalDetail(null);
+      setSelectedDonorDetail(null);
+      setSelectedMroDetail(null);
+      setSelectedRequestDetail(null);
+    };
+
     // Sidebar section definitions
     const sections = [
       { key: 'dashboard', label: 'Dashboard', icon: '🛡️' },
@@ -926,14 +1038,74 @@ const AdminDashboard = () => {
               {/* Bottom: System Health/Notifications */}
               <section className="dashboard-card glassy animate-fadein system-health-section">
                 <h3 className="section-title gradient-text">System Health</h3>
-                <div className="system-health-content">
-                  <span className="health-indicator healthy"></span> All systems operational
+                <div className="system-health-grid">
+                  {/* Main Health Status */}
+                  <div className="health-status-card">
+                    <div className="health-indicator-wrapper">
+                      <span className="health-indicator healthy"></span>
+                      <div className="health-text">
+                        <div className="health-title">System Status</div>
+                        <div className="health-value">All Systems Operational</div>
                 </div>
-                <div className="system-notification">
+                    </div>
+                  </div>
+
+                  {/* Performance Metrics */}
+                  <div className="health-metrics-grid">
+                    <div className="metric-card">
+                      <div className="metric-icon">📊</div>
+                      <div className="metric-content">
+                        <div className="metric-label">Response Time</div>
+                        <div className="metric-value">~120ms</div>
+                      </div>
+                    </div>
+                    
+                    <div className="metric-card">
+                      <div className="metric-icon">💾</div>
+                      <div className="metric-content">
+                        <div className="metric-label">Database</div>
+                        <div className="metric-value">Connected</div>
+                      </div>
+                    </div>
+                    
+                    <div className="metric-card">
+                      <div className="metric-icon">🔐</div>
+                      <div className="metric-content">
+                        <div className="metric-label">Security</div>
+                        <div className="metric-value">Active</div>
+                      </div>
+                    </div>
+                    
+                    <div className="metric-card">
+                      <div className="metric-icon">🌐</div>
+                      <div className="metric-content">
+                        <div className="metric-label">API Status</div>
+                        <div className="metric-value">Online</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notifications Summary */}
+                  <div className="notifications-summary">
+                    <div className="notification-header">
                   <span className="notification-icon">🔔</span>
-                  {unreadCount > 0
-                    ? `${unreadCount} new notification${unreadCount > 1 ? 's' : ''}`
-                    : 'No new notifications'}
+                      <span className="notification-title">Recent Activity</span>
+                    </div>
+                    <div className="notification-stats">
+                      <div className="stat-item">
+                        <span className="stat-number">{unreadCount}</span>
+                        <span className="stat-label">New Notifications</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-number">{systemActivities.length}</span>
+                        <span className="stat-label">System Activities</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-number">{mailUnreadCount}</span>
+                        <span className="stat-label">Unread Messages</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </section>
             </>
@@ -987,14 +1159,19 @@ const AdminDashboard = () => {
                   <tbody>
                     {filteredUsers.length > 0 ? (
                       filteredUsers.map((user) => (
-                        <tr key={user.user_id || user.email}>
+                        <tr 
+                          key={user.user_id || user.email}
+                          onClick={() => handleUserRowClick(user)}
+                          style={{ cursor: 'pointer' }}
+                          className="clickable-row"
+                        >
                           <td>{user.user_id}</td>
                           <td>{user.name}</td>
                           <td>{user.email}</td>
                           <td>{user.phone}</td>
                           <td>{user.role}</td>
                           <td><span className={`status-chip ${user.status}`}>{user.status}</span></td>
-                          <td style={{ minWidth: '200px', whiteSpace: 'nowrap', padding: '12px 16px' }}>
+                          <td style={{ minWidth: '200px', whiteSpace: 'nowrap', padding: '12px 16px' }} onClick={(e) => e.stopPropagation()}>
                             <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em', marginRight: '8px' }} onClick={() => handleEditClick(user)}>
                               Edit
                             </button>
@@ -1051,13 +1228,18 @@ const AdminDashboard = () => {
                       <tbody>
                         {filteredHospitals.length > 0 ? (
                           filteredHospitals.map((hospital) => (
-                            <tr key={hospital.hospital_id || hospital.name}>
+                            <tr 
+                              key={hospital.hospital_id || hospital.name}
+                              onClick={() => handleHospitalRowClick(hospital)}
+                              style={{ cursor: 'pointer' }}
+                              className="clickable-row"
+                            >
                               <td>{hospital.hospital_id}</td>
                               <td>{hospital.name}</td>
                               <td>{hospital.location}</td>
                               <td>{hospital.contact_email}</td>
                               <td>{hospital.contact_phone}</td>
-                              <td style={{ minWidth: '200px', whiteSpace: 'nowrap', padding: '12px 16px' }}>
+                              <td style={{ minWidth: '200px', whiteSpace: 'nowrap', padding: '12px 16px' }} onClick={(e) => e.stopPropagation()}>
                                 <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em', marginRight: '8px' }} onClick={() => handleEditHospitalClick(hospital)}>
                                   Edit
                                 </button>
@@ -1110,13 +1292,18 @@ const AdminDashboard = () => {
                       <tbody>
                         {allMROs.length > 0 ? (
                           allMROs.map((mro) => (
-                            <tr key={mro.mro_id}>
+                            <tr 
+                              key={mro.mro_id}
+                              onClick={() => handleMroRowClick(mro)}
+                              style={{ cursor: 'pointer' }}
+                              className="clickable-row"
+                            >
                               <td>{mro.mro_id}</td>
                               <td>{mro.name}</td>
                               <td>{mro.email}</td>
                               <td>{mro.phone}</td>
                               <td>{mro.hospital_name || 'N/A'}</td>
-                              <td style={{ minWidth: '200px', whiteSpace: 'nowrap', padding: '12px 16px' }}>
+                              <td style={{ minWidth: '200px', whiteSpace: 'nowrap', padding: '12px 16px' }} onClick={(e) => e.stopPropagation()}>
                                 <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em', marginRight: '8px' }}>Edit</button>
                                 <button
                                   className="dashboard-btn danger"
@@ -1191,7 +1378,12 @@ const AdminDashboard = () => {
                   <tbody>
                     {filteredDonors.length > 0 ? (
                       filteredDonors.map((donor) => (
-                        <tr key={donor.donor_id || donor.email}>
+                        <tr 
+                          key={donor.donor_id || donor.email}
+                          onClick={() => handleDonorRowClick(donor)}
+                          style={{ cursor: 'pointer' }}
+                          className="clickable-row"
+                        >
                           <td>{donor.donor_id}</td>
                           <td>{donor.name}</td>
                           <td>{donor.email}</td>
@@ -1201,7 +1393,7 @@ const AdminDashboard = () => {
                           <td><span className={`status-chip ${donor.status}`}>{donor.status}</span></td>
                           <td>{donor.last_donation_date || 'N/A'}</td>
                           <td>{donor.lives_saved}</td>
-                          <td>
+                          <td onClick={(e) => e.stopPropagation()}>
                             <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em', marginRight: '8px' }} onClick={() => handleEditDonorClick(donor)}>
                               Edit
                             </button>
@@ -1392,7 +1584,12 @@ const AdminDashboard = () => {
                   <tbody>
                     {filteredRequests.length > 0 ? (
                       filteredRequests.map((req) => (
-                        <tr key={req.request_id}>
+                        <tr 
+                          key={req.request_id}
+                          onClick={() => handleRequestRowClick(req)}
+                          style={{ cursor: 'pointer' }}
+                          className="clickable-row"
+                        >
                           <td>{req.hospital_name || 'Unknown'}</td>
                           <td>{req.blood_type}</td>
                           <td>{req.units || 'N/A'}</td>
@@ -1586,19 +1783,56 @@ const AdminDashboard = () => {
                 <button className="notification-bell" onClick={() => { setShowSystemActivities(v => !v); }}>
                   <FaBell size={22} />
                   {systemActivitiesUnreadCount > 0 && <span className="notification-badge">{systemActivitiesUnreadCount}</span>}
-                  {pendingPasswordResets > 0 && <span className="notification-badge" style={{ right: '-28px', background: '#f59e42' }}>{pendingPasswordResets}</span>}
                 </button>
                 {showSystemActivities && (
                   <div className="notification-dropdown" ref={systemActivitiesWrapperRef} onClick={e => e.stopPropagation()}>
-                    <div className="notification-dropdown-header">System Activities</div>
+                    <div className="notification-dropdown-header">
+                    System Activities
+                    {systemActivitiesUnreadCount > 0 && (
+                      <button 
+                        onClick={() => {
+                          // Mark all activities as read
+                          setSystemActivities(prev => prev.map(act => ({ ...act, status: 'read' })));
+                          setSystemActivitiesUnreadCount(0);
+                        }}
+                        style={{
+                          float: 'right',
+                          fontSize: '0.7rem',
+                          padding: '2px 6px',
+                          background: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Mark All Read
+                      </button>
+                    )}
+                  </div>
                     {systemActivities.length > 0 ? (
                       systemActivities.map((activity) => (
                         <div
                           key={activity.id}
                           className="notification-item"
-                          onClick={() => setSelectedActivity(activity)}
+                          style={{
+                            backgroundColor: activity.status === 'unread' ? '#f0f9ff' : 'transparent',
+                            borderLeft: activity.status === 'unread' ? '3px solid #3b82f6' : '3px solid transparent'
+                          }}
+                          onClick={() => {
+                            setSelectedActivity(activity);
+                            // Mark activity as read by updating local state
+                            setSystemActivities(prev => prev.map(act =>
+                              act.id === activity.id ? { ...act, status: 'read' } : act
+                            ));
+                            // Decrease unread count
+                            setSystemActivitiesUnreadCount(prev => Math.max(0, prev - 1));
+                          }}
                         >
-                          <div className="notification-message">{activity.message}</div>
+                          <div className="notification-message">
+                            {activity.message}
+                            {activity.status === 'unread' && <span style={{ marginLeft: '5px', fontSize: '0.7rem', color: '#3b82f6' }}>●</span>}
+                          </div>
                           <div className="notification-timestamp">{activity.timestamp ? new Date(activity.timestamp).toLocaleString() : ''}</div>
                         </div>
                       ))
@@ -1612,16 +1846,58 @@ const AdminDashboard = () => {
               <div className="mail-messages-wrapper" ref={mailWrapperRef}>
                 <button className="mail-messages-bell" onClick={() => { setShowMailMessages(v => !v); }}>
                   <FaEnvelope size={22} />
-                  {mailUnreadCount > 0 && <span className="notification-badge">{mailUnreadCount}</span>}
+                  {mailUnreadCount > 0 && <span className="mail-badge">{mailUnreadCount}</span>}
                 </button>
                 {showMailMessages && (
                   <div className="mail-messages-dropdown" ref={mailWrapperRef} onClick={e => e.stopPropagation()}>
-                    <div className="mail-messages-dropdown-header">Messages & Requests</div>
+                    <div className="mail-messages-dropdown-header">
+                    Messages & Requests
+                    {mailUnreadCount > 0 && (
+                      <button 
+                        onClick={() => {
+                          // Mark all unread messages as read
+                          adminMessages.forEach(msg => {
+                            if (msg.status === 'unread') {
+                              markMessageAsRead(msg.id);
+                            }
+                          });
+                        }}
+                        style={{
+                          float: 'right',
+                          fontSize: '0.7rem',
+                          padding: '2px 6px',
+                          background: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Mark All Read
+                      </button>
+                    )}
+                  </div>
+
                     {adminMessages.length > 0 ? (
                       <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                         {adminMessages.map(msg => (
-                          <li key={msg.id} style={{ marginBottom: 10, padding: '10px 15px', borderBottom: '1px solid #e5e7eb', cursor: 'pointer' }} onClick={() => { setSelectedMessage(msg); markMessageAsRead(msg.id); }}>
-                            <div style={{ fontWeight: 600, color: '#2563eb' }}>{msg.subject}</div>
+                          <li 
+                            key={msg.id} 
+                            style={{ 
+                              marginBottom: 10, 
+                              padding: '10px 15px', 
+                              borderBottom: '1px solid #e5e7eb', 
+                              cursor: 'pointer',
+                              backgroundColor: msg.status === 'unread' ? '#f0f9ff' : 'transparent',
+                              borderLeft: msg.status === 'unread' ? '3px solid #3b82f6' : '3px solid transparent'
+                            }} 
+                            onClick={() => { setSelectedMessage(msg); markMessageAsRead(msg.id); }}
+                          >
+                            <div style={{ fontWeight: 600, color: '#2563eb' }}>
+                              {msg.name || 'Anonymous'}
+                              {msg.status === 'unread' && <span style={{ marginLeft: '5px', fontSize: '0.7rem', color: '#3b82f6' }}>●</span>}
+                            </div>
+                            <div style={{ margin: '2px 0', fontSize: '0.85em', color: '#64748b' }}>{msg.email || 'No email'}</div>
                             <div style={{ margin: '4px 0', color: '#1e293b' }}>{msg.message}</div>
                             <div style={{ fontSize: '0.92em', color: '#64748b' }}>{msg.created_at ? new Date(msg.created_at).toLocaleString() : ''}</div>
                           </li>
@@ -2042,7 +2318,320 @@ const AdminDashboard = () => {
             </div>
           </div>
         )}
-      </div >
+        
+        {/* Detail Modals */}
+        {/* User Detail Modal */}
+        {selectedUserDetail && (
+          <div className="modal-overlay" onClick={closeDetailModal}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e2e8f0', paddingBottom: '1rem' }}>
+                <div style={{ background: '#3b82f6', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '1rem' }}>
+                  <span style={{ color: 'white', fontSize: '1.5rem' }}>👤</span>
+                </div>
+                <h3 style={{ margin: 0, color: '#1e293b' }}>User Details</h3>
+              </div>
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🆔</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>User ID</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedUserDetail.user_id}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>👨‍💼</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Name</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedUserDetail.name}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>📧</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Email</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedUserDetail.email}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>📞</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Phone</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedUserDetail.phone || 'N/A'}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🎭</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Role</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600', textTransform: 'capitalize' }}>{selectedUserDetail.role}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🔵</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Status</strong>
+                    <div><span className={`status-chip ${selectedUserDetail.status}`}>{selectedUserDetail.status}</span></div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-actions" style={{ marginTop: 16 }}>
+                <button className="dashboard-btn" onClick={closeDetailModal}>Close</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Hospital Detail Modal */}
+        {selectedHospitalDetail && (
+          <div className="modal-overlay" onClick={closeDetailModal}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e2e8f0', paddingBottom: '1rem' }}>
+                <div style={{ background: '#10b981', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '1rem' }}>
+                  <span style={{ color: 'white', fontSize: '1.5rem' }}>🏥</span>
+                </div>
+                <h3 style={{ margin: 0, color: '#1e293b' }}>Hospital Details</h3>
+              </div>
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🆔</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Hospital ID</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedHospitalDetail.hospital_id}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🏢</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Name</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedHospitalDetail.name}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>📍</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Location</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedHospitalDetail.location}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>📧</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Email</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedHospitalDetail.contact_email}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>📞</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Phone</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedHospitalDetail.contact_phone}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-actions" style={{ marginTop: 16 }}>
+                <button className="dashboard-btn" onClick={closeDetailModal}>Close</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Donor Detail Modal */}
+        {selectedDonorDetail && (
+          <div className="modal-overlay" onClick={closeDetailModal}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e2e8f0', paddingBottom: '1rem' }}>
+                <div style={{ background: '#ef4444', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '1rem' }}>
+                  <span style={{ color: 'white', fontSize: '1.5rem' }}>🩸</span>
+                </div>
+                <h3 style={{ margin: 0, color: '#1e293b' }}>Donor Details</h3>
+              </div>
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🆔</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Donor ID</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedDonorDetail.donor_id}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>👨‍⚕️</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Name</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedDonorDetail.name}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>📧</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Email</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedDonorDetail.email}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>📞</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Phone</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedDonorDetail.phone}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🩸</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Blood Type</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedDonorDetail.blood_type}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🏙️</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>City</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedDonorDetail.city}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🔵</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Status</strong>
+                    <div><span className={`status-chip ${selectedDonorDetail.status}`}>{selectedDonorDetail.status}</span></div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>📅</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Last Donation</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedDonorDetail.last_donation_date || 'N/A'}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>💝</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Lives Saved</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedDonorDetail.lives_saved || 0}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-actions" style={{ marginTop: 16 }}>
+                <button className="dashboard-btn" onClick={closeDetailModal}>Close</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MRO Detail Modal */}
+        {selectedMroDetail && (
+          <div className="modal-overlay" onClick={closeDetailModal}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e2e8f0', paddingBottom: '1rem' }}>
+                <div style={{ background: '#8b5cf6', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '1rem' }}>
+                  <span style={{ color: 'white', fontSize: '1.5rem' }}>🔬</span>
+                </div>
+                <h3 style={{ margin: 0, color: '#1e293b' }}>MRO Details</h3>
+              </div>
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🆔</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>MRO ID</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedMroDetail.mro_id}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>👨‍🔬</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Name</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedMroDetail.name}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>📧</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Email</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedMroDetail.email}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>📞</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Phone</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedMroDetail.phone}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🏥</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Hospital</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedMroDetail.hospital_name || 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-actions" style={{ marginTop: 16 }}>
+                <button className="dashboard-btn" onClick={closeDetailModal}>Close</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Request Detail Modal */}
+        {selectedRequestDetail && (
+          <div className="modal-overlay" onClick={closeDetailModal}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '2px solid #e2e8f0', paddingBottom: '1rem' }}>
+                <div style={{ background: '#f59e0b', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '1rem' }}>
+                  <span style={{ color: 'white', fontSize: '1.5rem' }}>🚨</span>
+                </div>
+                <h3 style={{ margin: 0, color: '#1e293b' }}>Request Details</h3>
+              </div>
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🆔</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Request ID</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedRequestDetail.request_id || 'N/A'}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🏥</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Hospital</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedRequestDetail.hospital_name || 'Unknown'}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🩸</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Blood Type</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedRequestDetail.blood_type}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>📦</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Units Required</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedRequestDetail.units || 'N/A'}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>📊</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Status</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedRequestDetail.status || 'N/A'}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>
+                  <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>📅</span>
+                  <div>
+                    <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Created At</strong>
+                    <div style={{ color: '#1e293b', fontWeight: '600' }}>{selectedRequestDetail.created_at ? new Date(selectedRequestDetail.created_at).toLocaleString() : 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-actions" style={{ marginTop: 16 }}>
+                <button className="dashboard-btn" onClick={closeDetailModal}>Close</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     );
   };
 
