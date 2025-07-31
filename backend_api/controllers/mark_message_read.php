@@ -1,6 +1,11 @@
 <?php
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+// Allow both development ports
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if ($origin === 'http://localhost:5173' || $origin === 'http://localhost:5174') {
+    header('Access-Control-Allow-Origin: ' . $origin);
+}
+header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
@@ -33,10 +38,10 @@ try {
     $db = new Database();
     $pdo = $db->connect();
 
-    // Mark message as read
+    // Mark message as read (approve the feedback)
     $query = "UPDATE feedback 
-              SET status = 'read' 
-              WHERE feedback_id = ? AND type = 'admin_contact'";
+              SET approved = 1 
+              WHERE feedback_id = ?";
 
     $stmt = $pdo->prepare($query);
     $stmt->execute([$messageId]);

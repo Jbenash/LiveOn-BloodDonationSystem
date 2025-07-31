@@ -56,7 +56,8 @@ try {
         __DIR__ . '/AdminController.php',
         __DIR__ . '/../classes/ResponseHandler.php',
         __DIR__ . '/../classes/Database.php',
-        __DIR__ . '/../classes/Exceptions.php'
+        __DIR__ . '/../classes/Exceptions.php',
+        __DIR__ . '/../classes/Validator.php'
     ];
 
     foreach ($requiredFiles as $file) {

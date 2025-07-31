@@ -12,6 +12,13 @@ header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Content-Type: application/json");
 
+// Check authentication first
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'donor') {
+    echo json_encode(['error' => 'Unauthorized']);
+    http_response_code(401);
+    exit();
+}
+
 class DonorDashboard
 {
     private $pdo;
@@ -86,12 +93,6 @@ class DonorDashboard
 
         echo json_encode($response);
     }
-}
-
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'donor') {
-    echo json_encode(['error' => 'Unauthorized']);
-    http_response_code(401);
-    exit();
 }
 
 require_once __DIR__ . '/../config/db_connection.php';

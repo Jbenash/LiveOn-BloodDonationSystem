@@ -35,6 +35,27 @@ const HospitalDashboard = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showLogoDialog, setShowLogoDialog] = useState(false);
 
+  // Browser back button handling
+  useEffect(() => {
+    const handlePopState = (e) => {
+      // Prevent browser back button from working normally
+      e.preventDefault();
+      setShowLogoutDialog(true);
+      // Push the current state back to prevent navigation
+      window.history.pushState(null, null, window.location.pathname);
+    };
+
+    // Add event listeners
+    window.addEventListener('popstate', handlePopState);
+    
+    // Push current state to prevent immediate back navigation
+    window.history.pushState(null, null, window.location.pathname);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -87,9 +108,21 @@ const HospitalDashboard = () => {
       credentials: 'include',
     })
       .then(() => {
+        // Clear browser history to prevent going back to dashboard
+        window.history.pushState(null, null, '/');
+        window.history.pushState(null, null, '/');
+        window.history.pushState(null, null, '/');
+        window.history.go(-3);
+        // Navigate to home page
         navigate('/?login=true');
       })
       .catch(() => {
+        // Clear browser history to prevent going back to dashboard
+        window.history.pushState(null, null, '/');
+        window.history.pushState(null, null, '/');
+        window.history.pushState(null, null, '/');
+        window.history.go(-3);
+        // Navigate to home page
         navigate('/?login=true');
       });
   };
