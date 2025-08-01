@@ -520,6 +520,119 @@ INSERT INTO `users` (`user_id`, `name`, `email`, `phone`, `password_hash`, `role
 ('US687d227f', 'sivatheevan', 'cst22083@std.uwu.ac.lk', '1234567891', '$2y$10$ywKCK54OAmHACe05SeZeVue2BvNxntSTqaPFpoHjb.IEbYwwMqnVa', 'donor', 'inactive'),
 ('US68807b16', 'Ben Asher', 'mbenash961030@gmail.com', '0760312229', '$2y$10$TcMVQtRKa0B12jzhE/ahS.rmQOsiTceMH4Q79eUQ.Y/DWyg1pBWZq', 'donor', 'inactive');
 
+-- Reward System Tables
+
+-- Donor Tiers Table
+CREATE TABLE donor_tiers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    tier_name VARCHAR(50) NOT NULL,
+    tier_level INT NOT NULL,
+    min_donations INT NOT NULL,
+    badge_icon VARCHAR(255),
+    discount_percentage DECIMAL(5,2),
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Donor Achievements Table
+CREATE TABLE donor_achievements (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    achievement_name VARCHAR(100) NOT NULL,
+    achievement_type ENUM('milestone', 'special', 'consistency', 'emergency') NOT NULL,
+    trigger_condition VARCHAR(255) NOT NULL,
+    badge_icon VARCHAR(255),
+    points_reward INT DEFAULT 0,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Donor Rewards Table
+CREATE TABLE donor_rewards (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    donor_id VARCHAR(50) NOT NULL,
+    tier_id INT,
+    current_points INT DEFAULT 0,
+    total_points_earned INT DEFAULT 0,
+    total_points_spent INT DEFAULT 0,
+    current_streak INT DEFAULT 0,
+    longest_streak INT DEFAULT 0,
+    last_donation_date DATE,
+    achievements_earned JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (donor_id) REFERENCES donors(donor_id) ON DELETE CASCADE,
+    FOREIGN KEY (tier_id) REFERENCES donor_tiers(id)
+);
+
+-- Reward Points History Table
+CREATE TABLE reward_points_history (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    donor_id VARCHAR(50) NOT NULL,
+    points_earned INT NOT NULL,
+    points_spent INT DEFAULT 0,
+    transaction_type ENUM('earned', 'spent', 'bonus', 'penalty') NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    donation_id VARCHAR(50),
+    achievement_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (donor_id) REFERENCES donors(donor_id) ON DELETE CASCADE,
+    FOREIGN KEY (donation_id) REFERENCES donations(donation_id) ON DELETE SET NULL,
+    FOREIGN KEY (achievement_id) REFERENCES donor_achievements(id) ON DELETE SET NULL
+);
+
+-- Reward Redemptions Table
+CREATE TABLE reward_redemptions (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    donor_id VARCHAR(50) NOT NULL,
+    redemption_type VARCHAR(100) NOT NULL,
+    points_spent INT NOT NULL,
+    redemption_value DECIMAL(10,2),
+    status ENUM('pending', 'approved', 'redeemed', 'expired') DEFAULT 'pending',
+    redemption_code VARCHAR(100),
+    expiry_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (donor_id) REFERENCES donors(donor_id) ON DELETE CASCADE
+);
+
+-- Partner Rewards Table
+CREATE TABLE partner_rewards (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    partner_name VARCHAR(100) NOT NULL,
+    partner_type ENUM('hospital', 'restaurant', 'hotel', 'travel', 'health') NOT NULL,
+    reward_description TEXT,
+    discount_percentage DECIMAL(5,2),
+    points_required INT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default donor tiers
+INSERT INTO donor_tiers (tier_name, tier_level, min_donations, badge_icon, discount_percentage, description) VALUES
+('Bronze Donor', 1, 1, '🥉', 10.00, 'Beginner donor with basic benefits'),
+('Silver Donor', 2, 6, '🥈', 15.00, 'Regular donor with enhanced benefits'),
+('Gold Donor', 3, 16, '🥇', 20.00, 'Experienced donor with premium benefits'),
+('Platinum Donor', 4, 31, '💎', 25.00, 'Elite donor with exclusive benefits');
+
+-- Insert default achievements
+INSERT INTO donor_achievements (achievement_name, achievement_type, trigger_condition, badge_icon, points_reward, description) VALUES
+('First Donation', 'milestone', 'donation_count >= 1', '🎯', 100, 'Completed your first donation'),
+('Life Saver', 'special', 'emergency_donation = true', '🏥', 200, 'Made an emergency donation'),
+('Consistency Champion', 'consistency', 'streak >= 12', '📈', 500, '12 consecutive months of donations'),
+('Emergency Hero', 'emergency', 'emergency_response = true', '🚨', 150, 'Responded to emergency call'),
+('Weekend Warrior', 'special', 'weekend_donation = true', '⚡', 125, 'Donated on weekend'),
+('Holiday Hero', 'special', 'holiday_donation = true', '🎄', 125, 'Donated on holiday'),
+('10th Donation', 'milestone', 'donation_count >= 10', '🔟', 200, 'Completed 10 donations'),
+('50th Donation', 'milestone', 'donation_count >= 50', '5️⃣0️⃣', 500, 'Completed 50 donations'),
+('100th Donation', 'milestone', 'donation_count >= 100', '💯', 1000, 'Completed 100 donations');
+
+-- Insert default partner rewards
+INSERT INTO partner_rewards (partner_name, partner_type, reward_description, discount_percentage, points_required) VALUES
+('General Hospital', 'hospital', 'Health checkup voucher', NULL, 500),
+('City Restaurant', 'restaurant', 'Dining voucher', 15.00, 1000),
+('Grand Hotel', 'hotel', 'Hotel stay voucher', 20.00, 2000),
+('Travel Agency', 'travel', 'Travel voucher', 25.00, 5000);
+
 --
 -- Indexes for dumped tables
 --

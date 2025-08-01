@@ -136,9 +136,16 @@ class AdminController extends BaseController
     {
         try {
             $stmt = $this->pdo->query("
-                SELECT d.donor_id, u.name, u.email, u.phone, d.blood_type, d.status, d.last_donation_date, d.city, d.lives_saved 
+                SELECT d.donor_id, u.name, u.email, u.phone, d.blood_type, d.status, d.last_donation_date, d.city,
+                       COALESCE(donation_counts.total_donations, 0) as total_donations,
+                       COALESCE(donation_counts.total_donations, 0) * 3 as lives_saved
                 FROM donors d 
                 LEFT JOIN users u ON d.user_id = u.user_id 
+                LEFT JOIN (
+                    SELECT donor_id, COUNT(*) as total_donations 
+                    FROM donations 
+                    GROUP BY donor_id
+                ) donation_counts ON d.donor_id = donation_counts.donor_id
                 ORDER BY d.donor_id DESC
             ");
             return $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -73,18 +73,9 @@ try {
     $adminController = new AdminController();
     $adminController->getDashboardData();
 } catch (Exception $e) {
-    // Log the error for debugging
-    error_log("Admin Dashboard Error: " . $e->getMessage());
-    error_log("Stack trace: " . $e->getTraceAsString());
-
     sendJsonResponse([
         'success' => false,
         'error' => 'Server error',
-        'message' => 'Failed to load dashboard data',
-        'debug' => [
-            'error' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine()
-        ]
+        'message' => 'Failed to load dashboard data'
     ], 500);
 }

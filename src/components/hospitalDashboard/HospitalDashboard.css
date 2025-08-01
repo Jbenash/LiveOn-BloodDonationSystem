@@ -244,6 +244,13 @@
   border: 2px solid #6b7280 !important;
   box-shadow: 0 4px 12px rgba(107,114,128,0.15) !important;
   background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  border-radius: 50% !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
 }
 
 /* Style the placeholder initials - more specific selectors */
@@ -252,7 +259,13 @@
 .profile-summary-card .flowbite-avatar div[data-testid="flowbite-avatar-initials"] {
   color: #ffffff !important;
   font-weight: 700 !important;
-  font-size: 1.3rem !important;
+  font-size: 0.9rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  text-align: center !important;
 }
 
 /* Force override for any Flowbite default styles */
@@ -905,8 +918,8 @@
 }
 
 .profile-summary-card .profile-avatar {
-  width: 70px;
-  height: 70px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #3b82f6;

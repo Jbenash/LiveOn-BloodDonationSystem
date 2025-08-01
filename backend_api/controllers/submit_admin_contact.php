@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once '../config/db_connection.php';
+require_once __DIR__ . '/../classes/Database.php';
 
 try {
     $input = json_decode(file_get_contents('php://input'), true);
@@ -39,18 +39,30 @@ try {
     }
 
     // Use Database class for connection
-    $db = new Database();
-    $pdo = $db->connect();
+    $database = Database::getInstance();
+    $pdo = $database->connect();
 
     // Generate unique feedback ID
     $feedbackId = 'FB' . substr(uniqid(), -8);
 
-    // Insert admin contact message
-    $query = "INSERT INTO feedback (feedback_id, name, email, subject, message, type, status, created_at) 
-              VALUES (?, ?, ?, ?, ?, ?, 'unread', NOW())";
+    // Insert admin contact message into feedback table
+    $query = "INSERT INTO feedback (feedback_id, user_id, role, message, approved, created_at) 
+              VALUES (?, ?, ?, ?, ?, NOW())";
 
     $stmt = $pdo->prepare($query);
-    $stmt->execute([$feedbackId, $name, $email, $subject, $message, $type]);
+    $stmt->execute([
+        $feedbackId,
+        'ADMIN_CONTACT', // Special user_id for admin contact
+        'admin', // Role for admin contact
+        json_encode([
+            'name' => $name,
+            'email' => $email,
+            'subject' => $subject,
+            'message' => $message,
+            'type' => $type
+        ]),
+        0 // Not approved by default
+    ]);
 
     if ($stmt->rowCount() > 0) {
         echo json_encode([
@@ -65,8 +77,8 @@ try {
     }
 } catch (PDOException $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
 }

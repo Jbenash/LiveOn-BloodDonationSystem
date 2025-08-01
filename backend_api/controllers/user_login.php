@@ -49,11 +49,20 @@ $loginManager = new LoginManager($conn);
 
 $user = $loginManager->login($username, $password);
 
-if ($user) {
-    if (isset($user['pending']) && $user['pending'] === true) {
-        echo json_encode(["success" => false, "message" => "Your registration is pending approval."]);
-        exit();
-    }
+// Check for blocked user first
+if ($user && isset($user['blocked']) && $user['blocked'] === true) {
+    echo json_encode(["success" => false, "message" => $user['message']]);
+    exit();
+}
+
+// Check for pending user
+if ($user && isset($user['pending']) && $user['pending'] === true) {
+    echo json_encode(["success" => false, "message" => "Your registration is pending approval."]);
+    exit();
+}
+
+// Check for successful login
+if ($user && isset($user['user_id'])) {
     $_SESSION['user_id'] = $user['user_id'];
     $_SESSION['role'] = $user['role'];
     $_SESSION['name'] = $user['name'];

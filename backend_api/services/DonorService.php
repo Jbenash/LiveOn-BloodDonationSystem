@@ -208,7 +208,7 @@ class DonorService
     public function saveDonation(array $input): array
     {
         // Validate required fields
-        $required_fields = ['donor_id', 'blood_type', 'donation_date', 'volume'];
+        $required_fields = ['donor_id', 'blood_type', 'donation_date', 'units_donated'];
         foreach ($required_fields as $field) {
             if (!isset($input[$field]) || empty($input[$field])) {
                 return ['success' => false, 'error' => "Missing required field: $field"];
@@ -224,7 +224,7 @@ class DonorService
             $stmt->bindParam(':donor_id', $input['donor_id']);
             $stmt->bindParam(':blood_type', $input['blood_type']);
             $stmt->bindParam(':donation_date', $input['donation_date']);
-            $stmt->bindParam(':units_donated', $input['volume']);
+            $stmt->bindParam(':units_donated', $input['units_donated']);
             // Use hospital_id from input if provided, otherwise default to HS002
             $hospital_id = isset($input['hospital_id']) && !empty($input['hospital_id']) ? $input['hospital_id'] : 'HS002';
             $stmt->bindParam(':hospital_id', $hospital_id);

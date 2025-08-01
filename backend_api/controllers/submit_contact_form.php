@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once '../config/db_connection.php';
+require_once __DIR__ . '/../classes/Database.php';
 
 try {
     $input = json_decode(file_get_contents('php://input'), true);
@@ -31,23 +31,28 @@ try {
     }
 
     // Use Database class for connection
-    $db = new Database();
-    $pdo = $db->connect();
+    $database = Database::getInstance();
+    $pdo = $database->connect();
 
     // Generate unique feedback ID
     $feedbackId = 'FB' . strtoupper(substr(md5(uniqid()), 0, 6));
 
-    // Insert contact message
-    $query = "INSERT INTO feedback (feedback_id, name, email, subject, message, type, status, created_at) 
-              VALUES (?, ?, ?, ?, ?, 'admin_contact', 'unread', NOW())";
+    // Insert contact message into feedback table
+    $query = "INSERT INTO feedback (feedback_id, user_id, role, message, approved, created_at) 
+              VALUES (?, ?, ?, ?, ?, NOW())";
 
     $stmt = $pdo->prepare($query);
     $stmt->execute([
         $feedbackId,
-        trim($input['name']),
-        trim($input['email']),
-        trim($input['subject']),
-        trim($input['message'])
+        'CONTACT', // Special user_id for contact form
+        'admin', // Role for contact form
+        json_encode([
+            'name' => trim($input['name']),
+            'email' => trim($input['email']),
+            'subject' => trim($input['subject']),
+            'message' => trim($input['message'])
+        ]),
+        0 // Not approved by default
     ]);
 
     echo json_encode([

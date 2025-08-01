@@ -13,13 +13,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once __DIR__ . '/../config/db_connection.php';
+require_once __DIR__ . '/../classes/Database.php';
 
 // Check if we should only return approved feedback (for homepage)
 $approvedOnly = isset($_GET['approved_only']) && $_GET['approved_only'] === 'true';
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();
     $pdo = $database->connect();
 
     // Build the SQL query with optional approval filter

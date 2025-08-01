@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.svg';
 import LoginModal from '../loginForm/LoginModal';
 import RegistrationModal from '../registrationForm/RegistrationModal';
-import MroVerificationPopup from '../mroVerificationPopup/MroVerificationPopup';
+import MroVerificationPopup from '../common/MroVerificationPopup';
 import sideImg from '../../assets/side.png';
 import mythsImg from '../../assets/myths.jpg';
 import whoImg from '../../assets/who.jpg';
@@ -41,6 +41,15 @@ const HomePage = () => {
   const [feedbacksError, setFeedbacksError] = useState(null);
   const [donorFeedbackIdx, setDonorFeedbackIdx] = useState(0);
   const [hospitalFeedbackIdx, setHospitalFeedbackIdx] = useState(0);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
+  const [isSubmittingContact, setIsSubmittingContact] = useState(false);
+  const [contactSubmitStatus, setContactSubmitStatus] = useState('');
   
 
 
@@ -171,6 +180,60 @@ const HomePage = () => {
     setStoryIdx((prev) => (successStories.length ? (prev - 1 + successStories.length) % successStories.length : 0));
   };
 
+  // Contact form handlers
+  const openContactModal = () => {
+    setShowContactModal(true);
+    document.body.classList.add('modal-open');
+  };
+
+  const closeContactModal = () => {
+    setShowContactModal(false);
+    document.body.classList.remove('modal-open');
+    setContactForm({ name: '', email: '', subject: '', message: '' });
+    setContactSubmitStatus('');
+  };
+
+  const handleContactChange = (e) => {
+    const { name, value } = e.target;
+    setContactForm(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
+
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmittingContact(true);
+    setContactSubmitStatus('');
+
+    try {
+      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/submit_contact_form.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: contactForm.name,
+          email: contactForm.email,
+          subject: contactForm.subject,
+          message: contactForm.message
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setContactSubmitStatus('Message sent successfully! We will get back to you soon.');
+        setTimeout(() => {
+          closeContactModal();
+        }, 2000);
+      } else {
+        setContactSubmitStatus(data.message || 'Failed to send message. Please try again.');
+      }
+    } catch (error) {
+      setContactSubmitStatus('Network error. Please try again.');
+    } finally {
+      setIsSubmittingContact(false);
+    }
+  };
 
 
   return (
@@ -558,6 +621,7 @@ const HomePage = () => {
           <div className="footer-section">
             <h4>Support</h4>
             <ul>
+              <li onClick={openContactModal}>Contact Us</li>
               <li>Help Center</li>
               <li>Privacy Policy</li>
               <li>Terms of Service</li>
@@ -566,9 +630,10 @@ const HomePage = () => {
           
           <div className="footer-section">
             <h4>Connect</h4>
-            <p>contact@liveon.org</p>
+            <p onClick={openContactModal} style={{cursor: 'pointer', textDecoration: 'underline'}}>contact@liveon.org</p>
             <p>1-800-LIVE-ON</p>
             <p>123 Innovation Drive</p>
+            <p>Email: liveonsystem@gmail.com</p>
           </div>
         </div>
         
@@ -589,6 +654,92 @@ const HomePage = () => {
         onRegistrationComplete={handleRegistrationComplete}
       />
       <MroVerificationPopup isOpen={showMroPopup} onClose={() => setShowMroPopup(false)} />
+
+      {/* Contact Modal */}
+      {showContactModal && (
+        <div className="modal-overlay" onClick={closeContactModal}>
+          <div className="contact-modal" onClick={e => e.stopPropagation()}>
+            <div className="contact-modal-header">
+              <h2>Contact Us</h2>
+              <button className="close-modal-btn" onClick={closeContactModal}>✖</button>
+            </div>
+            
+            <div className="contact-modal-content">
+              <form onSubmit={handleContactSubmit} className="contact-form">
+                {contactSubmitStatus && (
+                  <div className={`status-message ${contactSubmitStatus.includes('successfully') ? 'success' : 'error'}`}>
+                    {contactSubmitStatus}
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label htmlFor="contactName">Name</label>
+                  <input
+                    type="text"
+                    id="contactName"
+                    name="name"
+                    value={contactForm.name}
+                    onChange={handleContactChange}
+                    placeholder="Enter your name"
+                    required
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="contactEmail">Email</label>
+                  <input
+                    type="email"
+                    id="contactEmail"
+                    name="email"
+                    value={contactForm.email}
+                    onChange={handleContactChange}
+                    placeholder="Enter your email"
+                    required
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="contactSubject">Subject</label>
+                  <input
+                    type="text"
+                    id="contactSubject"
+                    name="subject"
+                    value={contactForm.subject}
+                    onChange={handleContactChange}
+                    placeholder="Enter subject"
+                    required
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="contactMessage">Message</label>
+                  <textarea
+                    id="contactMessage"
+                    name="message"
+                    value={contactForm.message}
+                    onChange={handleContactChange}
+                    placeholder="Enter your message"
+                    required
+                    className="form-input"
+                    rows="4"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="submit-btn"
+                  disabled={isSubmittingContact}
+                >
+                  {isSubmittingContact ? 'Sending...' : 'Send Message'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showArticle && (
         <div className="article-overlay" onClick={() => setShowArticle(false)}>

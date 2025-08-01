@@ -15,6 +15,11 @@ class User
     public function login(string $email, string $password): array|false
     {
         try {
+            // Check if user is blocked due to too many failed attempts
+            if ($this->isUserBlocked($email)) {
+                return ['blocked' => true, 'message' => 'Account temporarily locked due to multiple failed login attempts. Please try again in 10 minutes.'];
+            }
+
             $sql = "SELECT * FROM {$this->table} WHERE email = :email";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindValue(':email', $email);
@@ -22,6 +27,9 @@ class User
             $user = $stmt->fetch();
 
             if ($user && password_verify($password, $user['password_hash'])) {
+                // Successful login - clear failed attempts
+                $this->clearFailedAttempts($email);
+
                 if ($user['status'] === 'active') {
                     return [
                         'user_id' => $user['user_id'],
@@ -34,10 +42,57 @@ class User
                 } else {
                     return ['pending' => true, 'status' => $user['status']];
                 }
+            } else {
+                // Failed login - record the attempt
+                $this->recordFailedAttempt($email);
+                return false;
             }
-            return false;
         } catch (PDOException $e) {
             throw new UserException("Login failed: " . $e->getMessage());
+        }
+    }
+
+    private function isUserBlocked(string $email): bool
+    {
+        try {
+            // Check for failed attempts in the last 10 minutes
+            $sql = "SELECT COUNT(*) as failed_attempts FROM login_attempts 
+                    WHERE email = :email AND attempt_time > DATE_SUB(NOW(), INTERVAL 10 MINUTE)";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':email', $email);
+            $stmt->execute();
+            $result = $stmt->fetch();
+
+            return $result['failed_attempts'] >= 3;
+        } catch (PDOException $e) {
+            // If table doesn't exist, return false (no blocking)
+            return false;
+        }
+    }
+
+    private function recordFailedAttempt(string $email): void
+    {
+        try {
+            $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+            $sql = "INSERT INTO login_attempts (email, ip_address) VALUES (:email, :ip_address)";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':email', $email);
+            $stmt->bindValue(':ip_address', $ipAddress);
+            $stmt->execute();
+        } catch (PDOException $e) {
+            // If table doesn't exist, ignore the error
+        }
+    }
+
+    private function clearFailedAttempts(string $email): void
+    {
+        try {
+            $sql = "DELETE FROM login_attempts WHERE email = :email";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindValue(':email', $email);
+            $stmt->execute();
+        } catch (PDOException $e) {
+            // If table doesn't exist, ignore the error
         }
     }
 

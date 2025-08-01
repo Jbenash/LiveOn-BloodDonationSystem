@@ -146,7 +146,6 @@ const AdminDashboard = () => {
   // Helper to add a notification
   const addNotification = (message, type = 'info') => {
     // This function is kept for backward compatibility but not used in the new system
-    console.log('Notification:', message, type);
   };
 
   // Fetch notifications from backend
@@ -194,13 +193,11 @@ const AdminDashboard = () => {
     // Mark all as read
     const markNotificationsRead = async () => {
       // Old notification system - now replaced by system activities
-      console.log('Mark notifications as read - deprecated');
     };
 
     // Mark a single notification as read (keeping for backward compatibility)
     const markNotificationRead = async (notification_id) => {
       // Old notification system - now replaced by system activities
-      console.log('Mark notification as read - deprecated');
     };
 
     // Fetch password reset requests
