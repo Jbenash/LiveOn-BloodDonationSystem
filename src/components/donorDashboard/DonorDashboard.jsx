@@ -7,6 +7,7 @@ import logo from '../../assets/logo.svg';
 import ConfirmDialog from '../common/ConfirmDialog';
 import ErrorDisplay from '../common/ErrorDisplay';
 import LoadingSpinner from '../common/LoadingSpinner';
+import RewardsDashboard from '../common/RewardsDashboard';
 
 const DonorDashboard = () => {
   const [user, setUser] = useState(null);
@@ -24,6 +25,10 @@ const DonorDashboard = () => {
   const [removeReason, setRemoveReason] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showHospitalPopup, setShowHospitalPopup] = useState(false);
+  const [hospitals, setHospitals] = useState([]);
+  const [loadingHospitals, setLoadingHospitals] = useState(false);
+  const [showHealthTipsPopup, setShowHealthTipsPopup] = useState(false);
 
   // Browser back button handling
   useEffect(() => {
@@ -185,6 +190,9 @@ const DonorDashboard = () => {
     if (editForm.profilePicFile) {
       formData.append('profilePicFile', editForm.profilePicFile);
     }
+    if (editForm.removeAvatar) {
+      formData.append('removeAvatar', '1');
+    }
     try {
       const res = await fetch('http://localhost/liveonv2/backend_api/controllers/update_donor_profile.php', {
         method: 'POST',
@@ -193,13 +201,26 @@ const DonorDashboard = () => {
       });
       const data = await res.json();
       if (data.success) {
-        setUser(u => ({ ...u, name: editForm.name, bloodType: editForm.bloodType, age: editForm.age, location: editForm.location, email: editForm.email, profilePic: data.imagePath ? `http://localhost/liveonv2/${data.imagePath}` : u.profilePic }));
+        // Update user state with new profile data
+        setUser(u => ({ 
+          ...u, 
+          name: editForm.name, 
+          bloodType: editForm.bloodType, 
+          age: editForm.age, 
+          location: editForm.location, 
+          email: editForm.email, 
+          profilePic: (editForm.removeAvatar || data.avatarRemoved) ? null : (data.imagePath ? `http://localhost/liveonv2/${data.imagePath}` : u.profilePic) 
+        }));
+        
+        // Reset edit form to clear any cached data
+        setEditForm({});
         setShowEditProfile(false);
         toast.success('Profile updated successfully!');
       } else {
         toast.error(data.message || 'Failed to update profile');
       }
     } catch (err) {
+      console.error('Error updating profile:', err);
       toast.error('Error updating profile');
     }
   };
@@ -246,6 +267,42 @@ const DonorDashboard = () => {
   const cancelRemove = () => {
     setShowRemoveDialog(false);
     setRemoveReason('');
+  };
+
+  // Function to fetch hospitals from database
+  const fetchHospitals = async (location) => {
+    setLoadingHospitals(true);
+    try {
+      const response = await fetch(`http://localhost/liveonv2/backend_api/controllers/get_hospitals.php?location=${encodeURIComponent(location)}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setHospitals(data.hospitals);
+      } else {
+        console.error('Failed to fetch hospitals:', data.error);
+        setHospitals([]);
+      }
+    } catch (error) {
+      console.error('Error fetching hospitals:', error);
+      setHospitals([]);
+    } finally {
+      setLoadingHospitals(false);
+    }
+  };
+
+  // Function to handle hospital popup opening
+  const handleHospitalPopupOpen = () => {
+    setShowHospitalPopup(true);
+    if (user?.location) {
+      fetchHospitals(user.location);
+    }
   };
 
   if (loading) {
@@ -414,101 +471,295 @@ const DonorDashboard = () => {
         </button>
       </aside>
       <div className="dashboard-main">
-        <div className="dashboard-section" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 36, padding: '28px 32px' }}>
-          <header className="dashboard-header" style={{ margin: 0 }}>
-            <h1 style={{ margin: 0 }}>Donor Dashboard</h1>
+        <div className="dashboard-section">
+          <header className="dashboard-header">
+            <div className="header-content">
+              <div className="header-title-section">
+                <h1>Donor Dashboard</h1>
+                <span className="welcome-text">Welcome back, {user.name || 'Donor'}!</span>
+              </div>
+            </div>
+            <div className="dashboard-user-info">
+              <Avatar
+                img={user.profilePic || null}
+                alt="Profile"
+                size="md"
+                rounded
+                placeholderInitials={user.name ? user.name.substring(0, 2).toUpperCase() : "DN"}
+                className="custom-avatar"
+                style={{
+                  backgroundColor: '#6b7280',
+                  color: '#ffffff',
+                  border: '2px solid #6b7280'
+                }}
+                onClick={() => setShowEditProfile(true)}
+              />
+              <span className="dashboard-user-name">{user.name || 'Donor'}</span>
+            </div>
           </header>
-          <div className="dashboard-user-info">
-            <Avatar
-              img={user.profilePic || null}
-              alt="Profile"
-              size="md"
-              rounded
-              placeholderInitials={user.name ? user.name.substring(0, 2).toUpperCase() : "DN"}
-              className="custom-avatar"
-              style={{
-                backgroundColor: '#6b7280',
-                color: '#ffffff',
-                border: '2px solid #6b7280'
-              }}
-              onClick={() => setActiveSection('profile')}
-            />
-            <span className="dashboard-user-name">Welcome, {user.name}</span>
-          </div>
         </div>
         <div className="dashboard-content">
           {activeSection === 'profile' && (
             <div className="dashboard-stats-grid">
-              {/* Redesigned Profile Card */}
-              <div className="dashboard-card glassy profile-summary animate-fadein" style={{ maxWidth: 600, margin: '0 auto', padding: '3.5rem 2.5rem', boxShadow: '0 12px 40px rgba(220,53,69,0.13)', background: 'rgba(255,255,255,0.99)' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 32 }}>
-                  <img src={user.profilePic} alt="Profile" style={{ width: 150, height: 150, borderRadius: '50%', objectFit: 'cover', border: '6px solid #dc3545', boxShadow: '0 6px 24px rgba(220,53,69,0.13)' }} />
-                  <div style={{ fontWeight: 700, fontSize: '2.1rem', marginTop: 24, color: '#1e293b', letterSpacing: 0.5 }}>{user.name}</div>
-                  <div style={{ fontWeight: 600, fontSize: '1.3rem', color: '#dc3545', marginTop: 4 }}>Donor ID: {user.donorId}</div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 28 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.18rem' }}>
-                    <span style={{ fontWeight: 600, color: '#64748b' }}>Blood Type:</span>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>{user.bloodType}</span>
+              {/* Enhanced Profile Section */}
+              <div className="profile-section-container">
+                
+                {/* Main Profile Card */}
+                <div className="profile-main-card">
+                  <div className="profile-header">
+                    <Avatar
+                      img={user.profilePic || null}
+                      alt="Profile"
+                      size="xl"
+                      rounded
+                      placeholderInitials={user.name ? user.name.substring(0, 2).toUpperCase() : "DN"}
+                      className="profile-card-avatar"
+                    />
+                    <div className="profile-info">
+                      <h2 className="profile-name">{user.name}</h2>
+                      <p className="profile-id">Donor ID: {user.donorId}</p>
+                      <div className="status-indicator">
+                        <span className="status-dot"></span>
+                        <span className="status-text">Available for Donation</span>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.18rem' }}>
-                    <span style={{ fontWeight: 600, color: '#64748b' }}>Age:</span>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>{user.age}</span>
+                  
+                  <div className="profile-details">
+                    <div className="detail-item">
+                      <span className="detail-label">Blood Type</span>
+                      <span className="detail-value blood-type-badge">{user.bloodType}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Age</span>
+                      <span className="detail-value">{user.age}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Location</span>
+                      <span className="detail-value">{user.location}</span>
+                    </div>
+                                         <div className="detail-item email-item">
+                       <span className="detail-label">Email</span>
+                       <span className="detail-value">{user.email}</span>
+                     </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.18rem' }}>
-                    <span style={{ fontWeight: 600, color: '#64748b' }}>Location:</span>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>{user.location}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.18rem' }}>
-                    <span style={{ fontWeight: 600, color: '#64748b' }}>Email:</span>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>{user.email}</span>
-                  </div>
-                </div>
-                <button className="dashboard-btn primary" style={{ width: '100%', marginTop: 16, fontSize: '1.15rem', padding: '14px 0' }}
-                  onClick={() => {
+                  
+                  <button className="edit-profile-btn" onClick={() => {
                     setEditForm({
                       donorId: user.donorId,
                       name: user.name,
                       bloodType: user.bloodType,
                       age: user.age,
                       location: user.location,
-                      email: user.email
+                      email: user.email,
+                      profilePic: user.profilePic,
+                      removeAvatar: false
                     });
                     setShowEditProfile(true);
-                  }}
-                >Edit Profile</button>
+                  }}>
+                    <span className="btn-icon">✏️</span>
+                    Edit Profile
+                  </button>
+                </div>
+
+                {/* Stats Cards Grid */}
+                <div className="stats-grid">
+                  {/* Donation Progress Card */}
+                  <div className="stats-card progress-card">
+                    <div className="card-header">
+                      <div className="card-icon">🩸</div>
+                      <h3>Donation Progress</h3>
+                    </div>
+                    <div className="progress-section">
+                      <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: `${Math.min((user.totalDonations || 0) * 20, 100)}%` }}></div>
+                      </div>
+                      <div className="progress-text">
+                        <span>{user.totalDonations || 0} donations</span>
+                        <span>Goal: 5 donations</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Impact Card */}
+                  <div className="lives-saved-card">
+                    <div className="lives-saved-header">
+                      <h3>Lives Saved</h3>
+                      <div className="lives-saved-icon">❤️</div>
+                    </div>
+                    <div className="lives-saved-content">
+                      <div className="lives-number">
+                        <span className="big-number">{user.totalDonations ? user.totalDonations * 3 : 0}</span>
+                        <span className="lives-text">lives</span>
+                      </div>
+                      <div className="lives-description">
+                        <p>Your donations have made a real difference in people's lives</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Eligibility Card */}
+                  <div className="stats-card eligibility-card">
+                    <div className="card-header">
+                      <div className="card-icon">⏰</div>
+                      <h3>Next Donation</h3>
+                    </div>
+                    <div className="eligibility-info">
+                      <div className="eligibility-status">
+                        {countdown && countdown !== 'N/A' && countdown !== 'Eligible now!' ? (
+                          <span className="status-waiting">Wait {countdown}</span>
+                        ) : (
+                          <span className="status-eligible">Eligible Now!</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Points Card */}
+                  <div className="stats-card points-card">
+                    <div className="card-header">
+                      <div className="card-icon">🏆</div>
+                      <h3>Reward Points</h3>
+                    </div>
+                    <div className="points-number">
+                      <span className="number">{user.points || 0}</span>
+                      <span className="label">points</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Smart Recommendations */}
+                <div className="recommendations-section">
+                  <h3 className="section-title">Smart Recommendations</h3>
+                  
+                  <div className="recommendations-grid">
+                    {/* Donation Reminder */}
+                    {countdown === 'Eligible now!' && (
+                      <div className="recommendation-card reminder-card">
+                        <div className="rec-icon">🔔</div>
+                        <div className="rec-content">
+                          <h4>Ready to Donate!</h4>
+                          <p>You're eligible to donate again. Schedule your next donation.</p>
+                        </div>
+                        <button className="rec-action-btn">Schedule Now</button>
+                      </div>
+                    )}
+
+                                    {/* Hospital Suggestion */}
+                <div className="recommendation-card hospital-card">
+                  <div className="rec-icon">🏥</div>
+                  <div className="rec-content">
+                    <h4>Nearby Hospitals</h4>
+                    <p>Try these hospitals near {user.location} for your next donation.</p>
+                  </div>
+                  <button className="rec-action-btn" onClick={handleHospitalPopupOpen}>View Hospitals</button>
+                </div>
+
+                    {/* Health Tips */}
+                    <div className="recommendation-card health-card">
+                      <div className="rec-icon">💧</div>
+                      <div className="rec-content">
+                        <h4>Health Tip</h4>
+                        <p>Stay hydrated and get plenty of rest before your donation.</p>
+                      </div>
+                      <button className="rec-action-btn" onClick={() => setShowHealthTipsPopup(true)}>Learn More</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
           {activeSection === 'dashboard' && (
             <>
               <div className="dashboard-stats-grid">
-                {/* Profile Card */}
-                <div className="dashboard-card glassy profile-summary animate-fadein"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => {
-                    setEditForm({
-                      donorId: user.donorId,
-                      name: user.name,
-                      bloodType: user.bloodType,
-                      age: user.age,
-                      location: user.location,
-                      email: user.email
-                    });
-                    setShowEditProfile(true);
-                  }}
-                >
-                  <div className="profile-summary-title gradient-text">Profile Summary</div>
-                  <div className="profile-summary-details">
-                    <img src={user.profilePic} alt="Profile" className="profile-avatar" />
-                    <div className="profile-summary-text">
-                      <div><span className="label">Donor ID:</span> {user.donorId}</div>
-                      <div><span className="label">Name:</span> {user.name}</div>
-                      <div><span className="label">Blood Type:</span> {user.bloodType}</div>
-                      <div><span className="label">Age:</span> {user.age}</div>
-                      <div><span className="label">Location:</span> {user.location}</div>
-                      <div><span className="label">Email:</span> {user.email}</div>
+                {/* Enhanced Profile Summary Card */}
+                <div className="enhanced-profile-summary-card">
+                  <div className="profile-summary-header">
+                    <div className="profile-summary-avatar-section">
+                      <Avatar
+                        img={user.profilePic || null}
+                        alt="Profile"
+                        size="xl"
+                        rounded
+                        placeholderInitials={user.name ? user.name.substring(0, 2).toUpperCase() : "DN"}
+                        className="profile-summary-avatar"
+                      />
+                      <div className="profile-summary-status">
+                        <div className="status-badge">
+                          <span className="status-dot-active"></span>
+                          <span>Active Donor</span>
+                        </div>
+                      </div>
                     </div>
+                    <div className="profile-summary-info">
+                      <h2 className="profile-summary-name">{user.name}</h2>
+                      <p className="profile-summary-id">#{user.donorId}</p>
+                      <div className="profile-summary-badges">
+                        <span className="blood-type-badge-summary">{user.bloodType}</span>
+                        <span className="age-badge">{user.age} years</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="profile-summary-details">
+                    <div className="detail-row">
+                      <div className="detail-item-summary">
+                        <span className="detail-icon">📍</span>
+                        <div className="detail-content">
+                          <span className="detail-label-summary">Location</span>
+                          <span className="detail-value-summary">{user.location}</span>
+                        </div>
+                      </div>
+                      <div className="detail-item-summary">
+                        <span className="detail-icon">📧</span>
+                        <div className="detail-content">
+                          <span className="detail-label-summary">Email</span>
+                          <span className="detail-value-summary email-value">{user.email}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="profile-summary-stats">
+                      <div className="stat-item">
+                        <span className="stat-number">{user.totalDonations || 0}</span>
+                        <span className="stat-label">Donations</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-number">{user.totalDonations ? user.totalDonations * 3 : 0}</span>
+                        <span className="stat-label">Lives Saved</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-number">{user.points || 0}</span>
+                        <span className="stat-label">Points</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="profile-summary-actions">
+                    <button className="edit-profile-summary-btn" onClick={(e) => {
+                      e.stopPropagation();
+                      setEditForm({
+                        donorId: user.donorId,
+                        name: user.name,
+                        bloodType: user.bloodType,
+                        age: user.age,
+                        location: user.location,
+                        email: user.email,
+                        profilePic: user.profilePic,
+                        removeAvatar: false
+                      });
+                      setShowEditProfile(true);
+                    }}>
+                      <span className="btn-icon">✏️</span>
+                      Edit Profile
+                    </button>
+                    <button className="view-history-btn" onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveSection('donations');
+                    }}>
+                      <span className="btn-icon">📋</span>
+                      View History
+                    </button>
                   </div>
                 </div>
               </div>
@@ -777,7 +1028,7 @@ const DonorDashboard = () => {
                           </g>
                         </svg>
                       </span>
-                      <div className="stat-value stat-green">{user.livesSaved}</div>
+                      <div className="stat-value stat-green">{user.totalDonations ? user.totalDonations * 3 : 0}</div>
                       <div className="stat-label">Lives Saved</div>
                     </div>
                   </div>
@@ -800,67 +1051,105 @@ const DonorDashboard = () => {
             </>
           )}
           {activeSection === 'donations' && (
-            <div style={{ maxWidth: 900, margin: '0 auto' }}>
-              <h2 style={{ marginBottom: 24 }}>My Donation History</h2>
+            <div className="donation-history-container">
+              <h2 className="donation-history-title">My Donation History</h2>
               {donations.length === 0 ? (
-                <div>No donation records found.</div>
+                <div className="no-donations-message">
+                  <p>No donation records found.</p>
+                </div>
               ) : (
-                <table className="dashboard-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 24px rgba(59,130,246,0.10)' }}>
-                  <thead>
-                    <tr style={{ background: 'linear-gradient(90deg, #f43f5e 0%, #3b82f6 100%)' }}>
-                      <th style={{ color: '#f43f5e', fontWeight: 700, padding: '14px 0', fontSize: '1.08rem', border: 'none', textAlign: 'center' }}>No.</th>
-                      <th style={{ color: '#2563eb', fontWeight: 700, padding: '14px 0', fontSize: '1.08rem', border: 'none', textAlign: 'center' }}>Volume (ml)</th>
-                      <th style={{ color: '#334155', fontWeight: 700, padding: '14px 0', fontSize: '1.08rem', border: 'none', textAlign: 'center' }}>Date</th>
-                      <th style={{ color: '#10b981', fontWeight: 700, padding: '14px 0', fontSize: '1.08rem', border: 'none', textAlign: 'center' }}>Hospital</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {donations.map((don, idx) => (
-                      <tr key={don.donation_id || idx} style={{ background: idx % 2 === 0 ? '#f1f5f9' : '#e0e7ff', transition: 'background 0.2s' }}>
-                        <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: 600, color: '#f43f5e', fontSize: '1.05rem', border: 'none' }}>{idx + 1}</td>
-                        <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: 600, color: '#2563eb', fontSize: '1.05rem', border: 'none' }}>{don.units_donated}</td>
-                        <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: 600, color: '#334155', fontSize: '1.05rem', border: 'none' }}>{new Date(don.donation_date).toLocaleString()}</td>
-                        <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: 600, color: '#10b981', fontSize: '1.05rem', border: 'none' }}>{don.hospital_id}</td>
+                <div className="donation-table-wrapper">
+                  <table className="donation-history-table">
+                    <thead>
+                      <tr>
+                        <th className="th-number">No.</th>
+                        <th className="th-volume">Volume (ml)</th>
+                        <th className="th-date">Date</th>
+                        <th className="th-hospital">Hospital</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {donations.map((don, idx) => (
+                        <tr key={don.donation_id || idx} className={idx % 2 === 0 ? 'row-even' : 'row-odd'}>
+                          <td className="td-number">{idx + 1}</td>
+                          <td className="td-volume">{don.units_donated}</td>
+                          <td className="td-date">{new Date(don.donation_date).toLocaleString()}</td>
+                          <td className="td-hospital">{don.hospital_id}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           )}
-          {activeSection === 'rewards' && (
-            <div className="dashboard-stats-grid">
-              {/* Reward Points & Ranking Only */}
-              <div className="dashboard-card glassy reward-stats animate-fadein" style={{ gridColumn: '1 / span 3' }}>
-                <div className="reward-title gradient-text">Reward Points & Ranking</div>
-                <div className="reward-points stat-green">{user.points} Points</div>
-                <div className="reward-rank">Rank: {user.rank}</div>
-              </div>
-            </div>
+          {activeSection === 'rewards' && user && user.donorId && (
+            <RewardsDashboard donorId={user.donorId} />
           )}
           {activeSection === 'feedback' && (
-            <div className="dashboard-stats-grid" style={{ justifyContent: 'center' }}>
-              <div className="dashboard-card glassy animate-fadein" style={{ gridColumn: '1 / span 3', maxWidth: 500, margin: '0 auto' }}>
-                <div className="feedback-title gradient-text" style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 18 }}>Submit Feedback</div>
+            <div className="feedback-section-container">
+              {/* Feedback Header */}
+              <div className="feedback-header">
+                <div className="feedback-header-content">
+                  <h2 className="feedback-title">💬 Share Your Experience</h2>
+                  <p className="feedback-subtitle">Help us improve our blood donation platform by sharing your thoughts and suggestions</p>
+                </div>
+                <div className="feedback-stats">
+                  <div className="feedback-stat">
+                    <div className="stat-icon">🎤</div>
+                    <div className="stat-content">
+                      <span className="stat-number">Your Voice</span>
+                      <span className="stat-label">Matters</span>
+                    </div>
+                    <div className="stat-decoration">
+                      <div className="decoration-dot"></div>
+                      <div className="decoration-dot"></div>
+                      <div className="decoration-dot"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feedback Form Card */}
+              <div className="feedback-form-card">
+                <div className="form-header">
+                  <h3>📝 Submit Feedback</h3>
+                  <p>Tell us about your experience with our blood donation platform</p>
+                </div>
+                
                 <form
+                  className="feedback-form"
                   onSubmit={async e => {
                     e.preventDefault();
                     const feedback = e.target.elements.feedback.value.trim();
+                    const feedbackType = e.target.elements.feedbackType.value;
+                    const rating = e.target.elements.rating.value;
+                    
                     if (!feedback) {
                       toast.error('Please enter your feedback.');
                       return;
                     }
+                    
                     try {
                       const res = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_feedback.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ donorId: user.donorId, feedback }),
+                        body: JSON.stringify({ 
+                          donorId: user.donorId, 
+                          feedback,
+                          feedbackType,
+                          rating
+                        }),
                         credentials: 'include',
                       });
                       const data = await res.json();
                       if (data.success) {
                         toast.success('Thank you for your feedback! It will be reviewed by an admin before being displayed on the homepage.');
                         e.target.reset();
+                        // Reset rating display
+                        document.querySelectorAll('.rating-star').forEach(star => {
+                          star.classList.remove('active');
+                        });
                       } else {
                         toast.error(data.message || 'Failed to submit feedback');
                       }
@@ -868,16 +1157,111 @@ const DonorDashboard = () => {
                       toast.error('Error submitting feedback');
                     }
                   }}
-                  style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
                 >
-                  <textarea
-                    name="feedback"
-                    rows={5}
-                    placeholder="Enter your feedback here..."
-                    style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '12px', fontSize: '1.08rem', resize: 'vertical', minHeight: 100 }}
-                  />
-                  <button type="submit" className="dashboard-btn primary" style={{ fontSize: '1.08rem', padding: '12px 0' }}>Submit Feedback</button>
+                  {/* Feedback Type Selection */}
+                  <div className="form-group">
+                    <label className="form-label">Feedback Type</label>
+                    <select name="feedbackType" className="form-select" required>
+                      <option value="">Select feedback type</option>
+                      <option value="general">General Feedback</option>
+                      <option value="suggestion">Suggestion</option>
+                      <option value="complaint">Complaint</option>
+                      <option value="praise">Praise</option>
+                      <option value="bug">Bug Report</option>
+                    </select>
+                  </div>
+
+                  {/* Rating Section */}
+                  <div className="form-group">
+                    <label className="form-label">Overall Rating</label>
+                    <div className="rating-container">
+                      <div className="rating-stars">
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <span
+                            key={star}
+                            className="rating-star"
+                            onClick={() => {
+                              // Update visual stars
+                              document.querySelectorAll('.rating-star').forEach((s, index) => {
+                                if (index < star) {
+                                  s.classList.add('active');
+                                } else {
+                                  s.classList.remove('active');
+                                }
+                              });
+                              // Update hidden input
+                              document.querySelector('input[name="rating"]').value = star;
+                            }}
+                          >
+                            ⭐
+                          </span>
+                        ))}
+                      </div>
+                      <input type="hidden" name="rating" value="0" />
+                      <span className="rating-text">Click to rate your experience</span>
+                    </div>
+                  </div>
+
+                  {/* Feedback Text */}
+                  <div className="form-group">
+                    <label className="form-label">Your Feedback</label>
+                                         <textarea
+                       name="feedback"
+                       className="feedback-textarea"
+                       rows={6}
+                       placeholder="Share your thoughts, suggestions, or experiences with our blood donation platform..."
+                       required
+                       onChange={(e) => {
+                         const charCount = e.target.value.length;
+                         e.target.parentNode.querySelector('.char-count').textContent = charCount;
+                       }}
+                     />
+                    <div className="textarea-counter">
+                      <span className="char-count">0</span> / 500 characters
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <button type="submit" className="submit-feedback-btn">
+                    <span className="btn-icon">📤</span>
+                    Submit Feedback
+                  </button>
                 </form>
+              </div>
+
+              {/* Feedback Guidelines */}
+              <div className="feedback-guidelines">
+                <h3>📋 Feedback Guidelines</h3>
+                <div className="guidelines-grid">
+                  <div className="guideline-item">
+                    <span className="guideline-icon">💡</span>
+                    <div className="guideline-content">
+                      <h4>Be Specific</h4>
+                      <p>Provide detailed feedback about specific features or experiences</p>
+                    </div>
+                  </div>
+                  <div className="guideline-item">
+                    <span className="guideline-icon">🤝</span>
+                    <div className="guideline-content">
+                      <h4>Be Constructive</h4>
+                      <p>Share suggestions for improvement along with any concerns</p>
+                    </div>
+                  </div>
+                  <div className="guideline-item">
+                    <span className="guideline-icon">🔒</span>
+                    <div className="guideline-content">
+                      <h4>Privacy First</h4>
+                      <p>Don't include personal information in your feedback</p>
+                    </div>
+                  </div>
+                  <div className="guideline-item">
+                    <span className="guideline-icon">⏰</span>
+                    <div className="guideline-content">
+                      <h4>Response Time</h4>
+                      <p>We review and respond to feedback within 48 hours</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -888,9 +1272,21 @@ const DonorDashboard = () => {
 
       {/* Edit Profile Modal */}
       {showEditProfile && (
-        <div className="modal-overlay" onClick={() => setShowEditProfile(false)}>
+        <div className="modal-overlay" onClick={() => {
+          setShowEditProfile(false);
+          // Reset user state if modal is closed without saving
+          if (editForm.removeAvatar && !editForm.profilePicFile) {
+            setUser(u => ({ ...u, profilePic: editForm.profilePic }));
+          }
+        }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="close-btn" onClick={() => setShowEditProfile(false)}>&times;</button>
+            <button className="close-btn" onClick={() => {
+              setShowEditProfile(false);
+              // Reset user state if modal is closed without saving
+              if (editForm.removeAvatar && !editForm.profilePicFile) {
+                setUser(u => ({ ...u, profilePic: editForm.profilePic }));
+              }
+            }}>&times;</button>
 
             {/* Header */}
             <div>
@@ -906,24 +1302,44 @@ const DonorDashboard = () => {
                     src={editForm.profilePic || user.profilePic}
                     alt="Profile"
                   />
-                  <label className="change-photo-btn">
-                    Change Photo
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={e => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = ev => {
-                            setEditForm(f => ({ ...f, profilePic: ev.target.result, profilePicFile: file }));
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
+                  <div className="profile-picture-buttons">
+                    <label className="change-photo-btn">
+                      Change Photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = ev => {
+                              setEditForm(f => ({ ...f, profilePic: ev.target.result, profilePicFile: file }));
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                    {(editForm.profilePic || user.profilePic) && (
+                      <button
+                        type="button"
+                        className="remove-avatar-btn"
+                        onClick={() => {
+                          setEditForm(f => ({ 
+                            ...f, 
+                            profilePic: null, 
+                            profilePicFile: null,
+                            removeAvatar: true 
+                          }));
+                          // Immediately update the user state for instant UI feedback
+                          setUser(u => ({ ...u, profilePic: null }));
+                        }}
+                      >
+                        Remove Avatar
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1011,7 +1427,13 @@ const DonorDashboard = () => {
                 <button
                   type="button"
                   className="cancel-btn"
-                  onClick={() => setShowEditProfile(false)}
+                  onClick={() => {
+                    setShowEditProfile(false);
+                    // Reset user state if modal is closed without saving
+                    if (editForm.removeAvatar && !editForm.profilePicFile) {
+                      setUser(u => ({ ...u, profilePic: editForm.profilePic }));
+                    }
+                  }}
                 >
                   Cancel
                 </button>
@@ -1024,6 +1446,220 @@ const DonorDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Hospital Popup */}
+      {showHospitalPopup && (
+        <div className="hospital-popup-overlay" onClick={() => setShowHospitalPopup(false)}>
+          <div className="hospital-popup" onClick={e => e.stopPropagation()}>
+            <div className="popup-header">
+              <h3>🏥 Nearby Hospitals</h3>
+              <button 
+                className="close-btn" 
+                onClick={() => setShowHospitalPopup(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="popup-content">
+              <p className="location-info">Hospitals near <strong>{user?.location || 'your location'}</strong></p>
+              {loadingHospitals ? (
+                <div className="loading-hospitals">
+                  <div className="loading-spinner"></div>
+                  <p>Loading hospitals...</p>
+                </div>
+              ) : hospitals.length > 0 ? (
+                <div className="hospitals-list">
+                  {hospitals.map((hospital, index) => (
+                    <div key={hospital.id || index} className="hospital-item">
+                      <div className="hospital-info">
+                        <h4 className="hospital-name">{hospital.name}</h4>
+                        <p className="hospital-address">{hospital.address}</p>
+                        <div className="hospital-details">
+                          <span className="distance">{hospital.distance}</span>
+                          <span className="rating">⭐ {hospital.rating}</span>
+                        </div>
+                        <div className="hospital-services">
+                          <span className="service-badge blood-bank">🩸 Blood Bank</span>
+                          <span className="service-badge emergency">🚨 Emergency</span>
+                        </div>
+                      </div>
+                      <div className="hospital-actions">
+                        <button className="call-btn" onClick={() => window.open(`tel:${hospital.phone}`)}>
+                          📞 Call
+                        </button>
+                        <button className="directions-btn" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(hospital.address)}`)}>
+                          🗺️ Directions
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="no-hospitals">
+                  <p>No hospitals found near {user?.location || 'your location'}</p>
+                  <p className="no-hospitals-subtitle">Try updating your location or contact support</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Health Tips Popup */}
+      {showHealthTipsPopup && (
+        <div className="health-tips-popup-overlay" onClick={() => setShowHealthTipsPopup(false)}>
+          <div className="health-tips-popup" onClick={e => e.stopPropagation()}>
+            <div className="popup-header health-header">
+              <h3>💊 Health Tips for Blood Donors</h3>
+              <button 
+                className="close-btn" 
+                onClick={() => setShowHealthTipsPopup(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="popup-content health-content">
+              <div className="health-tips-grid">
+                {/* Before Donation */}
+                <div className="health-tip-section">
+                  <h4 className="section-title">🕐 Before Donation</h4>
+                  <div className="tip-list">
+                    <div className="tip-item">
+                      <span className="tip-icon">💧</span>
+                      <div className="tip-content">
+                        <h5>Stay Hydrated</h5>
+                        <p>Drink plenty of water 24 hours before donation</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">😴</span>
+                      <div className="tip-content">
+                        <h5>Get Good Sleep</h5>
+                        <p>Ensure 7-8 hours of sleep the night before</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">🍽️</span>
+                      <div className="tip-content">
+                        <h5>Eat Well</h5>
+                        <p>Have a healthy meal 3-4 hours before donation</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">🚫</span>
+                      <div className="tip-content">
+                        <h5>Avoid Alcohol</h5>
+                        <p>Don't consume alcohol 24 hours before donation</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* During Donation */}
+                <div className="health-tip-section">
+                  <h4 className="section-title">🩸 During Donation</h4>
+                  <div className="tip-list">
+                    <div className="tip-item">
+                      <span className="tip-icon">😌</span>
+                      <div className="tip-content">
+                        <h5>Stay Relaxed</h5>
+                        <p>Take deep breaths and stay calm</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">💪</span>
+                      <div className="tip-content">
+                        <h5>Pump Your Fist</h5>
+                        <p>Gently squeeze and release your fist to help blood flow</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">🗣️</span>
+                      <div className="tip-content">
+                        <h5>Communicate</h5>
+                        <p>Tell staff if you feel dizzy or uncomfortable</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* After Donation */}
+                <div className="health-tip-section">
+                  <h4 className="section-title">🔄 After Donation</h4>
+                  <div className="tip-list">
+                    <div className="tip-item">
+                      <span className="tip-icon">💺</span>
+                      <div className="tip-content">
+                        <h5>Rest for 10-15 Minutes</h5>
+                        <p>Stay seated and relax after donation</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">🥤</span>
+                      <div className="tip-content">
+                        <h5>Drink Extra Fluids</h5>
+                        <p>Consume extra water for the next 24 hours</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">🍎</span>
+                      <div className="tip-content">
+                        <h5>Eat Iron-Rich Foods</h5>
+                        <p>Include spinach, red meat, and beans in your diet</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">🏃</span>
+                      <div className="tip-content">
+                        <h5>Avoid Strenuous Exercise</h5>
+                        <p>Wait 24 hours before heavy physical activity</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* General Health */}
+                <div className="health-tip-section">
+                  <h4 className="section-title">❤️ General Health</h4>
+                  <div className="tip-list">
+                    <div className="tip-item">
+                      <span className="tip-icon">🏥</span>
+                      <div className="tip-content">
+                        <h5>Regular Check-ups</h5>
+                        <p>Get regular health check-ups to ensure eligibility</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">💊</span>
+                      <div className="tip-content">
+                        <h5>Medication Awareness</h5>
+                        <p>Inform staff about any medications you're taking</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">📅</span>
+                      <div className="tip-content">
+                        <h5>Wait Between Donations</h5>
+                        <p>Wait at least 56 days between whole blood donations</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Emergency Contact */}
+              <div className="emergency-contact">
+                <h4>🚨 Emergency Contact</h4>
+                <p>If you experience any unusual symptoms after donation, contact your healthcare provider immediately.</p>
+                <div className="emergency-info">
+                  <span>📞 Blood Bank Hotline: 104</span>
+                  <span>🏥 Emergency: 108</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

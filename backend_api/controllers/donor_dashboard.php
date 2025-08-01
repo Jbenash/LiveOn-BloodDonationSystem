@@ -58,7 +58,7 @@ class DonorDashboard
 
         $lastDonation = !empty($donor['last_donation_date']) ? $donor['last_donation_date'] : 'N/A';
         $nextEligible = $lastDonation !== 'N/A' ? date('Y-m-d', strtotime($lastDonation . ' +6 months')) : 'First Donation';
-        $livesSaved = isset($donor['lives_saved']) ? $donor['lives_saved'] : 0;
+        $livesSaved = $totalDonations * 3; // Calculate lives saved as 3 times total donations
         $points = $totalDonations * 100;
         $rank = $totalDonations > 10 ? 'Gold Donor' : ($totalDonations >= 5 ? 'Silver Donor' : 'Bronze Donor');
 
@@ -81,7 +81,7 @@ class DonorDashboard
             'age' => $age,
             'location' => $donor['city'],
             'email' => $donor['email'],
-            'profilePic' => !empty($donor['donor_image']) ? ('http://localhost/liveonv2/' . $donor['donor_image']) : 'https://randomuser.me/api/portraits/men/1.jpg',
+            'profilePic' => !empty($donor['donor_image']) ? ('http://localhost/liveonv2/' . $donor['donor_image']) : null,
             'totalDonations' => $totalDonations,
             'lastDonation' => $lastDonation,
             'nextEligible' => $nextEligible,

@@ -24,7 +24,6 @@ abstract class BaseService
 
     protected function handleDatabaseException(DatabaseException $e): array
     {
-        error_log("Database error: " . $e->getMessage());
         return [
             'success' => false,
             'message' => 'Database operation failed',
@@ -43,7 +42,6 @@ abstract class BaseService
 
     protected function handleException(Exception $e): array
     {
-        error_log("Service error: " . $e->getMessage());
         return [
             'success' => false,
             'message' => 'An error occurred',

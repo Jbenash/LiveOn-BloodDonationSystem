@@ -5,7 +5,7 @@ import HospitalDashboard from './components/hospitalDashboard/HospitalDashboard'
 import DonorDashboard from './components/donorDashboard/DonorDashboard';
 import AdminDashboard from './components/adminDashboard/AdminDashboard';
 import RegistrationModal from './components/registrationForm/RegistrationModal';
-import MroVerificationPopup from './components/mroVerificationPopup/MroVerificationPopup';
+import MroVerificationPopup from './components/common/MroVerificationPopup';
 import MRODashboard from './components/mroDashboard/MRODashboard'; // Assuming you have a MRO Dashboard component
 import LoginModal from './components/loginForm/LoginModal';
 import { Toaster } from 'sonner';

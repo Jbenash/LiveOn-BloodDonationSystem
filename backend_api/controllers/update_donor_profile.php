@@ -73,9 +73,14 @@ if (!in_array($blood_type, $validBloodTypes)) {
     exit();
 }
 
-// Handle image upload
+// Handle image upload and removal
 $imagePath = null;
-if (isset($_FILES['profilePicFile']) && $_FILES['profilePicFile']['error'] === UPLOAD_ERR_OK) {
+$removeAvatar = isset($_POST['removeAvatar']) && $_POST['removeAvatar'] === '1';
+
+if ($removeAvatar) {
+    // Set imagePath to null to remove the avatar
+    $imagePath = null;
+} else if (isset($_FILES['profilePicFile']) && $_FILES['profilePicFile']['error'] === UPLOAD_ERR_OK) {
     $uploadDir = __DIR__ . '/../../uploads/donor_images/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0777, true);
@@ -98,7 +103,9 @@ try {
 
     // Update donors table (blood_type, city, donor_image)
     $sql2 = "UPDATE donors SET blood_type = :blood_type, city = :city";
-    if ($imagePath) {
+    if ($removeAvatar) {
+        $sql2 .= ", donor_image = NULL";
+    } else if ($imagePath !== null) {
         $sql2 .= ", donor_image = :donor_image";
     }
     $sql2 .= " WHERE donor_id = :donor_id";
@@ -106,7 +113,7 @@ try {
     $stmt2->bindParam(':blood_type', $blood_type);
     $stmt2->bindParam(':city', $location);
     $stmt2->bindParam(':donor_id', $donor_id);
-    if ($imagePath) {
+    if (!$removeAvatar && $imagePath !== null) {
         $stmt2->bindParam(':donor_image', $imagePath);
     }
     $stmt2->execute();
@@ -117,7 +124,12 @@ try {
     $stmt3->bindParam(':donor_id', $donor_id);
     $stmt3->execute();
 
-    echo json_encode(["success" => true, "message" => "Profile updated successfully", "imagePath" => $imagePath]);
+    echo json_encode([
+        "success" => true,
+        "message" => "Profile updated successfully",
+        "imagePath" => $imagePath,
+        "avatarRemoved" => $removeAvatar
+    ]);
 } catch (PDOException $e) {
     echo json_encode(["success" => false, "message" => $e->getMessage()]);
 }

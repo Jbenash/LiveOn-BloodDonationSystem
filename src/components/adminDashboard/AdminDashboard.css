@@ -195,10 +195,17 @@
 
 /* Flowbite Avatar styling - overrides for dashboard */
 .dashboard-user-info .flowbite-avatar {
-  border: 3px solid #6b7280 !important;
+  border: 2px solid #6b7280 !important;
   box-shadow: 0 2px 8px rgba(107, 114, 128, 0.2) !important;
   transition: all 0.3s ease;
   background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  border-radius: 50% !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
 }
 
 .dashboard-user-info .flowbite-avatar:hover {
@@ -222,8 +229,14 @@
 .dashboard-user-info .flowbite-avatar .flowbite-avatar-initials span {
   color: #ffffff !important;
   font-weight: 700 !important;
-  font-size: 1.2rem !important;
+  font-size: 0.9rem !important;
   background-color: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  text-align: center !important;
 }
 
 /* Override any Flowbite default text colors */

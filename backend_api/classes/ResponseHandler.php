@@ -73,10 +73,8 @@ class ResponseHandler
         } elseif ($e instanceof ValidationException) {
             $this->sendValidationError($e->getErrors());
         } elseif ($e instanceof PDOException) {
-            error_log("Database error: " . $e->getMessage());
             $this->sendInternalError('Database operation failed');
         } else {
-            error_log("Unexpected error: " . $e->getMessage());
             $this->sendInternalError('An unexpected error occurred');
         }
     }

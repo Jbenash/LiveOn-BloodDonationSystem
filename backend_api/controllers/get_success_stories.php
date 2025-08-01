@@ -13,10 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once __DIR__ . '/../config/db_connection.php';
+require_once __DIR__ . '/../classes/Database.php';
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();
     $pdo = $database->connect();
 
     $stmt = $pdo->query('SELECT story_id, title, message, created_at FROM success_stories ORDER BY created_at DESC');
