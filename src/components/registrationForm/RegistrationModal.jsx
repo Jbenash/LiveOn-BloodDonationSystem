@@ -86,7 +86,16 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
       })
         .then(res => res.json())
         .then(data => {
-          if (data.success) setHospitals(data.hospitals);
+          console.log('Hospitals API response:', data);
+          if (data.success) {
+            setHospitals(data.hospitals);
+            console.log('Hospitals set:', data.hospitals);
+          } else {
+            console.error('Failed to fetch hospitals:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching hospitals:', error);
         });
     } else {
       document.body.classList.remove('modal-open');
@@ -492,8 +501,8 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       >
                         <option value="">Select hospital</option>
                         {hospitals.map(h => (
-                          <option key={h.hospital_id} value={h.hospital_id}>
-                            {h.name} ({h.location})
+                          <option key={h.id} value={h.id}>
+                            {h.name} ({h.city})
                           </option>
                         ))}
                       </select>

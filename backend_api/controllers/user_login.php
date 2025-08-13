@@ -1,53 +1,62 @@
 <?php
+// Prevent any HTML output
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 
-session_start();
+// PDOException is already available globally, no need to import
 
-// Allow requests from both development ports
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+// Start output buffering to catch any HTML output
+ob_start();
 
-// Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit();
-}
+require_once __DIR__ . '/../config/session_config.php';
 
-header("Content-Type: application/json");
-require_once __DIR__ . '/../config/db_connection.php';
-require_once __DIR__ . '/../classes/User.php';
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
 
-class LoginManager
-{
-    private $userObj;
-    public function __construct($conn)
-    {
-        $this->userObj = new User($conn);
-    }
-    public function login($username, $password)
-    {
-        return $this->userObj->login($username, $password);
-    }
-}
+// Initialize session manually
+initSession();
+
+require_once __DIR__ . '/../classes/Core/Database.php';
+require_once __DIR__ . '/../classes/Models/User.php';
 
 // Read JSON input
 $input = json_decode(file_get_contents('php://input'), true);
 
+if (!$input) {
+    echo json_encode(["success" => false, "message" => "Invalid JSON input"]);
+    exit();
+}
+
 $username = $input['username'] ?? '';
 $password = $input['password'] ?? '';
 
-// Now use $username and $password for authentication
+if (empty($username) || empty($password)) {
+    echo json_encode(["success" => false, "message" => "Username and password are required"]);
+    exit();
+}
 
-$db = new Database();
-$conn = $db->connect();
-$loginManager = new LoginManager($conn);
-
-$user = $loginManager->login($username, $password);
+try {
+    $db = \LiveOn\classes\Core\Database::getInstance();
+    $conn = $db->connect();
+    $userObj = new User($conn);
+    $user = $userObj->login($username, $password);
+} catch (PDOException $e) {
+    echo json_encode([
+        "success" => false,
+        "message" => "Database connection error",
+        "debug" => $e->getMessage()
+    ]);
+    exit();
+} catch (Exception $e) {
+    echo json_encode([
+        "success" => false,
+        "message" => "Login error",
+        "debug" => $e->getMessage()
+    ]);
+    exit();
+}
 
 // Check for blocked user first
 if ($user && isset($user['blocked']) && $user['blocked'] === true) {
@@ -67,7 +76,51 @@ if ($user && isset($user['user_id'])) {
     $_SESSION['role'] = $user['role'];
     $_SESSION['name'] = $user['name'];
     $_SESSION['user'] = $user;
+
+    // Ensure session cookie is set for cross-origin requests with proper parameters
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        $cookieSet = setcookie(session_name(), session_id(), [
+            'expires' => 0,
+            'path' => '/',
+            'domain' => '',
+            'secure' => false,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+
+        // If setcookie fails, try alternative approach
+        if (!$cookieSet) {
+            header('Set-Cookie: ' . session_name() . '=' . session_id() . '; Path=/; HttpOnly; SameSite=Lax');
+        }
+    }
+
+    // Check for any captured output (HTML errors)
+    $captured_output = ob_get_contents();
+    ob_end_clean();
+
+    if (!empty($captured_output)) {
+        echo json_encode([
+            "success" => false,
+            "message" => "Server error occurred",
+            "debug" => "HTML output detected: " . substr($captured_output, 0, 200)
+        ]);
+        exit();
+    }
+
     echo json_encode(["success" => true, "user" => $user]);
 } else {
+    // Check for any captured output (HTML errors)
+    $captured_output = ob_get_contents();
+    ob_end_clean();
+
+    if (!empty($captured_output)) {
+        echo json_encode([
+            "success" => false,
+            "message" => "Server error occurred",
+            "debug" => "HTML output detected: " . substr($captured_output, 0, 200)
+        ]);
+        exit();
+    }
+
     echo json_encode(["success" => false, "message" => "Invalid credentials"]);
 }

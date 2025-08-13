@@ -1,8 +1,8 @@
 <?php
 
 require_once __DIR__ . '/BaseController.php';
-require_once __DIR__ . '/../classes/ResponseHandler.php';
-require_once __DIR__ . '/../classes/Database.php';
+require_once __DIR__ . '/../classes/Core/ResponseHandler.php';
+require_once __DIR__ . '/../classes/Core/Database.php';
 
 class AdminController extends BaseController
 {
@@ -11,9 +11,9 @@ class AdminController extends BaseController
     public function __construct()
     {
         try {
-            $database = Database::getInstance();
+            $database = \LiveOn\classes\Core\Database::getInstance();
             $this->pdo = $database->connect();
-            $responseHandler = new ResponseHandler();
+            $responseHandler = new \LiveOn\classes\Core\ResponseHandler();
             parent::__construct(null, $responseHandler);
         } catch (Exception $e) {
             throw new Exception("Failed to initialize AdminController: " . $e->getMessage());

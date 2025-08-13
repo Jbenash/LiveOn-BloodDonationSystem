@@ -1,14 +1,15 @@
 <?php
 
 require_once __DIR__ . '/../classes/Exceptions.php';
-require_once __DIR__ . '/../classes/Validator.php';
+require_once __DIR__ . '/../classes/Core/Validator.php';
+require_once __DIR__ . '/../classes/Core/ResponseHandler.php';
 
 abstract class BaseController
 {
     protected $service;
     protected $responseHandler;
 
-    public function __construct($service, ResponseHandler $responseHandler)
+    public function __construct($service, \LiveOn\classes\Core\ResponseHandler $responseHandler)
     {
         $this->service = $service;
         $this->responseHandler = $responseHandler;
@@ -59,8 +60,12 @@ abstract class BaseController
     {
         $this->requireAuth();
 
+        if (!isset($_SESSION['role'])) {
+            throw new ForbiddenException("No role found in session");
+        }
+
         if ($_SESSION['role'] !== $role) {
-            throw new ForbiddenException("Access denied. Required role: $role");
+            throw new ForbiddenException("Access denied. Required role: $role, but user has role: " . $_SESSION['role']);
         }
     }
 

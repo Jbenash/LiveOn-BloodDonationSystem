@@ -1,20 +1,26 @@
 /* Rewards Dashboard Styles */
 .rewards-dashboard {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .rewards-header {
-  text-align: center;
-  margin-bottom: 3rem;
+  text-align: left;
+  margin-bottom: 2rem;
 }
 
 .rewards-header h2 {
-  font-size: 2.5rem;
+  font-size: 1.8rem;
   font-weight: 700;
   color: #1e293b;
   margin-bottom: 0.5rem;
+  line-height: 1.2;
+  background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.025em;
 }
 
 .rewards-header p {
@@ -406,11 +412,12 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .rewards-dashboard {
-    padding: 1rem;
+    padding: 0;
   }
 
   .rewards-header h2 {
-    font-size: 2rem;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
   }
 
   .tier-info {
@@ -457,5 +464,9 @@
 
   .stat-value {
     font-size: 1.2rem;
+  }
+
+  .rewards-header h2 {
+    font-size: 1.3rem;
   }
 } 

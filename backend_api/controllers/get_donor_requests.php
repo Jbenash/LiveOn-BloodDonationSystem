@@ -1,48 +1,21 @@
 <?php
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Content-Type: application/json');
+require_once __DIR__ . '/../config/session_config.php';
 
-session_start();
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
 
-// Handle preflight requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
+// Initialize session manually
+initSession();
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Require MRO role
+requireRole('mro');
 
-// Allow requests from both development ports
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header('Content-Type: application/json');
-
-require_once __DIR__ . '/../classes/Database.php';
+require_once __DIR__ . '/../classes/Core/Database.php';
 
 try {
-    $database = Database::getInstance();
+    $database = \LiveOn\classes\Core\Database::getInstance();
     $pdo = $database->getConnection();
-
-    // Only allow MROs to access, and get their hospital_id
-    if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'mro') {
-        http_response_code(401);
-        echo json_encode(["error" => "Unauthorized"]);
-        exit();
-    }
 
     $mro_user_id = $_SESSION['user_id'];
     $mro_hospital_id = null;

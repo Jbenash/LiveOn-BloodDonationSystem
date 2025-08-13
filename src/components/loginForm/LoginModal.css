@@ -276,10 +276,12 @@
   flex-direction: column;
   gap: 8px;
   position: relative;
+  margin-bottom: 20px;
 }
 
 .form-group.compact {
   gap: 6px;
+  margin-bottom: 16px;
 }
 
 .form-label {
@@ -380,6 +382,7 @@
   justify-content: center;
   gap: 10px;
   margin: 0;
+  margin-top: 20px;
 }
 
 .login-button.compact {
@@ -387,6 +390,7 @@
   font-size: 0.95rem;
   border-radius: 8px;
   gap: 8px;
+  margin-top: 16px;
 }
 
 .login-button::before {

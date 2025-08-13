@@ -1,25 +1,24 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_config.php';
 
-// Dynamic CORS headers
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Content-Type: application/json");
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+// Initialize session properly
+initSession();
+
+// Check if user is logged in and has admin role
+$currentUser = getCurrentUser();
+if (!$currentUser) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Not logged in. Please log in first.']);
     exit();
 }
 
-// Check if user is logged in and is an admin
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized - Admin access required']);
-    http_response_code(401);
+if ($currentUser['role'] !== 'admin') {
+    http_response_code(403);
+    echo json_encode(['error' => 'Access denied. Admin role required.']);
     exit();
 }
 

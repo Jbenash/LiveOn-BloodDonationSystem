@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/Exceptions.php';
+require_once __DIR__ . '/../Core/Exceptions.php';
 
 class User
 {
@@ -63,7 +63,9 @@ class User
             $stmt->execute();
             $result = $stmt->fetch();
 
-            return $result['failed_attempts'] >= 3;
+            $attempts = $result['failed_attempts'];
+
+            return $attempts >= 3;
         } catch (PDOException $e) {
             // If table doesn't exist, return false (no blocking)
             return false;

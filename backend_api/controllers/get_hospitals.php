@@ -12,20 +12,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once '../config/db_connection.php';
 
 try {
-    $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $db = new Database();
+    $conn = $db->connect();
 
     // Get location from query parameter
     $location = isset($_GET['location']) ? $_GET['location'] : '';
 
     if (empty($location)) {
         // If no location provided, return all hospitals
-        $sql = "SELECT * FROM hospitals ORDER BY hospital_name LIMIT 10";
+        $sql = "SELECT * FROM hospitals ORDER BY name LIMIT 10";
         $stmt = $conn->prepare($sql);
         $stmt->execute();
     } else {
-        // Search hospitals by location (city)
-        $sql = "SELECT * FROM hospitals WHERE city LIKE :location OR hospital_name LIKE :location ORDER BY hospital_name LIMIT 10";
+        // Search hospitals by location
+        $sql = "SELECT * FROM hospitals WHERE location LIKE :location OR name LIKE :location ORDER BY name LIMIT 10";
         $stmt = $conn->prepare($sql);
         $locationParam = "%$location%";
         $stmt->bindParam(':location', $locationParam);
@@ -39,15 +39,15 @@ try {
     foreach ($hospitals as $hospital) {
         $formattedHospitals[] = [
             'id' => $hospital['hospital_id'],
-            'name' => $hospital['hospital_name'],
-            'address' => $hospital['address'] . ', ' . $hospital['city'],
-            'city' => $hospital['city'],
-            'phone' => $hospital['phone'] ?? 'N/A',
-            'email' => $hospital['email'] ?? 'N/A',
-            'rating' => $hospital['rating'] ?? '4.0',
+            'name' => $hospital['name'],
+            'address' => $hospital['location'],
+            'city' => $hospital['location'],
+            'phone' => $hospital['contact_phone'] ?? 'N/A',
+            'email' => $hospital['contact_email'] ?? 'N/A',
+            'rating' => '4.0', // Default rating since not in database
             'distance' => '2.5 km', // This would be calculated based on actual coordinates
-            'blood_bank' => $hospital['blood_bank'] ?? 'Yes',
-            'emergency_services' => $hospital['emergency_services'] ?? 'Yes'
+            'blood_bank' => 'Yes', // Default since not in database
+            'emergency_services' => 'Yes' // Default since not in database
         ];
     }
 
@@ -59,7 +59,13 @@ try {
 } catch (PDOException $e) {
     echo json_encode([
         'success' => false,
-        'error' => 'Failed to fetch hospitals',
+        'error' => 'Database error',
+        'message' => $e->getMessage()
+    ]);
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'General error',
         'message' => $e->getMessage()
     ]);
 }
