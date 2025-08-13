@@ -78,6 +78,8 @@ const AdminDashboard = () => {
   const [allMROs, setAllMROs] = useState([]);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showLogoDialog, setShowLogoDialog] = useState(false);
+  const [isLogoutTriggered, setIsLogoutTriggered] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [donorToRemove, setDonorToRemove] = useState(null);
   const [showRemoveDonorDialog, setShowRemoveDonorDialog] = useState(false);
   const [userToRemove, setUserToRemove] = useState(null);
@@ -104,7 +106,10 @@ const AdminDashboard = () => {
     const handlePopState = (e) => {
       // Prevent browser back button from working normally
       e.preventDefault();
-      setShowLogoutDialog(true);
+      // Only show logout dialog if not already showing and not triggered by button click
+      if (!showLogoutDialog && !isLogoutTriggered) {
+        setShowLogoutDialog(true);
+      }
       // Push the current state back to prevent navigation
       window.history.pushState(null, null, window.location.pathname);
     };
@@ -118,7 +123,7 @@ const AdminDashboard = () => {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, [showLogoutDialog]);
 
   // Click outside to close notification popup
   useEffect(() => {
@@ -148,23 +153,7 @@ const AdminDashboard = () => {
     // This function is kept for backward compatibility but not used in the new system
   };
 
-  // Fetch notifications from backend
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await fetch('http://localhost/liveonv2/backend_api/controllers/get_notifications.php', { credentials: 'include' });
-        const data = await res.json();
-        if (data.success) {
-          setNotifications(data.notifications);
-          // Only count non-password-reset notifications for the general unread count
-          setUnreadCount(data.notifications.filter(n => n.status === 'unread' && n.type !== 'password_reset').length);
-        }
-      } catch (e) { /* ignore */ }
-    };
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000);
-    return () => clearInterval(interval);
-  }, []);
+
 
     // Mark message as read
     const markMessageAsRead = async (messageId) => {
@@ -182,20 +171,55 @@ const AdminDashboard = () => {
           setAdminMessages(prev => prev.map(msg =>
             msg.id == messageId ? { ...msg, status: 'read' } : msg
           ));
-          // Refresh the unread count from server
-          fetchAdminMessages();
+          
+          // Update the unread count locally
+          setMailUnreadCount(prev => Math.max(0, prev - 1));
+        } else {
+          console.error('Failed to mark message as read:', data.message);
         }
       } catch (error) {
         console.error('Error marking message as read:', error);
       }
     };
 
-    // Mark all as read
+    // Mark all messages as read
+    const markAllMessagesAsRead = async () => {
+      try {
+        // Get all unread message IDs
+        const unreadMessageIds = adminMessages
+          .filter(msg => msg.status === 'unread')
+          .map(msg => msg.id);
+
+        if (unreadMessageIds.length === 0) return;
+
+        // Mark all unread messages as read in the database
+        const promises = unreadMessageIds.map(messageId =>
+          fetch('http://localhost/liveonv2/backend_api/controllers/mark_message_read.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ message_id: messageId })
+          })
+        );
+
+        await Promise.all(promises);
+
+        // Update all messages to read status locally
+        setAdminMessages(prev => prev.map(msg => ({ ...msg, status: 'read' })));
+        
+        // Reset unread count to 0
+        setMailUnreadCount(0);
+      } catch (error) {
+        console.error('Error marking all messages as read:', error);
+      }
+    };
+
+    // Mark all as read (backward compatibility)
     const markNotificationsRead = async () => {
       // Old notification system - now replaced by system activities
     };
 
-    // Mark a single notification as read (keeping for backward compatibility)
+    // Mark a single notification as read (backward compatibility)
     const markNotificationRead = async (notification_id) => {
       // Old notification system - now replaced by system activities
     };
@@ -268,6 +292,15 @@ const AdminDashboard = () => {
         const response = await fetch('http://localhost/liveonv2/backend_api/controllers/get_system_activities.php', {
           credentials: 'include'
         });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Session expired or user not logged in - redirect to login
+            throw new Error('SESSION_EXPIRED');
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
 
         if (data.success) {
@@ -278,6 +311,12 @@ const AdminDashboard = () => {
         }
       } catch (error) {
         console.error('Error fetching system activities:', error);
+        
+        if (error.message === 'SESSION_EXPIRED') {
+          // Redirect to home page to show login modal
+          window.location.href = '/';
+          return;
+        }
       }
     };
 
@@ -286,6 +325,15 @@ const AdminDashboard = () => {
         const response = await fetch('http://localhost/liveonv2/backend_api/controllers/get_admin_messages.php', {
           credentials: 'include'
         });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Session expired or user not logged in - redirect to login
+            throw new Error('SESSION_EXPIRED');
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
 
         if (data.success) {
@@ -296,10 +344,107 @@ const AdminDashboard = () => {
         }
       } catch (error) {
         console.error('Error fetching admin messages:', error);
+        
+        if (error.message === 'SESSION_EXPIRED') {
+          // Redirect to home page to show login modal
+          window.location.href = '/';
+          return;
+        }
       }
     };
 
+    // Fetch notifications from notifications table
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch('http://localhost/liveonv2/backend_api/controllers/get_notifications.php', {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Session expired or user not logged in - redirect to login
+            throw new Error('SESSION_EXPIRED');
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
 
+        if (data.success) {
+          setNotifications(data.notifications || []);
+          setUnreadCount(data.unread_count || 0);
+        } else {
+          console.error('Failed to fetch notifications:', data.error);
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        
+        if (error.message === 'SESSION_EXPIRED') {
+          // Redirect to home page to show login modal
+          window.location.href = '/';
+          return;
+        }
+      }
+    };
+
+    // Mark notification as read
+    const markNotificationAsRead = async (notificationId) => {
+      try {
+        const response = await fetch('http://localhost/liveonv2/backend_api/controllers/mark_notification_read.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ notification_id: notificationId })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          // Update the notification status locally
+          setNotifications(prev => prev.map(notif =>
+            notif.notification_id == notificationId ? { ...notif, status: 'read' } : notif
+          ));
+          
+          // Update the unread count locally
+          setUnreadCount(prev => Math.max(0, prev - 1));
+        } else {
+          console.error('Failed to mark notification as read:', data.message);
+        }
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+      }
+    };
+
+    // Mark all notifications as read
+    const markAllNotificationsAsRead = async () => {
+      try {
+        // Get all unread notification IDs
+        const unreadNotificationIds = notifications
+          .filter(notif => notif.status === 'unread')
+          .map(notif => notif.notification_id);
+
+        if (unreadNotificationIds.length === 0) return;
+
+        // Mark all unread notifications as read in the database
+        const promises = unreadNotificationIds.map(notificationId =>
+          fetch('http://localhost/liveonv2/backend_api/controllers/mark_notification_read.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ notification_id: notificationId })
+          })
+        );
+
+        await Promise.all(promises);
+
+        // Update all notifications to read status locally
+        setNotifications(prev => prev.map(notif => ({ ...notif, status: 'read' })));
+        
+        // Reset unread count to 0
+        setUnreadCount(0);
+      } catch (error) {
+        console.error('Error marking all notifications as read:', error);
+      }
+    };
 
     useEffect(() => {
       // Check if user is logged in before fetching data
@@ -313,29 +458,31 @@ const AdminDashboard = () => {
             credentials: 'include'
           });
           
+          if (!sessionResponse.ok) {
+            // Session check failed - redirect to login
+            window.location.href = '/?login=true';
+            return;
+          }
+          
           const sessionData = await sessionResponse.json();
           
-          if (!sessionData.session_status.session_started || !sessionData.session_status.is_admin) {
+          // Check if user is logged in and is admin
+          if (!sessionData.session_status.session_started || 
+              !sessionData.session_status.is_admin || 
+              sessionData.session_status.user_id === 'NOT_SET') {
             // Not logged in or not admin - redirect to login
             window.location.href = '/?login=true';
             return;
           }
           
           // User is logged in and is admin - fetch data
-      fetchAdminData();
-      fetchMROs();
-          fetchAdminMessages();
-          fetchSystemActivities();
+          await fetchAdminData();
+          await fetchMROs();
+          await fetchAdminMessages();
+          await fetchSystemActivities();
+          await fetchNotifications();
           
-          // Set up periodic refresh for admin messages and system activities
-          const messageInterval = setInterval(fetchAdminMessages, 30000); // Refresh every 30 seconds
-          const activitiesInterval = setInterval(fetchSystemActivities, 30000); // Refresh every 30 seconds
-          
-          // Cleanup intervals on component unmount
-          return () => {
-            clearInterval(messageInterval);
-            clearInterval(activitiesInterval);
-          };
+          setLoading(false);
         } catch (error) {
           console.error('Auth check failed:', error);
           setError('Authentication check failed. Please log in.');
@@ -348,6 +495,25 @@ const AdminDashboard = () => {
       };
       
       checkAuthAndFetchData();
+      
+      // Set up periodic refresh for admin messages and system activities
+      const messageInterval = setInterval(fetchAdminMessages, 30000); // Refresh every 30 seconds
+      const activitiesInterval = setInterval(fetchSystemActivities, 30000); // Refresh every 30 seconds
+      const notificationsInterval = setInterval(fetchNotifications, 30000); // Refresh every 30 seconds
+      
+      // Add a timeout to prevent loading spinner from getting stuck
+      const loadingTimeout = setTimeout(() => {
+        console.log('Loading timeout reached - forcing loading to false');
+        setLoading(false);
+      }, 10000); // 10 seconds timeout
+      
+      // Cleanup intervals on component unmount
+      return () => {
+        clearInterval(messageInterval);
+        clearInterval(activitiesInterval);
+        clearInterval(notificationsInterval);
+        clearTimeout(loadingTimeout);
+      };
     }, []);
 
     const fetchMROs = async () => {
@@ -357,6 +523,10 @@ const AdminDashboard = () => {
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            // Session expired or user not logged in - redirect to login
+            throw new Error('SESSION_EXPIRED');
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
@@ -369,6 +539,12 @@ const AdminDashboard = () => {
         }
       } catch (error) {
         console.error('Error fetching MROs:', error);
+        
+        if (error.message === 'SESSION_EXPIRED') {
+          // Redirect to home page to show login modal
+          window.location.href = '/';
+          return;
+        }
       }
     };
 
@@ -382,6 +558,11 @@ const AdminDashboard = () => {
 
         // Check if response is ok
         if (!response.ok) {
+          if (response.status === 401) {
+            // Session expired or user not logged in - redirect to login
+            throw new Error('SESSION_EXPIRED');
+          }
+          
           const errorText = await response.text();
           let errorData;
 
@@ -427,13 +608,15 @@ const AdminDashboard = () => {
       } catch (err) {
         console.error('Error fetching admin data:', err);
 
+        if (err.message === 'SESSION_EXPIRED') {
+          // Redirect to home page to show login modal
+          window.location.href = '/';
+          return;
+        }
+
         let errorMessage = 'Failed to load dashboard data';
 
-        if (err.message.includes('401')) {
-          errorMessage = 'Please log in as admin to access this dashboard';
-          // Redirect to login
-          window.location.href = '/?login=true';
-        } else if (err.message.includes('403')) {
+        if (err.message.includes('403')) {
           errorMessage = 'Access denied. Admin privileges required.';
           // Redirect to home
           window.location.href = '/';
@@ -451,43 +634,150 @@ const AdminDashboard = () => {
     };
 
     // Use custom dialog for logout
-    const handleLogout = () => {
+      const handleLogout = (e) => {
+    // Prevent any default behavior
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    // Set flag to prevent browser back button handler from triggering
+    setIsLogoutTriggered(true);
+    // Only show dialog if not already showing
+    if (!showLogoutDialog) {
       setShowLogoutDialog(true);
-    };
-    const confirmLogout = () => {
-      setShowLogoutDialog(false);
-      fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
-        method: 'POST',
-        credentials: 'include'
-      })
-        .then(() => {
-          // Clear browser history to prevent going back to dashboard
-          window.history.pushState(null, null, '/');
-          window.history.pushState(null, null, '/');
-          window.history.pushState(null, null, '/');
-          window.history.go(-3);
+    }
+    // Reset flag after a short delay
+    setTimeout(() => setIsLogoutTriggered(false), 100);
+  };
+  const confirmLogout = () => {
+    console.log('confirmLogout called');
+    setShowLogoutDialog(false);
+    setIsLoggingOut(true); // Set logout flag to prevent API calls
+    setIsLogoutTriggered(true); // Prevent back button handler from triggering
+    setError(null); // Clear any error state during logout
+    setLoading(false); // Clear loading state
+    
+    // Add a timeout to prevent logout spinner from getting stuck
+    const logoutTimeout = setTimeout(() => {
+      console.log('Logout timeout reached - forcing navigation');
+      setIsLoggingOut(false);
+      setIsLogoutTriggered(false);
+      window.location.href = '/';
+    }, 5000); // 5 seconds timeout
+    
+    // Call logout API first
+    fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
+      method: 'POST',
+      credentials: 'include'
+    })
+    .then((response) => {
+      // Check if logout was successful
+      if (response.ok) {
+        console.log('Logout successful');
+      } else {
+        console.log('Logout API returned error, but continuing with navigation');
+      }
+    })
+    .catch((error) => {
+      console.log('Logout API error, but continuing with navigation:', error);
+    })
+    .finally(() => {
+      console.log('Logout finally block - clearing state');
+      clearTimeout(logoutTimeout); // Clear the timeout since we're handling it manually
+      
+      // Clear all state immediately
+      setStats({});
+      setAllUsers([]);
+      setAllHospitals([]);
+      setAllDonors([]);
+      setAllMROs([]);
+      setNotifications([]);
+      setSystemActivities([]);
+      setAdminMessages([]);
+      setPasswordResetRequests([]);
+      setError(null);
+      setLoading(false);
+      
+      // Add a longer delay to ensure session is properly destroyed and prevent race conditions
+      setTimeout(() => {
+        try {
+          console.log('Logout timeout - resetting flags and navigating');
+          // Reset logout flags before navigation
+          setIsLoggingOut(false);
+          setIsLogoutTriggered(false);
+          
           // Navigate to home page
-          window.location.href = '/?login=true';
-        })
-        .catch(() => {
-          // Clear browser history to prevent going back to dashboard
-          window.history.pushState(null, null, '/');
-          window.history.pushState(null, null, '/');
-          window.history.pushState(null, null, '/');
-          window.history.go(-3);
-          // Navigate to home page
-          window.location.href = '/?login=true';
-        });
-    };
+          window.location.href = '/';
+        } catch (navError) {
+          console.log('Navigation error, using window.location:', navError);
+          // Fallback to window.location if navigate fails
+          window.location.href = '/';
+        }
+      }, 300); // Increased delay to 300ms to prevent race conditions
+    });
+  };
     const cancelLogout = () => setShowLogoutDialog(false);
 
     // Use custom dialog for logo click
     const handleLogoClick = () => {
       setShowLogoDialog(true);
     };
-    const confirmLogo = () => {
+    const confirmLogo = async () => {
+      console.log('confirmLogo called');
       setShowLogoDialog(false);
-      window.location.href = '/';
+      
+      // Actually logout the user instead of just navigating
+      setIsLoggingOut(true);
+      setLoading(false); // Clear loading state
+      
+      // Add a timeout to prevent logout spinner from getting stuck
+      const logoutTimeout = setTimeout(() => {
+        console.log('confirmLogo timeout reached - forcing navigation');
+        setIsLoggingOut(false);
+        setIsLogoutTriggered(false);
+        window.location.href = '/';
+      }, 5000); // 5 seconds timeout
+      
+      try {
+        // Call logout API
+        const response = await fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
+          method: 'POST',
+          credentials: 'include',
+        });
+        
+        console.log('Logout successful from home button');
+      } catch (error) {
+        console.log('Logout API error from home button:', error);
+      } finally {
+        console.log('confirmLogo finally block - clearing state');
+        clearTimeout(logoutTimeout); // Clear the timeout since we're handling it manually
+        
+        // Clear all state immediately
+        setStats({});
+        setAllUsers([]);
+        setAllHospitals([]);
+        setAllDonors([]);
+        setAllMROs([]);
+        setNotifications([]);
+        setSystemActivities([]);
+        setAdminMessages([]);
+        setPasswordResetRequests([]);
+        setError(null);
+        setLoading(false);
+        
+        // Reset logout flags and navigate
+        setTimeout(() => {
+          try {
+            console.log('confirmLogo timeout - resetting flags and navigating');
+            setIsLoggingOut(false);
+            setIsLogoutTriggered(false);
+            window.location.href = '/';
+          } catch (navError) {
+            console.log('Navigation error:', navError);
+            window.location.href = '/';
+          }
+        }, 200);
+      }
     };
     const cancelLogo = () => setShowLogoDialog(false);
 
@@ -1118,9 +1408,31 @@ const AdminDashboard = () => {
             return matchesSearch && matchesRole;
           });
           return (
-            <div className="dashboard-card glassy animate-fadein">
-              <h2 className="section-title gradient-text">All Users</h2>
-              <div style={{ display: 'flex', gap: 16, marginBottom: 18, flexWrap: 'wrap' }}>
+            <div className="dashboard-card" style={{ 
+              position: 'relative',
+              zIndex: 1,
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '24px',
+              boxShadow: '0 2px 8px rgba(30, 41, 59, 0.04)',
+              border: '1px solid rgba(59, 130, 246, 0.08)',
+              marginBottom: '24px',
+              overflow: 'hidden',
+              maxWidth: '100%'
+            }}>
+              <h2 className="section-title gradient-text" style={{ 
+                position: 'relative',
+                zIndex: 2,
+                marginBottom: '18px'
+              }}>All Users</h2>
+              <div style={{ 
+                display: 'flex', 
+                gap: 16, 
+                marginBottom: 18, 
+                flexWrap: 'wrap',
+                position: 'relative',
+                zIndex: 2
+              }}>
                 <input
                   type="text"
                   placeholder="Search by name, email, or phone..."
@@ -1140,17 +1452,35 @@ const AdminDashboard = () => {
                   <option value="mro">MRO</option>
                 </select>
               </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table className="admin-table">
-                  <thead>
+              <div style={{ 
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                position: 'relative',
+                zIndex: 1,
+                maxWidth: '100%',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                backgroundColor: '#ffffff'
+              }}>
+                <table className="admin-table" style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  margin: 0,
+                  tableLayout: 'fixed'
+                }}>
+                  <thead style={{
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 3,
+                    backgroundColor: '#f8fafc'
+                  }}>
                     <tr>
-                      <th>User ID</th>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Phone</th>
-                      <th>Role</th>
-                      <th>Status</th>
-                      <th>Action</th>
+                      <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '80px' }}>User ID</th>
+                      <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '120px' }}>Name</th>
+                      <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '150px' }}>Email</th>
+                      <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '80px' }}>Role</th>
+                      <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '100px' }}>Status</th>
+                      <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '120px' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1159,21 +1489,25 @@ const AdminDashboard = () => {
                         <tr 
                           key={user.user_id || user.email}
                           onClick={() => handleUserRowClick(user)}
-                          style={{ cursor: 'pointer' }}
+                          style={{ 
+                            cursor: 'pointer',
+                            backgroundColor: '#ffffff',
+                            borderBottom: '1px solid #e5e7eb'
+                          }}
                           className="clickable-row"
                         >
-                          <td>{user.user_id}</td>
-                          <td>{user.name}</td>
-                          <td>{user.email}</td>
-                          <td>{user.phone}</td>
-                          <td>{user.role}</td>
-                          <td><span className={`status-chip ${user.status}`}>{user.status}</span></td>
-                          <td style={{ minWidth: '200px', whiteSpace: 'nowrap', padding: '12px 16px' }} onClick={(e) => e.stopPropagation()}>
-                            <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em', marginRight: '8px' }} onClick={() => handleEditClick(user)}>
+                          <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.user_id}</td>
+                          <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</td>
+                          <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</td>
+                          <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.role}</td>
+                          <td style={{ padding: '8px', fontSize: '12px' }}><span className={`status-chip ${user.status}`}>{user.status}</span></td>
+                          <td onClick={(e) => e.stopPropagation()} style={{ padding: '8px', fontSize: '12px' }}>
+                            <button className="dashboard-btn primary" style={{ padding: '4px 8px', fontSize: '11px', marginRight: '4px' }} onClick={() => handleEditClick(user)}>
                               Edit
                             </button>
                             <button
                               className="dashboard-btn danger"
+                              style={{ padding: '4px 8px', fontSize: '11px' }}
                               onClick={() => handleRemoveUserClick(user)}
                             >
                               Remove
@@ -1182,7 +1516,7 @@ const AdminDashboard = () => {
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan="7">No users found</td></tr>
+                      <tr><td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>No users found</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -1202,24 +1536,64 @@ const AdminDashboard = () => {
           // Get unique locations for filter dropdown
           const uniqueLocations = Array.from(new Set(allHospitals.map(h => h.location).filter(Boolean)));
           return (
-            <div className="dashboard-card glassy animate-fadein">
-              <h2 className="section-title gradient-text">All Hospitals</h2>
-              <div style={{ display: 'flex', gap: 16, marginBottom: 18, flexWrap: 'wrap' }}>
+            <div className="dashboard-card" style={{ 
+              position: 'relative',
+              zIndex: 1,
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '24px',
+              boxShadow: '0 2px 8px rgba(30, 41, 59, 0.04)',
+              border: '1px solid rgba(59, 130, 246, 0.08)',
+              marginBottom: '24px',
+              overflow: 'hidden',
+              maxWidth: '100%'
+            }}>
+              <h2 className="section-title gradient-text" style={{ 
+                position: 'relative',
+                zIndex: 2,
+                marginBottom: '18px'
+              }}>All Hospitals</h2>
+              <div style={{ 
+                display: 'flex', 
+                gap: 16, 
+                marginBottom: 18, 
+                flexWrap: 'wrap',
+                position: 'relative',
+                zIndex: 2
+              }}>
                 <button className={`hospital-tab-btn${hospitalTab === 'staffs' ? ' active' : ''}`} onClick={() => setHospitalTab('staffs')}>Hospital Staffs</button>
                 <button className={`hospital-tab-btn${hospitalTab === 'mros' ? ' active' : ''}`} onClick={() => setHospitalTab('mros')}>MROs</button>
               </div>
               {hospitalTab === 'staffs' ? (
                 <>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table className="admin-table">
-                      <thead>
+                  <div style={{ 
+                    overflowX: 'auto',
+                    overflowY: 'hidden',
+                    position: 'relative',
+                    zIndex: 1,
+                    maxWidth: '100%',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    backgroundColor: '#ffffff'
+                  }}>
+                    <table className="admin-table" style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      margin: 0,
+                      tableLayout: 'fixed'
+                    }}>
+                      <thead style={{
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 3,
+                        backgroundColor: '#f8fafc'
+                      }}>
                         <tr>
-                          <th>Hospital ID</th>
-                          <th>Name</th>
-                          <th>Location</th>
-                          <th>Email</th>
-                          <th>Phone</th>
-                          <th>Action</th>
+                          <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '80px' }}>Hospital ID</th>
+                          <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '120px' }}>Name</th>
+                          <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '100px' }}>Location</th>
+                          <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '150px' }}>Email</th>
+                          <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '120px' }}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1228,20 +1602,24 @@ const AdminDashboard = () => {
                             <tr 
                               key={hospital.hospital_id || hospital.name}
                               onClick={() => handleHospitalRowClick(hospital)}
-                              style={{ cursor: 'pointer' }}
+                              style={{ 
+                                cursor: 'pointer',
+                                backgroundColor: '#ffffff',
+                                borderBottom: '1px solid #e5e7eb'
+                              }}
                               className="clickable-row"
                             >
-                              <td>{hospital.hospital_id}</td>
-                              <td>{hospital.name}</td>
-                              <td>{hospital.location}</td>
-                              <td>{hospital.contact_email}</td>
-                              <td>{hospital.contact_phone}</td>
-                              <td style={{ minWidth: '200px', whiteSpace: 'nowrap', padding: '12px 16px' }} onClick={(e) => e.stopPropagation()}>
-                                <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em', marginRight: '8px' }} onClick={() => handleEditHospitalClick(hospital)}>
+                              <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{hospital.hospital_id}</td>
+                              <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{hospital.name}</td>
+                              <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{hospital.location}</td>
+                              <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{hospital.contact_email}</td>
+                              <td onClick={(e) => e.stopPropagation()} style={{ padding: '8px', fontSize: '12px' }}>
+                                <button className="dashboard-btn primary" style={{ padding: '4px 8px', fontSize: '11px', marginRight: '4px' }} onClick={() => handleEditHospitalClick(hospital)}>
                                   Edit
                                 </button>
                                 <button
                                   className="dashboard-btn danger"
+                                  style={{ padding: '4px 8px', fontSize: '11px' }}
                                   onClick={() => handleRemoveHospitalClick(hospital)}
                                 >
                                   Remove
@@ -1250,7 +1628,7 @@ const AdminDashboard = () => {
                             </tr>
                           ))
                         ) : (
-                          <tr><td colSpan="6">No hospitals found</td></tr>
+                          <tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>No hospitals found</td></tr>
                         )}
                       </tbody>
                     </table>
@@ -1274,16 +1652,34 @@ const AdminDashboard = () => {
                 </>
               ) : (
                 <>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table className="admin-table">
-                      <thead>
+                  <div style={{ 
+                    overflowX: 'auto',
+                    overflowY: 'hidden',
+                    position: 'relative',
+                    zIndex: 1,
+                    maxWidth: '100%',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    backgroundColor: '#ffffff'
+                  }}>
+                    <table className="admin-table" style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      margin: 0,
+                      tableLayout: 'fixed'
+                    }}>
+                      <thead style={{
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 3,
+                        backgroundColor: '#f8fafc'
+                      }}>
                         <tr>
-                          <th>MRO ID</th>
-                          <th>Name</th>
-                          <th>Email</th>
-                          <th>Phone</th>
-                          <th>Hospital</th>
-                          <th>Action</th>
+                          <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '80px' }}>MRO ID</th>
+                          <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '120px' }}>Name</th>
+                          <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '150px' }}>Email</th>
+                          <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '120px' }}>Hospital</th>
+                          <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '120px' }}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1292,18 +1688,22 @@ const AdminDashboard = () => {
                             <tr 
                               key={mro.mro_id}
                               onClick={() => handleMroRowClick(mro)}
-                              style={{ cursor: 'pointer' }}
+                              style={{ 
+                                cursor: 'pointer',
+                                backgroundColor: '#ffffff',
+                                borderBottom: '1px solid #e5e7eb'
+                              }}
                               className="clickable-row"
                             >
-                              <td>{mro.mro_id}</td>
-                              <td>{mro.name}</td>
-                              <td>{mro.email}</td>
-                              <td>{mro.phone}</td>
-                              <td>{mro.hospital_name || 'N/A'}</td>
-                              <td style={{ minWidth: '200px', whiteSpace: 'nowrap', padding: '12px 16px' }} onClick={(e) => e.stopPropagation()}>
-                                <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em', marginRight: '8px' }}>Edit</button>
+                              <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mro.mro_id}</td>
+                              <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mro.name}</td>
+                              <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mro.email}</td>
+                              <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mro.hospital_name || 'N/A'}</td>
+                              <td onClick={(e) => e.stopPropagation()} style={{ padding: '8px', fontSize: '12px' }}>
+                                <button className="dashboard-btn primary" style={{ padding: '4px 8px', fontSize: '11px', marginRight: '4px' }}>Edit</button>
                                 <button
                                   className="dashboard-btn danger"
+                                  style={{ padding: '4px 8px', fontSize: '11px' }}
                                   onClick={() => handleRemoveMroClick(mro)}
                                 >
                                   Remove
@@ -1312,7 +1712,7 @@ const AdminDashboard = () => {
                             </tr>
                           ))
                         ) : (
-                          <tr><td colSpan="6">No MROs found</td></tr>
+                          <tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>No MROs found</td></tr>
                         )}
                       </tbody>
                     </table>
@@ -1335,9 +1735,31 @@ const AdminDashboard = () => {
           // Get unique blood types for filter dropdown
           const uniqueBloodTypes = Array.from(new Set(allDonors.map(d => d.blood_type).filter(Boolean)));
           return (
-            <div className="dashboard-card glassy animate-fadein">
-              <h2 className="section-title gradient-text">All Donors</h2>
-              <div style={{ display: 'flex', gap: 16, marginBottom: 18, flexWrap: 'wrap' }}>
+            <div className="dashboard-card" style={{ 
+              position: 'relative',
+              zIndex: 1,
+              background: '#ffffff',
+              borderRadius: '16px',
+              padding: '24px',
+              boxShadow: '0 2px 8px rgba(30, 41, 59, 0.04)',
+              border: '1px solid rgba(59, 130, 246, 0.08)',
+              marginBottom: '24px',
+              overflow: 'hidden',
+              maxWidth: '100%'
+            }}>
+              <h2 className="section-title gradient-text" style={{ 
+                position: 'relative',
+                zIndex: 2,
+                marginBottom: '18px'
+              }}>All Donors</h2>
+              <div style={{ 
+                display: 'flex', 
+                gap: 16, 
+                marginBottom: 18, 
+                flexWrap: 'wrap',
+                position: 'relative',
+                zIndex: 2
+              }}>
                 <input
                   type="text"
                   placeholder="Search by name, email, phone, or city..."
@@ -1356,20 +1778,35 @@ const AdminDashboard = () => {
                   ))}
                 </select>
               </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table className="admin-table">
-                  <thead>
+              <div style={{ 
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                position: 'relative',
+                zIndex: 1,
+                maxWidth: '100%',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                backgroundColor: '#ffffff'
+              }}>
+                <table className="admin-table" style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  margin: 0,
+                  tableLayout: 'fixed'
+                }}>
+                  <thead style={{
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 3,
+                    backgroundColor: '#f8fafc'
+                  }}>
                     <tr>
-                      <th>Donor ID</th>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Phone</th>
-                      <th>Blood Type</th>
-                      <th>City</th>
-                      <th>Status</th>
-                      <th>Last Donation</th>
-                      <th>Lives Saved</th>
-                      <th>Action</th>
+                      <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '80px' }}>Donor ID</th>
+                      <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '120px' }}>Name</th>
+                      <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '150px' }}>Email</th>
+                      <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '80px' }}>Blood Type</th>
+                      <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '100px' }}>Status</th>
+                      <th style={{ padding: '12px 8px', fontSize: '12px', minWidth: '120px' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1378,30 +1815,30 @@ const AdminDashboard = () => {
                         <tr 
                           key={donor.donor_id || donor.email}
                           onClick={() => handleDonorRowClick(donor)}
-                          style={{ cursor: 'pointer' }}
+                          style={{ 
+                            cursor: 'pointer',
+                            backgroundColor: '#ffffff',
+                            borderBottom: '1px solid #e5e7eb'
+                          }}
                           className="clickable-row"
                         >
-                          <td>{donor.donor_id}</td>
-                          <td>{donor.name}</td>
-                          <td>{donor.email}</td>
-                          <td>{donor.phone}</td>
-                          <td>{donor.blood_type}</td>
-                          <td>{donor.city}</td>
-                          <td><span className={`status-chip ${donor.status}`}>{donor.status}</span></td>
-                          <td>{donor.last_donation_date || 'N/A'}</td>
-                          <td>{donor.lives_saved}</td>
-                          <td onClick={(e) => e.stopPropagation()}>
-                            <button className="dashboard-btn primary" style={{ padding: '4px 12px', fontSize: '0.95em', marginRight: '8px' }} onClick={() => handleEditDonorClick(donor)}>
+                          <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{donor.donor_id}</td>
+                          <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{donor.name}</td>
+                          <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{donor.email}</td>
+                          <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{donor.blood_type}</td>
+                          <td style={{ padding: '8px', fontSize: '12px' }}><span className={`status-chip ${donor.status}`}>{donor.status}</span></td>
+                          <td onClick={(e) => e.stopPropagation()} style={{ padding: '8px', fontSize: '12px' }}>
+                            <button className="dashboard-btn primary" style={{ padding: '4px 8px', fontSize: '11px', marginRight: '4px' }} onClick={() => handleEditDonorClick(donor)}>
                               Edit
                             </button>
-                            <button className="dashboard-btn danger" style={{ padding: '4px 12px', fontSize: '0.95em' }} onClick={() => handleRemoveDonorClick(donor)}>
+                            <button className="dashboard-btn danger" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => handleRemoveDonorClick(donor)}>
                               Remove
                             </button>
                           </td>
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan="10">No donors found</td></tr>
+                      <tr><td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>No donors found</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -1732,7 +2169,8 @@ const AdminDashboard = () => {
       );
     }
 
-    if (error) {
+    // Don't show error if we're logging out or if it's a session expiration
+    if (error && !isLoggingOut) {
       return (
         <ErrorDisplay
           error={error}
@@ -1740,6 +2178,38 @@ const AdminDashboard = () => {
           title="Failed to load dashboard data"
           buttonText="Retry"
         />
+      );
+    }
+
+    // Show loading spinner if no stats data and not logging out (initial load)
+    if (!stats && !isLoggingOut && !loading) {
+      return (
+        <div className="admin-dashboard-root">
+          <LoadingSpinner
+            size="60"
+            stroke="4"
+            speed="1"
+            color="#2563eb"
+            text="Initializing dashboard..."
+            className="full-page"
+          />
+        </div>
+      );
+    }
+
+    // Show loading spinner if logging out
+    if (isLoggingOut) {
+      return (
+        <div className="admin-dashboard-root">
+          <LoadingSpinner
+            size="60"
+            stroke="4"
+            speed="1"
+            color="#2563eb"
+            text="Logging out..."
+            className="full-page"
+          />
+        </div>
       );
     }
 
@@ -1776,21 +2246,20 @@ const AdminDashboard = () => {
             <h1>Admin Dashboard</h1>
             <div className="dashboard-user-info">
               {/* System Activities Bell */}
-              <div className="notification-bell-wrapper" ref={systemActivitiesWrapperRef}>
-                <button className="notification-bell" onClick={() => { setShowSystemActivities(v => !v); }}>
+              <div className="notification-bell-wrapper" ref={notificationWrapperRef}>
+                <button className="notification-bell" onClick={() => { setShowNotifications(v => !v); }}>
                   <FaBell size={22} />
-                  {systemActivitiesUnreadCount > 0 && <span className="notification-badge">{systemActivitiesUnreadCount}</span>}
+                  {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
                 </button>
-                {showSystemActivities && (
-                  <div className="notification-dropdown" ref={systemActivitiesWrapperRef} onClick={e => e.stopPropagation()}>
+                {showNotifications && (
+                  <div className="notification-dropdown" ref={notificationWrapperRef} onClick={e => e.stopPropagation()}>
                     <div className="notification-dropdown-header">
-                    System Activities
-                    {systemActivitiesUnreadCount > 0 && (
+                    Notifications
+                    {unreadCount > 0 && (
                       <button 
                         onClick={() => {
-                          // Mark all activities as read
-                          setSystemActivities(prev => prev.map(act => ({ ...act, status: 'read' })));
-                          setSystemActivitiesUnreadCount(0);
+                          // Mark all notifications as read
+                          markAllNotificationsAsRead();
                         }}
                         style={{
                           float: 'right',
@@ -1807,34 +2276,30 @@ const AdminDashboard = () => {
                       </button>
                     )}
                   </div>
-                    {systemActivities.length > 0 ? (
-                      systemActivities.map((activity) => (
+                    {notifications.length > 0 ? (
+                      notifications.map((notification) => (
                         <div
-                          key={activity.id}
+                          key={notification.notification_id}
                           className="notification-item"
                           style={{
-                            backgroundColor: activity.status === 'unread' ? '#f0f9ff' : 'transparent',
-                            borderLeft: activity.status === 'unread' ? '3px solid #3b82f6' : '3px solid transparent'
+                            backgroundColor: notification.status === 'unread' ? '#f0f9ff' : 'transparent',
+                            borderLeft: notification.status === 'unread' ? '3px solid #3b82f6' : '3px solid transparent'
                           }}
                           onClick={() => {
-                            setSelectedActivity(activity);
-                            // Mark activity as read by updating local state
-                            setSystemActivities(prev => prev.map(act =>
-                              act.id === activity.id ? { ...act, status: 'read' } : act
-                            ));
-                            // Decrease unread count
-                            setSystemActivitiesUnreadCount(prev => Math.max(0, prev - 1));
+                            setSelectedNotification(notification);
+                            // Mark notification as read via API
+                            markNotificationAsRead(notification.notification_id);
                           }}
                         >
                           <div className="notification-message">
-                            {activity.message}
-                            {activity.status === 'unread' && <span style={{ marginLeft: '5px', fontSize: '0.7rem', color: '#3b82f6' }}>●</span>}
+                            {notification.message}
+                            {notification.status === 'unread' && <span style={{ marginLeft: '5px', fontSize: '0.7rem', color: '#3b82f6' }}>●</span>}
                           </div>
-                          <div className="notification-timestamp">{activity.timestamp ? new Date(activity.timestamp).toLocaleString() : ''}</div>
+                          <div className="notification-timestamp">{notification.timestamp ? new Date(notification.timestamp).toLocaleString() : ''}</div>
                         </div>
                       ))
                     ) : (
-                      <div className="notification-empty">No recent activities</div>
+                      <div className="notification-empty">No notifications</div>
                     )}
                   </div>
                 )}
@@ -1853,11 +2318,7 @@ const AdminDashboard = () => {
                       <button 
                         onClick={() => {
                           // Mark all unread messages as read
-                          adminMessages.forEach(msg => {
-                            if (msg.status === 'unread') {
-                              markMessageAsRead(msg.id);
-                            }
-                          });
+                          markAllMessagesAsRead();
                         }}
                         style={{
                           float: 'right',
@@ -2072,47 +2533,289 @@ const AdminDashboard = () => {
         )}
         {profileModalOpen && (
           <div className="modal-overlay profile-edit-modal" onClick={closeProfileModal}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
-              <h3>Edit Profile</h3>
-              <label>
-                Name:
-                <input type="text" name="name" value={profileForm.name} onChange={handleProfileFormChange} />
-              </label>
-              <label>
-                Email:
-                <input type="email" name="email" value={profileForm.email} onChange={handleProfileFormChange} />
-              </label>
-              <label>
-                Password:
-                <input type="password" name="password" value={profileForm.password} onChange={handleProfileFormChange} placeholder="Leave blank to keep unchanged" />
-              </label>
-              <label>
-                Profile Photo:
-                <div className="custom-file-input">
-                  <input
-                    type="file"
-                    name="photo"
-                    accept="image/*"
-                    onChange={handleProfileFormChange}
-                    id="profile-photo-input"
-                    style={{ display: 'none' }}
-                  />
-                  <label htmlFor="profile-photo-input" className="file-input-button">
-                    <span className="file-input-icon">📷</span>
-                    <span className="file-input-text">Choose Photo</span>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ 
+              maxWidth: 500, 
+              padding: '32px',
+              borderRadius: '12px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+            }}>
+              {/* Header */}
+              <div style={{ 
+                marginBottom: '24px',
+                textAlign: 'center',
+                borderBottom: '1px solid #e5e7eb',
+                paddingBottom: '16px'
+              }}>
+                <h2 style={{ 
+                  fontSize: '24px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0 0 8px 0'
+                }}>
+                  Edit Profile
+                </h2>
+                <p style={{ 
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>
+                  Update your account information and settings
+                </p>
+              </div>
+
+              {/* Form Fields */}
+              <div style={{ marginBottom: '24px' }}>
+                {/* Name Field */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ 
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '8px'
+                  }}>
+                    Full Name <span style={{ color: '#ef4444' }}>*</span>
                   </label>
-                  <span className="file-input-filename">
-                    {profileForm.photo ? profileForm.photo.name : 'No file chosen'}
-                  </span>
+                  <input
+                    type="text"
+                    name="name"
+                    value={profileForm.name}
+                    onChange={handleProfileFormChange}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      fontSize: '16px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      backgroundColor: '#ffffff',
+                      transition: 'border-color 0.2s ease',
+                      boxSizing: 'border-box'
+                    }}
+                    placeholder="Enter your full name"
+                  />
                 </div>
-              </label>
-              {profileForm.photoPreview && (
-                <img src={profileForm.photoPreview} alt="Preview" className="avatar-preview" />
+
+                {/* Email Field */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ 
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '8px'
+                  }}>
+                    Email Address <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={profileForm.email}
+                    onChange={handleProfileFormChange}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      fontSize: '16px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      backgroundColor: '#ffffff',
+                      transition: 'border-color 0.2s ease',
+                      boxSizing: 'border-box'
+                    }}
+                    placeholder="Enter your email address"
+                  />
+                </div>
+
+                {/* Password Field */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ 
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '8px'
+                  }}>
+                    Password <span style={{ color: '#6b7280', fontSize: '12px' }}>(Optional)</span>
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={profileForm.password}
+                    onChange={handleProfileFormChange}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      fontSize: '16px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      backgroundColor: '#ffffff',
+                      transition: 'border-color 0.2s ease',
+                      boxSizing: 'border-box'
+                    }}
+                    placeholder="Leave blank to keep current password"
+                  />
+                  <p style={{ 
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    margin: '4px 0 0 0'
+                  }}>
+                    Leave blank if you don't want to change your password
+                  </p>
+                </div>
+
+                {/* Profile Photo Field */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ 
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '8px'
+                  }}>
+                    Profile Photo
+                  </label>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    border: '2px dashed #d1d5db',
+                    borderRadius: '8px',
+                    backgroundColor: '#f9fafb',
+                    cursor: 'pointer',
+                    transition: 'border-color 0.2s ease'
+                  }}>
+                    <input
+                      type="file"
+                      name="photo"
+                      accept="image/*"
+                      onChange={handleProfileFormChange}
+                      id="profile-photo-input"
+                      style={{ display: 'none' }}
+                    />
+                    <label htmlFor="profile-photo-input" style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: '#3b82f6',
+                      fontWeight: '500'
+                    }}>
+                      <span style={{ fontSize: '18px' }}>📷</span>
+                      Choose Photo
+                    </label>
+                    <span style={{
+                      fontSize: '14px',
+                      color: '#6b7280',
+                      marginLeft: 'auto'
+                    }}>
+                      {profileForm.photo ? profileForm.photo.name : 'No file chosen'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Photo Preview */}
+                {profileForm.photoPreview && (
+                  <div style={{ 
+                    marginBottom: '20px',
+                    textAlign: 'center'
+                  }}>
+                    <img 
+                      src={profileForm.photoPreview} 
+                      alt="Profile Preview" 
+                      style={{
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '3px solid #e5e7eb'
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Error Message */}
+              {profileError && (
+                <div style={{
+                  padding: '12px 16px',
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '8px',
+                  marginBottom: '20px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: '#dc2626',
+                    fontSize: '14px'
+                  }}>
+                    <span style={{ fontSize: '16px' }}>⚠️</span>
+                    {profileError}
+                  </div>
+                </div>
               )}
-              {profileError && <div className="error-message" style={{ color: 'red', marginTop: 8 }}>{profileError}</div>}
-              <div className="modal-actions" style={{ marginTop: 16 }}>
-                <button className="dashboard-btn primary" onClick={handleProfileSave} disabled={profileLoading}>{profileLoading ? 'Saving...' : 'Save'}</button>
-                <button className="dashboard-btn" onClick={closeProfileModal} disabled={profileLoading}>Cancel</button>
+
+              {/* Action Buttons */}
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'flex-end',
+                borderTop: '1px solid #e5e7eb',
+                paddingTop: '20px'
+              }}>
+                <button 
+                  onClick={closeProfileModal} 
+                  disabled={profileLoading}
+                  style={{
+                    padding: '12px 24px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleProfileSave} 
+                  disabled={profileLoading}
+                  style={{
+                    padding: '12px 24px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#ffffff',
+                    backgroundColor: '#3b82f6',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  {profileLoading ? (
+                    <>
+                      <div style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid #ffffff',
+                        borderTop: '2px solid transparent',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }}></div>
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
               </div>
             </div>
           </div>

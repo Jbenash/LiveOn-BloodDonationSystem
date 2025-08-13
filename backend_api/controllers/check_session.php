@@ -1,22 +1,12 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_config.php';
 
-// Set CORS headers dynamically
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
 
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Content-Type: application/json');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
+// Initialize session properly
+initSession();
 
 echo json_encode([
     'session_status' => [

@@ -1,25 +1,26 @@
 <?php
 header('Content-Type: application/json');
-// Allow both development ports
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if ($origin === 'http://localhost:5173' || $origin === 'http://localhost:5174') {
-    header('Access-Control-Allow-Origin: ' . $origin);
-}
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+require_once __DIR__ . '/../config/session_config.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
 
-session_start();
+// Initialize session properly
+initSession();
 
-// Check if user is logged in and is admin
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+// Check if user is logged in and has admin role
+$currentUser = getCurrentUser();
+if (!$currentUser) {
     http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized access']);
-    exit;
+    echo json_encode(['error' => 'Not logged in. Please log in first.']);
+    exit();
+}
+
+if ($currentUser['role'] !== 'admin') {
+    http_response_code(403);
+    echo json_encode(['error' => 'Access denied. Admin role required.']);
+    exit();
 }
 
 require_once '../config/db_connection.php';

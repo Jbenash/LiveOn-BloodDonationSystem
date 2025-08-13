@@ -1,63 +1,27 @@
 <?php
-// Turn off error display to prevent HTML output
-ini_set('display_errors', 0);
-error_reporting(E_ALL);
-
-session_start();
-
-// Set CORS headers dynamically
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
+// Prevent multiple includes
+if (!defined('SESSION_CONFIG_LOADED')) {
+    require_once __DIR__ . '/../config/session_config.php';
 }
 
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Content-Type: application/json');
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
 
-// Handle preflight requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
+// Initialize session manually
+initSession();
 
-// Function to send JSON response and exit
-function sendJsonResponse($data, $statusCode = 200)
-{
-    http_response_code($statusCode);
-    echo json_encode($data);
-    exit;
-}
-
-// Check if user is logged in
-if (!isset($_SESSION['user_id'])) {
-    sendJsonResponse([
-        'success' => false,
-        'error' => 'No user session found',
-        'message' => 'Please log in first'
-    ], 401);
-}
-
-// Check if user has admin role
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    sendJsonResponse([
-        'success' => false,
-        'error' => 'Access denied',
-        'message' => 'Admin role required',
-        'current_role' => $_SESSION['role'] ?? 'not set'
-    ], 403);
-}
+// Require admin role
+requireRole('admin');
 
 try {
     // Check if required files exist
     $requiredFiles = [
         __DIR__ . '/AdminController.php',
-        __DIR__ . '/../classes/ResponseHandler.php',
-        __DIR__ . '/../classes/Database.php',
+        __DIR__ . '/../classes/Core/ResponseHandler.php',
+        __DIR__ . '/../classes/Core/Database.php',
         __DIR__ . '/../classes/Exceptions.php',
-        __DIR__ . '/../classes/Validator.php'
+        __DIR__ . '/../classes/Core/Validator.php'
     ];
 
     foreach ($requiredFiles as $file) {
@@ -73,9 +37,12 @@ try {
     $adminController = new AdminController();
     $adminController->getDashboardData();
 } catch (Exception $e) {
-    sendJsonResponse([
+    error_log("Admin Dashboard Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+    http_response_code(500);
+    echo json_encode([
         'success' => false,
         'error' => 'Server error',
-        'message' => 'Failed to load dashboard data'
-    ], 500);
+        'message' => 'Failed to load dashboard data: ' . $e->getMessage()
+    ]);
+    exit();
 }

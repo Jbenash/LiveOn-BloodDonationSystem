@@ -34,13 +34,18 @@ const HospitalDashboard = () => {
   // Custom dialog state
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showLogoDialog, setShowLogoDialog] = useState(false);
+  const [isLogoutTriggered, setIsLogoutTriggered] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Browser back button handling
   useEffect(() => {
     const handlePopState = (e) => {
       // Prevent browser back button from working normally
       e.preventDefault();
-      setShowLogoutDialog(true);
+      // Only show logout dialog if not already showing and not triggered by button click
+      if (!showLogoutDialog && !isLogoutTriggered) {
+        setShowLogoutDialog(true);
+      }
       // Push the current state back to prevent navigation
       window.history.pushState(null, null, window.location.pathname);
     };
@@ -54,40 +59,85 @@ const HospitalDashboard = () => {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, []); // Remove showLogoutDialog from dependency array to prevent re-adding event listeners
 
   useEffect(() => {
+    // Don't fetch data if we're logging out
+    if (isLoggingOut) return;
+
     setLoading(true);
     setError(null);
 
-    fetch('http://localhost/liveonv2/backend_api/controllers/hospital_dashboard.php', {
-      credentials: 'include'
-    })
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        return res.json();
+    const controller = new AbortController();
+
+    // Add a small delay to ensure session is ready
+    const fetchData = () => {
+      // Check if we have any session-related cookies
+      const hasSessionCookie = document.cookie.includes('LIVEON_SESSION') || 
+                              document.cookie.includes('PHPSESSID') ||
+                              document.cookie.includes('session');
+      
+      // Don't redirect immediately - let the API call determine if session is valid
+      // The session might be valid even if we can't detect the cookie name
+      
+      fetch('http://localhost/liveonv2/backend_api/controllers/hospital_dashboard.php', {
+        credentials: 'include',
+        signal: controller.signal
       })
-      .then(data => {
-        if (data.error) {
-          throw new Error(data.error);
-        } else {
-          setHospital(data);
-          setDonors(data.donors || []);
-          setBloodInventory(data.bloodInventory || []);
-          setEmergencyRequests(data.emergencyRequests || []);
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching hospital data:', err);
-        setError(err.message || 'Failed to load hospital dashboard');
-        toast.error('Failed to load hospital dashboard');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [navigate]);
+        .then(res => {
+          if (!res.ok) {
+            if (res.status === 401) {
+              // Session expired or user not logged in - redirect to login
+              throw new Error('SESSION_EXPIRED');
+            }
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          }
+          return res.json();
+        })
+        .then(data => {
+          if (data.error) {
+            throw new Error(data.error);
+          } else {
+            setHospital(data);
+            setDonors(data.donors || []);
+            setBloodInventory(data.bloodInventory || []);
+            setEmergencyRequests(data.emergencyRequests || []);
+            setError(null); // Clear any previous errors
+          }
+        })
+        .catch(err => {
+          // Don't set error if we're logging out or component is unmounting
+          if (!isLoggingOut && err.name !== 'AbortError') {
+            console.error('Error fetching hospital data:', err);
+            
+            if (err.message === 'SESSION_EXPIRED') {
+              // Don't set error state, just redirect immediately
+              setLoading(false);
+              navigate('/');
+              return;
+            }
+            
+            // Only set error for non-session related issues
+            setError(err.message || 'Failed to load hospital dashboard');
+            toast.error('Failed to load hospital dashboard');
+          }
+        })
+        .finally(() => {
+          if (!isLoggingOut) {
+            setLoading(false);
+          }
+        });
+    };
+
+    // Add a longer delay to ensure session is ready and prevent unnecessary API calls
+    const timeoutId = setTimeout(fetchData, 200);
+
+    // Cleanup function to abort fetch if component unmounts or logout starts
+    return () => {
+      controller.abort();
+      clearTimeout(timeoutId);
+    };
+  }, [navigate, isLoggingOut]);
 
   const handleRequest = (donorId) => {
     setDonationRequestDonorId(donorId);
@@ -98,33 +148,61 @@ const HospitalDashboard = () => {
   };
 
   // Use custom dialog for logout
-  const handleLogout = () => {
-    setShowLogoutDialog(true);
+  const handleLogout = (e) => {
+    // Prevent any default behavior
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    // Set flag to prevent browser back button handler from triggering
+    setIsLogoutTriggered(true);
+    // Only show dialog if not already showing
+    if (!showLogoutDialog) {
+      setShowLogoutDialog(true);
+    }
+    // Reset flag after a short delay
+    setTimeout(() => setIsLogoutTriggered(false), 100);
   };
   const confirmLogout = () => {
     setShowLogoutDialog(false);
+    setIsLoggingOut(true); // Set logout flag to prevent API calls
+    setIsLogoutTriggered(true); // Prevent back button handler from triggering
+    setError(null); // Clear any error state during logout
+    
+    // Call logout API first
     fetch('http://localhost/liveonv2/backend_api/controllers/logout.php', {
       method: 'POST',
       credentials: 'include',
     })
-      .then(() => {
-        // Clear browser history to prevent going back to dashboard
-        window.history.pushState(null, null, '/');
-        window.history.pushState(null, null, '/');
-        window.history.pushState(null, null, '/');
-        window.history.go(-3);
-        // Navigate to home page
-        navigate('/?login=true');
-      })
-      .catch(() => {
-        // Clear browser history to prevent going back to dashboard
-        window.history.pushState(null, null, '/');
-        window.history.pushState(null, null, '/');
-        window.history.pushState(null, null, '/');
-        window.history.go(-3);
-        // Navigate to home page
-        navigate('/?login=true');
-      });
+    .then((response) => {
+      // Check if logout was successful
+      if (response.ok) {
+        console.log('Logout successful');
+      } else {
+        console.log('Logout API returned error, but continuing with navigation');
+      }
+    })
+    .catch((error) => {
+      console.log('Logout API error, but continuing with navigation:', error);
+    })
+    .finally(() => {
+      // Add a longer delay to ensure session is properly destroyed and prevent race conditions
+      setTimeout(() => {
+        try {
+          // Clear any remaining state
+          setHospital(null);
+          setError(null);
+          setLoading(false);
+          
+          // Navigate to home page
+          navigate('/', { replace: true });
+        } catch (navError) {
+          console.log('Navigation error, using window.location:', navError);
+          // Fallback to window.location if navigate fails
+          window.location.href = '/';
+        }
+      }, 300); // Increased delay to 300ms to prevent race conditions
+    });
   };
   const cancelLogout = () => setShowLogoutDialog(false);
 
@@ -132,9 +210,41 @@ const HospitalDashboard = () => {
   const handleLogoClick = () => {
     setShowLogoDialog(true);
   };
-  const confirmLogo = () => {
+  const confirmLogo = async () => {
     setShowLogoDialog(false);
-    navigate('/');
+    
+    // Actually logout the user instead of just navigating
+    setIsLoggingOut(true);
+    
+    try {
+      // Call logout API
+      const response = await fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      console.log('Logout successful from home button');
+    } catch (error) {
+      console.log('Logout API error from home button:', error);
+    } finally {
+      // Clear any remaining state
+      setHospital(null);
+      setDonors([]);
+      setBloodInventory([]);
+      setEmergencyRequests([]);
+      setError(null);
+      setLoading(false);
+      
+      // Navigate to home page after logout
+      setTimeout(() => {
+        try {
+          navigate('/', { replace: true });
+        } catch (navError) {
+          console.log('Navigation error, using window.location:', navError);
+          window.location.href = '/';
+        }
+      }, 200);
+    }
   };
   const cancelLogo = () => setShowLogoDialog(false);
 
@@ -148,14 +258,15 @@ const HospitalDashboard = () => {
           stroke="4"
           speed="1"
           color="#059669"
-          text="Loading hospital dashboard..."
+          text="Loading your hospital dashboard..."
           className="full-page"
         />
       </div>
     );
   }
 
-  if (error) {
+  // Don't show error if we're logging out or if it's a session expiration
+  if (error && !isLoggingOut) {
     return (
       <ErrorDisplay
         error={error}
@@ -168,6 +279,9 @@ const HospitalDashboard = () => {
           })
             .then(res => {
               if (!res.ok) {
+                if (res.status === 401) {
+                  throw new Error('SESSION_EXPIRED');
+                }
                 throw new Error(`HTTP ${res.status}: ${res.statusText}`);
               }
               return res.json();
@@ -184,6 +298,10 @@ const HospitalDashboard = () => {
             })
             .catch(err => {
               console.error('Error fetching hospital data:', err);
+              if (err.message === 'SESSION_EXPIRED') {
+                navigate('/');
+                return;
+              }
               setError(err.message || 'Failed to load hospital dashboard');
               toast.error('Failed to load hospital dashboard');
             })
@@ -197,14 +315,35 @@ const HospitalDashboard = () => {
     );
   }
 
-  if (!hospital) {
+  // Show loading spinner if no hospital data and not logging out (initial load)
+  if (!hospital && !isLoggingOut && !loading) {
     return (
-      <ErrorDisplay
-        error="No hospital data available"
-        title="Hospital data not found"
-        buttonText="Retry"
-        onRetry={() => window.location.reload()}
-      />
+      <div className="hospital-dashboard-root">
+        <LoadingSpinner
+          size="60"
+          stroke="4"
+          speed="1"
+          color="#059669"
+          text="Checking your session..."
+          className="full-page"
+        />
+      </div>
+    );
+  }
+
+  // Show loading spinner if logging out
+  if (isLoggingOut) {
+    return (
+      <div className="hospital-dashboard-root">
+        <LoadingSpinner
+          size="60"
+          stroke="4"
+          speed="1"
+          color="#059669"
+          text="Logging you out..."
+          className="full-page"
+        />
+      </div>
     );
   }
 
@@ -257,12 +396,12 @@ const HospitalDashboard = () => {
       <main className="dashboard-main" style={{ display: 'flex', gap: '24px' }}>
         <div style={{ flex: 2 }}>
           {/* Dashboard Header: Hospital Dashboard ... Hospital Name */}
-          <div className="dashboard-section" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 36, padding: '28px 32px' }}>
-            <h1 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#222', margin: 0 }}>Hospital Dashboard</h1>
-            <div style={{ fontSize: '1.15rem', fontWeight: 600, color: '#2563eb', marginLeft: 24, whiteSpace: 'nowrap' }}>
-              <span>🏥 {hospital.name}</span>
+          <header className="dashboard-header">
+            <h1>Hospital Dashboard</h1>
+            <div className="dashboard-user-info">
+              <span className="dashboard-user-name">🏥 {hospital.name}</span>
             </div>
-          </div>
+          </header>
           {/* Section Tabs (if needed) */}
           {/* Section Content */}
           {activeSection === 'Overview' && (

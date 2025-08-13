@@ -48,13 +48,18 @@ const MRODashboard = () => {
   const [hospitalId, setHospitalId] = useState("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showLogoDialog, setShowLogoDialog] = useState(false);
+  const [isLogoutTriggered, setIsLogoutTriggered] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Browser back button handling
   useEffect(() => {
     const handlePopState = (e) => {
       // Prevent browser back button from working normally
       e.preventDefault();
-      setShowLogoutDialog(true);
+      // Only show logout dialog if not already showing and not triggered by button click
+      if (!showLogoutDialog && !isLogoutTriggered) {
+        setShowLogoutDialog(true);
+      }
       // Push the current state back to prevent navigation
       window.history.pushState(null, null, window.location.pathname);
     };
@@ -68,7 +73,7 @@ const MRODashboard = () => {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, []); // Remove showLogoutDialog from dependency array to prevent re-adding event listeners
 
   // Auth check: redirect to home if not logged in as MRO
   useEffect(() => {
@@ -81,96 +86,213 @@ const MRODashboard = () => {
   }, [navigate]);
 
   useEffect(() => {
+    // Don't fetch data if we're logging out
+    if (isLoggingOut) return;
+
     setLoading(true);
+    setError(null);
+    
+    const controller = new AbortController();
+
     fetch("http://localhost/Liveonv2/backend_api/controllers/get_donor_requests.php", {
-      credentials: "include"
+      credentials: "include",
+      signal: controller.signal
     })
       .then((res) => {
-        if (!res.ok) throw new Error("Network response was not ok");
+        if (!res.ok) {
+          if (res.status === 401) {
+            // Session expired or user not logged in - redirect to login
+            throw new Error('SESSION_EXPIRED');
+          }
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
         return res.json();
       })
       .then((data) => {
-        setDonorRequests(data);
-        setLoading(false);
+        if (!isLoggingOut) {
+          setDonorRequests(data);
+          setError(null); // Clear any previous errors
+          setLoading(false);
+        }
       })
       .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-        toast.error('Failed to fetch donor requests: ' + err.message);
+        // Don't set error if we're logging out or component is unmounting
+        if (!isLoggingOut && err.name !== 'AbortError') {
+          console.error('Error fetching donor requests:', err);
+          
+          if (err.message === 'SESSION_EXPIRED') {
+            // Don't set error state, just redirect immediately
+            setLoading(false);
+            navigate('/');
+            return;
+          }
+          
+          setError(err.message);
+          setLoading(false);
+          toast.error('Failed to fetch donor requests: ' + err.message);
+        }
       });
+
+    // Cleanup function to abort fetch if component unmounts or logout starts
+    return () => {
+      controller.abort();
+    };
+  }, [isLoggingOut, navigate]);
   
   // Fetch donor registrations
+  useEffect(() => {
+    if (isLoggingOut) return;
+    
     fetch("http://localhost/Liveonv2/backend_api/controllers/get_donor_registrations.php", {
       credentials: "include"
     })
     .then((res) => {
-      if (!res.ok) throw new Error("Network response was not ok");
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('SESSION_EXPIRED');
+        }
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
       return res.json();
     })
     .then((data) => {
-      setDonorRegistrations(data);
+      if (!isLoggingOut) {
+        setDonorRegistrations(data);
+        setError(null); // Clear any previous errors
+      }
     })
     .catch((err) => {
-      console.error("Error fetching donor registrations:", err);
-      toast.error('Failed to fetch donor registrations: ' + err.message);
+      if (!isLoggingOut) {
+        console.error("Error fetching donor registrations:", err);
+        
+        if (err.message === 'SESSION_EXPIRED') {
+          navigate('/');
+          return;
+        }
+        
+        toast.error('Failed to fetch donor registrations: ' + err.message);
+      }
     });
+  }, [isLoggingOut, navigate]);
 
   // Fetch verification statistics
+  useEffect(() => {
+    if (isLoggingOut) return;
+    
     fetch("http://localhost/Liveonv2/backend_api/controllers/get_verification_stats.php", {
       credentials: "include"
     })
     .then((res) => {
-      if (!res.ok) throw new Error("Network response was not ok");
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('SESSION_EXPIRED');
+        }
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
       return res.json();
     })
     .then((data) => {
-      setVerificationStats(data);
+      if (!isLoggingOut) {
+        setVerificationStats(data);
+        setError(null); // Clear any previous errors
+      }
     })
     .catch((err) => {
-      console.error("Error fetching verification stats:", err);
-      toast.error('Failed to fetch verification stats: ' + err.message);
+      if (!isLoggingOut) {
+        console.error("Error fetching verification stats:", err);
+        
+        if (err.message === 'SESSION_EXPIRED') {
+          navigate('/');
+          return;
+        }
+        
+        toast.error('Failed to fetch verification stats: ' + err.message);
+      }
     });
+  }, [isLoggingOut, navigate]);
 
   // Fetch donation logs
+  useEffect(() => {
+    if (isLoggingOut) return;
+    
     fetch("http://localhost/Liveonv2/backend_api/controllers/get_donation_logs.php", {
       credentials: "include"
     })
     .then((res) => {
-      if (!res.ok) throw new Error("Network response was not ok");
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('SESSION_EXPIRED');
+        }
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
       return res.json();
     })
     .then((data) => {
-      if (data.success) {
+      if (data.success && !isLoggingOut) {
         setDonationLogs(data.donations);
+        setError(null); // Clear any previous errors
       } else {
         console.error("Error fetching donation logs:", data.error);
       }
     })
     .catch((err) => {
-      console.error("Error fetching donation logs:", err);
-      toast.error('Failed to fetch donation logs: ' + err.message);
+      if (!isLoggingOut) {
+        console.error("Error fetching donation logs:", err);
+        
+        if (err.message === 'SESSION_EXPIRED') {
+          navigate('/');
+          return;
+        }
+        
+        toast.error('Failed to fetch donation logs: ' + err.message);
+      }
     });
-}, []);
+  }, [isLoggingOut, navigate]);
 
   useEffect(() => {
+    // Don't fetch if we're logging out
+    if (isLoggingOut) return;
+    
     // Fetch hospital name for MRO
-    fetch("http://localhost/Liveonv2/backend_api/controllers/get_mro_hospital.php", { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setHospitalName(data.hospital_name);
-          if (data.hospital_id) setHospitalId(data.hospital_id);
-        } else {
-          setHospitalNameError(data.error || "Failed to load hospital name");
+    fetch("http://localhost/Liveonv2/backend_api/controllers/get_mro_hospital.php", { 
+      credentials: 'include' 
+    })
+      .then(res => {
+        if (!res.ok) {
+          if (res.status === 401) {
+            throw new Error('SESSION_EXPIRED');
+          }
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         }
-        setHospitalNameLoading(false);
+        return res.json();
+      })
+      .then(data => {
+        if (!isLoggingOut) {
+          if (data.success) {
+            setHospitalName(data.hospital_name);
+            if (data.hospital_id) setHospitalId(data.hospital_id);
+            setError(null); // Clear any previous errors
+          } else {
+            setHospitalNameError(data.error || "Failed to load hospital name");
+          }
+          setHospitalNameLoading(false);
+        }
       })
       .catch(err => {
-        setHospitalNameError("Failed to load hospital name");
-        toast.error('Failed to load hospital name: ' + err.message);
-        setHospitalNameLoading(false);
+        if (!isLoggingOut) {
+          console.error("Error fetching hospital name:", err);
+          
+          if (err.message === 'SESSION_EXPIRED') {
+            navigate('/');
+            return;
+          }
+          
+          setHospitalNameError("Failed to load hospital name");
+          toast.error('Failed to load hospital name: ' + err.message);
+          setHospitalNameLoading(false);
+        }
       });
-  }, []);
+  }, [isLoggingOut, navigate]);
 
   useEffect(() => {
     if (showPopup) {
@@ -452,32 +574,51 @@ const MRODashboard = () => {
   };
 
   // Add logout handler
-  const handleLogout = () => {
-    setShowLogoutDialog(true);
+  const handleLogout = (e) => {
+    // Prevent any default behavior
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    // Set flag to prevent browser back button handler from triggering
+    setIsLogoutTriggered(true);
+    // Only show dialog if not already showing
+    if (!showLogoutDialog) {
+      setShowLogoutDialog(true);
+    }
+    // Reset flag after a short delay
+    setTimeout(() => setIsLogoutTriggered(false), 100);
   };
   const confirmLogout = async () => {
     setShowLogoutDialog(false);
+    setIsLoggingOut(true); // Set logout flag to prevent API calls
+    setIsLogoutTriggered(true); // Prevent back button handler from triggering
+    
     try {
-      await fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
+      // Call logout API
+      const response = await fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
         method: 'POST',
         credentials: 'include',
       });
-      // Clear browser history to prevent going back to dashboard
-      window.history.pushState(null, null, '/');
-      window.history.pushState(null, null, '/');
-      window.history.pushState(null, null, '/');
-      window.history.go(-3);
-      // Navigate to home page
-      navigate('/?login=true');
+      
+      console.log('Logout successful');
     } catch (error) {
-      toast.error('Logout failed');
-      // Clear browser history to prevent going back to dashboard
-      window.history.pushState(null, null, '/');
-      window.history.pushState(null, null, '/');
-      window.history.pushState(null, null, '/');
-      window.history.go(-3);
-      // Navigate to home page
-      navigate('/?login=true');
+      console.log('Logout API error:', error);
+    } finally {
+      // Clear any remaining state
+      setDonorRequests([]);
+      setDonorRegistrations([]);
+      setDonationLogs([]);
+      setVerificationStats({ verificationData: [], stats: {} });
+      setHospitalName("");
+      setHospitalId("");
+      setError(null);
+      setLoading(false);
+      
+      // Use window.location.href directly to avoid React Router issues
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 200);
     }
   };
   const cancelLogout = () => setShowLogoutDialog(false);
@@ -486,9 +627,38 @@ const MRODashboard = () => {
   const handleLogoClick = () => {
     setShowLogoDialog(true);
   };
-  const confirmLogo = () => {
+  const confirmLogo = async () => {
     setShowLogoDialog(false);
-    navigate('/');
+    
+    // Actually logout the user instead of just navigating
+    setIsLoggingOut(true);
+    
+    try {
+      // Call logout API
+      const response = await fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      console.log('Logout successful from home button');
+    } catch (error) {
+      console.log('Logout API error from home button:', error);
+    } finally {
+      // Clear any remaining state
+      setDonorRequests([]);
+      setDonorRegistrations([]);
+      setDonationLogs([]);
+      setVerificationStats({ verificationData: [], stats: {} });
+      setHospitalName("");
+      setHospitalId("");
+      setError(null);
+      setLoading(false);
+      
+      // Use window.location.href directly to avoid React Router issues
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 200);
+    }
   };
   const cancelLogo = () => setShowLogoDialog(false);
 
@@ -533,6 +703,22 @@ const MRODashboard = () => {
           speed="1"
           color="#7c3aed"
           text="Loading MRO dashboard..."
+          className="full-page"
+        />
+      </div>
+    );
+  }
+
+  // Show loading spinner if logging out
+  if (isLoggingOut) {
+    return (
+      <div className="mro-dashboard-root">
+        <LoadingSpinner 
+          size="60"
+          stroke="4"
+          speed="1"
+          color="#7c3aed"
+          text="Logging you out..."
           className="full-page"
         />
       </div>
@@ -605,18 +791,18 @@ const MRODashboard = () => {
       <main className="dashboard-main" style={{ display: 'flex', gap: '24px' }}>
         <div style={{ flex: 2 }}>
           {/* Dashboard Header: MRO Dashboard ... Hospital Name */}
-          <div className="dashboard-section" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 36, padding: '28px 32px' }}>
-            <h1 style={{ fontSize: '2.1rem', fontWeight: 800, color: '#222', margin: 0 }}>MRO Dashboard</h1>
-            <div style={{ fontSize: '1.15rem', fontWeight: 600, color: '#2563eb', marginLeft: 24, whiteSpace: 'nowrap' }}>
+          <header className="dashboard-header">
+            <h1>MRO Dashboard</h1>
+            <div className="dashboard-user-info">
               {hospitalNameLoading ? (
-                <span>Loading hospital name...</span>
+                <span className="dashboard-user-name">Loading hospital name...</span>
               ) : hospitalNameError ? (
-                <span style={{ color: '#f87171' }}>{hospitalNameError}</span>
+                <span className="dashboard-user-name" style={{ color: '#f87171' }}>{hospitalNameError}</span>
               ) : (
-                <span>🏥 {hospitalName}</span>
+                <span className="dashboard-user-name">🏥 {hospitalName}</span>
               )}
-                </div>
-                </div>
+            </div>
+          </header>
           {/* Section Tabs */}
           <div style={{ display: 'flex', gap: 16, marginBottom: 32 }}>
             {/* Removed section tabs navigation bar */}

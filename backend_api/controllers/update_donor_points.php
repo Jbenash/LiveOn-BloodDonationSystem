@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once __DIR__ . '/../classes/Database.php';
+require_once __DIR__ . '/../classes/Core/Database.php';
 
 try {
     $input = json_decode(file_get_contents('php://input'), true);
@@ -29,7 +29,7 @@ try {
         exit;
     }
 
-    $database = Database::getInstance();
+    $database = \LiveOn\classes\Core\Database::getInstance();
     $pdo = $database->connect();
 
     // Check if donor has a rewards record

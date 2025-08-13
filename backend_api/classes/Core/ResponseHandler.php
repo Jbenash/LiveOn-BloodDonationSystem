@@ -1,6 +1,11 @@
 <?php
 
-require_once __DIR__ . '/Exceptions.php';
+namespace LiveOn\classes\Core;
+
+use Exception;
+use PDOException;
+use LiveOnException;
+use ValidationException;
 
 class ResponseHandler
 {

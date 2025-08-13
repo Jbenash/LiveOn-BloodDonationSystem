@@ -1,21 +1,25 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_config.php';
 
-// Allow requests from both development ports
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Content-Type: application/json");
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
 
-// Check authentication first
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'donor') {
-    echo json_encode(['error' => 'Unauthorized']);
+// Initialize session manually
+initSession();
+
+// Check if user is logged in before requiring role
+$currentUser = getCurrentUser();
+if (!$currentUser) {
     http_response_code(401);
+    echo json_encode(['error' => 'Not logged in. Please log in first.']);
+    exit();
+}
+
+// Check if user has donor role
+if ($currentUser['role'] !== 'donor') {
+    http_response_code(403);
+    echo json_encode(['error' => 'Access denied. Donor role required.']);
     exit();
 }
 

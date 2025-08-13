@@ -18,9 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 try {
-    require_once __DIR__ . '/../classes/Database.php';
+    require_once __DIR__ . '/../classes/Core/Database.php';
 
-    $database = Database::getInstance();
+    $database = \LiveOn\classes\Core\Database::getInstance();
     $pdo = $database->connect();
 
     // Check if admin user already exists

@@ -21,6 +21,8 @@ const DonorDashboard = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showLogoDialog, setShowLogoDialog] = useState(false);
   const [showSaveProfileDialog, setShowSaveProfileDialog] = useState(false);
+  const [isLogoutTriggered, setIsLogoutTriggered] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [removeReason, setRemoveReason] = useState('');
   const [error, setError] = useState(null);
@@ -30,12 +32,23 @@ const DonorDashboard = () => {
   const [loadingHospitals, setLoadingHospitals] = useState(false);
   const [showHealthTipsPopup, setShowHealthTipsPopup] = useState(false);
 
+  // Ensure any modal-induced scroll lock is cleared when entering dashboard
+  useEffect(() => {
+    document.body.classList.remove('modal-open');
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, []);
+
   // Browser back button handling
   useEffect(() => {
     const handlePopState = (e) => {
       // Prevent browser back button from working normally
       e.preventDefault();
-      setShowLogoutDialog(true);
+      // Only show logout dialog if not already showing and not triggered by button click
+      if (!showLogoutDialog && !isLogoutTriggered) {
+        setShowLogoutDialog(true);
+      }
       // Push the current state back to prevent navigation
       window.history.pushState(null, null, window.location.pathname);
     };
@@ -49,37 +62,82 @@ const DonorDashboard = () => {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, []); // Remove showLogoutDialog from dependency array to prevent re-adding event listeners
 
   useEffect(() => {
+    // Don't fetch data if we're logging out
+    if (isLoggingOut) return;
+
     setLoading(true);
     setError(null);
 
-    fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
-      credentials: 'include'
-    })
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        return res.json();
+    const controller = new AbortController();
+
+    // Add a small delay to ensure session is ready
+    const fetchData = () => {
+      // Check if we have any session-related cookies
+      const hasSessionCookie = document.cookie.includes('LIVEON_SESSION') || 
+                              document.cookie.includes('PHPSESSID') ||
+                              document.cookie.includes('session');
+      
+      // Don't redirect immediately - let the API call determine if session is valid
+      // The session might be valid even if we can't detect the cookie name
+      
+      fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
+        credentials: 'include',
+        signal: controller.signal
       })
-      .then(data => {
-        if (data.error) {
-          throw new Error(data.error);
-        } else {
-          setUser(data);
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching donor data:', err);
-        setError(err.message || 'Failed to load donor data');
-        toast.error('Failed to load donor data');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [navigate]);
+        .then(res => {
+          if (!res.ok) {
+            if (res.status === 401) {
+              // Session expired or user not logged in - redirect to login
+              throw new Error('SESSION_EXPIRED');
+            }
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          }
+          return res.json();
+        })
+        .then(data => {
+          if (data.error) {
+            throw new Error(data.error);
+          } else {
+            setUser(data);
+            setError(null); // Clear any previous errors
+          }
+        })
+        .catch(err => {
+          // Don't set error if we're logging out or component is unmounting
+          if (!isLoggingOut && err.name !== 'AbortError') {
+            console.error('Error fetching donor data:', err);
+            
+            if (err.message === 'SESSION_EXPIRED') {
+              // Don't set error state, just redirect immediately
+              setLoading(false);
+              navigate('/');
+              return;
+            }
+            
+            // Only set error for non-session related issues
+            setError(err.message || 'Failed to load donor data');
+            toast.error('Failed to load donor data');
+          }
+        })
+        .finally(() => {
+          if (!isLoggingOut) {
+            setLoading(false);
+          }
+        });
+    };
+
+    // Add a longer delay to ensure session is ready and prevent unnecessary API calls
+    const timeoutId = setTimeout(fetchData, 200);
+
+    // Cleanup function to abort fetch if component unmounts or logout starts
+    return () => {
+      controller.abort();
+      clearTimeout(timeoutId);
+    };
+  }, [navigate, isLoggingOut]);
 
   useEffect(() => {
     if (activeSection === 'donations' && user?.donorId) {
@@ -136,34 +194,61 @@ const DonorDashboard = () => {
   }, [user?.lastDonation, user?.registrationDate]);
 
   // Use custom dialog for logout
-  const handleLogout = () => {
-    setShowLogoutDialog(true);
+  const handleLogout = (e) => {
+    // Prevent any default behavior
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    // Set flag to prevent browser back button handler from triggering
+    setIsLogoutTriggered(true);
+    // Only show dialog if not already showing
+    if (!showLogoutDialog) {
+      setShowLogoutDialog(true);
+    }
+    // Reset flag after a short delay
+    setTimeout(() => setIsLogoutTriggered(false), 100);
   };
   const confirmLogout = () => {
     setShowLogoutDialog(false);
+    setIsLoggingOut(true); // Set logout flag to prevent API calls
+    setIsLogoutTriggered(true); // Prevent back button handler from triggering
+    setError(null); // Clear any error state during logout
+    
+    // Call logout API first
     fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
       method: 'POST',
       credentials: 'include'
     })
-      .then(() => {
-        // Clear browser history to prevent going back to dashboard
-        window.history.pushState(null, null, '/');
-        window.history.pushState(null, null, '/');
-        window.history.pushState(null, null, '/');
-        window.history.go(-3);
-        // Navigate to home page
-        navigate('/?login=true');
-      })
-      .catch(error => {
-        console.error("Logout failed:", error);
-        // Clear browser history to prevent going back to dashboard
-        window.history.pushState(null, null, '/');
-        window.history.pushState(null, null, '/');
-        window.history.pushState(null, null, '/');
-        window.history.go(-3);
-        // Navigate to home page
-        navigate('/?login=true');
-      });
+    .then((response) => {
+      // Check if logout was successful
+      if (response.ok) {
+        console.log('Logout successful');
+      } else {
+        console.log('Logout API returned error, but continuing with navigation');
+      }
+    })
+    .catch((error) => {
+      console.log('Logout API error, but continuing with navigation:', error);
+    })
+    .finally(() => {
+      // Add a longer delay to ensure session is properly destroyed and prevent race conditions
+      setTimeout(() => {
+        try {
+          // Clear any remaining state
+          setUser(null);
+          setError(null);
+          setLoading(false);
+          
+          // Navigate to home page
+          navigate('/', { replace: true });
+        } catch (navError) {
+          console.log('Navigation error, using window.location:', navError);
+          // Fallback to window.location if navigate fails
+          window.location.href = '/';
+        }
+      }, 300); // Increased delay to 300ms to prevent race conditions
+    });
   };
   const cancelLogout = () => setShowLogoutDialog(false);
 
@@ -171,9 +256,38 @@ const DonorDashboard = () => {
   const handleLogoClick = () => {
     setShowLogoDialog(true);
   };
-  const confirmLogo = () => {
+  const confirmLogo = async () => {
     setShowLogoDialog(false);
-    navigate('/');
+    
+    // Actually logout the user instead of just navigating
+    setIsLoggingOut(true);
+    
+    try {
+      // Call logout API
+      const response = await fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      console.log('Logout successful from home button');
+    } catch (error) {
+      console.log('Logout API error from home button:', error);
+    } finally {
+      // Clear any remaining state
+      setUser(null);
+      setError(null);
+      setLoading(false);
+      
+      // Navigate to home page after logout
+      setTimeout(() => {
+        try {
+          navigate('/', { replace: true });
+        } catch (navError) {
+          console.log('Navigation error, using window.location:', navError);
+          window.location.href = '/';
+        }
+      }, 200);
+    }
   };
   const cancelLogo = () => setShowLogoDialog(false);
 
@@ -313,14 +427,15 @@ const DonorDashboard = () => {
           stroke="4"
           speed="1"
           color="#dc2626"
-          text="Loading donor dashboard..."
+          text="Loading your donor dashboard..."
           className="full-page"
         />
       </div>
     );
   }
 
-  if (error) {
+  // Don't show error if we're logging out or if it's a session expiration
+  if (error && !isLoggingOut) {
     return (
       <ErrorDisplay
         error={error}
@@ -333,6 +448,9 @@ const DonorDashboard = () => {
           })
             .then(res => {
               if (!res.ok) {
+                if (res.status === 401) {
+                  throw new Error('SESSION_EXPIRED');
+                }
                 throw new Error(`HTTP ${res.status}: ${res.statusText}`);
               }
               return res.json();
@@ -346,6 +464,10 @@ const DonorDashboard = () => {
             })
             .catch(err => {
               console.error('Error fetching donor data:', err);
+              if (err.message === 'SESSION_EXPIRED') {
+                navigate('/');
+                return;
+              }
               setError(err.message || 'Failed to load donor data');
               toast.error('Failed to load donor data');
             })
@@ -359,7 +481,39 @@ const DonorDashboard = () => {
     );
   }
 
-  if (!user) {
+  // Show loading spinner if no user data and not logging out (initial load)
+  if (!user && !isLoggingOut && !loading) {
+    return (
+      <div className="donor-dashboard-root">
+        <LoadingSpinner
+          size="60"
+          stroke="4"
+          speed="1"
+          color="#dc2626"
+          text="Checking your session..."
+          className="full-page"
+        />
+      </div>
+    );
+  }
+
+  // Show loading spinner if logging out
+  if (isLoggingOut) {
+    return (
+      <div className="donor-dashboard-root">
+        <LoadingSpinner
+          size="60"
+          stroke="4"
+          speed="1"
+          color="#dc2626"
+          text="Logging you out..."
+          className="full-page"
+        />
+      </div>
+    );
+  }
+
+  if (!user && !isLoggingOut) {
     return (
       <ErrorDisplay
         error="No donor data available"
@@ -471,33 +625,26 @@ const DonorDashboard = () => {
         </button>
       </aside>
       <div className="dashboard-main">
-        <div className="dashboard-section">
-          <header className="dashboard-header">
-            <div className="header-content">
-              <div className="header-title-section">
-                <h1>Donor Dashboard</h1>
-                <span className="welcome-text">Welcome back, {user.name || 'Donor'}!</span>
-              </div>
-            </div>
-            <div className="dashboard-user-info">
-              <Avatar
-                img={user.profilePic || null}
-                alt="Profile"
-                size="md"
-                rounded
-                placeholderInitials={user.name ? user.name.substring(0, 2).toUpperCase() : "DN"}
-                className="custom-avatar"
-                style={{
-                  backgroundColor: '#6b7280',
-                  color: '#ffffff',
-                  border: '2px solid #6b7280'
-                }}
-                onClick={() => setShowEditProfile(true)}
-              />
-              <span className="dashboard-user-name">{user.name || 'Donor'}</span>
-            </div>
-          </header>
-        </div>
+        <header className="dashboard-header">
+          <h1>Donor Dashboard</h1>
+          <div className="dashboard-user-info">
+            <Avatar
+              img={user.profilePic || null}
+              alt="Profile"
+              size="md"
+              rounded
+              placeholderInitials={user.name ? user.name.substring(0, 2).toUpperCase() : "DN"}
+              className="custom-avatar"
+              style={{
+                backgroundColor: '#6b7280',
+                color: '#ffffff',
+                border: '2px solid #6b7280'
+              }}
+              onClick={() => setShowEditProfile(true)}
+            />
+            <span className="dashboard-user-name">{user.name || 'Donor'}</span>
+          </div>
+        </header>
         <div className="dashboard-content">
           {activeSection === 'profile' && (
             <div className="dashboard-stats-grid">
@@ -581,22 +728,7 @@ const DonorDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Impact Card */}
-                  <div className="lives-saved-card">
-                    <div className="lives-saved-header">
-                      <h3>Lives Saved</h3>
-                      <div className="lives-saved-icon">❤️</div>
-                    </div>
-                    <div className="lives-saved-content">
-                      <div className="lives-number">
-                        <span className="big-number">{user.totalDonations ? user.totalDonations * 3 : 0}</span>
-                        <span className="lives-text">lives</span>
-                      </div>
-                      <div className="lives-description">
-                        <p>Your donations have made a real difference in people's lives</p>
-                      </div>
-                    </div>
-                  </div>
+
 
                   {/* Eligibility Card */}
                   <div className="stats-card eligibility-card">
@@ -854,46 +986,7 @@ const DonorDashboard = () => {
                 <div className="dashboard-card glassy donation-stats animate-fadein">
                   <div className="donation-stats-title gradient-text">Donation Statistics</div>
                   <div className="donation-stats-grid">
-                    <div className="donation-stat">
-                      {/* Total Donations SVG - Provided by user */}
-                      <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="32" height="32">
-                          <defs>
-                            <style>{`.cls-2{fill:#afccd9}.cls-3{fill:#c2e2f5}.cls-4{fill:#ad3542}.cls-5{fill:#fff}.cls-6{fill:#d93a46}.cls-7{fill:#d65366}`}</style>
-                          </defs>
-                          <circle cx="256" cy="262" r="250" style={{ fill: '#76c27d' }} />
-                          <g>
-                            <path className="cls-2" d="M386.2 140.88v167a130.3 130.3 0 0 1-121.85 130c-2.79.19-5.62.28-8.47.28a130.31 130.31 0 0 1-130.31-130.31v-167a55.76 55.76 0 0 1 55.77-55.76h149.09a55.76 55.76 0 0 1 55.77 55.79z" />
-                            <path className="cls-3" d="M386.2 140.88v167a130.3 130.3 0 0 1-121.85 130 130.29 130.29 0 0 1-121.83-130v-167a55.75 55.75 0 0 1 55.75-55.76h132.16a55.76 55.76 0 0 1 55.77 55.76z" />
-                            <path className="cls-4" d="M360 282.18V340c0 38.37-38.31 69.48-85.58 69.48h-34c-47.28 0-85.6-31.11-85.6-69.48v-57.82c0-16.43 16.4-29.75 36.64-29.75h131.93c20.22 0 36.61 13.32 36.61 29.75z" />
-                            <circle className="cls-3" cx="255.88" cy="50.92" r="44.36" />
-                            <rect className="cls-5" x="200.2" y="115.39" width="114.44" height="86.12" rx="10.53" />
-                            <path className="cls-6" d="M237 166.94a20.45 20.45 0 1 0 40.9 0c0-11.29-20.45-37.42-20.45-37.42S237 155.65 237 166.94z" />
-                            <circle className="cls-2" cx="255.88" cy="50.92" r="25.88" />
-                            <path className="cls-6" d="M262.13 409.51v102.42q-3.06.07-6.13.07t-6.36-.08V409.51zM360 247.23V340c0 38.38-38.32 69.48-85.58 69.48h-3.2c-47.26 0-85.58-31.1-85.58-69.48v-57.83a23.84 23.84 0 0 1 .28-3.6l-31.1 2.55s-.83-44.69 35.67-47.19c0 0 3.93-.45 9.71-.52 10.31-.12 26.49 1 36.76 8 0 0 15.19 9.5 35.86 0 0 0 19.16-14.08 43-5.39a28.31 28.31 0 0 0 20-.45 20.47 20.47 0 0 1 18.18 1.19 12 12 0 0 1 6 10.47z" />
-                            <path className="cls-4" d="m185.93 278.57-31.1 2.55s-.83-44.69 35.67-47.19c0 0 3.93-.45 9.71-.52-14.65 15.08-14.28 45.16-14.28 45.16z" />
-                            <rect className="cls-5" x="320" y="154.1" width="46.67" height="16.67" rx="8.33" />
-                            <rect className="cls-5" x="336" y="187.39" width="30.67" height="16.67" rx="8.33" />
-                            <rect className="cls-5" x="320" y="221.43" width="46.67" height="16.67" rx="8.33" />
-                            <rect className="cls-5" x="336" y="254.72" width="30.67" height="16.67" rx="8.33" />
-                            <rect className="cls-5" x="320" y="289.69" width="46.67" height="16.67" rx="8.33" />
-                            <rect className="cls-5" x="336" y="322.98" width="30.67" height="16.67" rx="8.33" />
-                            <circle className="cls-7" cx="236.97" cy="280.41" r="12.31" />
-                            <circle className="cls-7" cx="289.35" cy="298.03" r="12.31" />
-                            <circle className="cls-7" cx="264.36" cy="331.31" r="7.59" />
-                            <circle className="cls-7" cx="236.97" cy="365.43" r="7.59" />
-                            <circle className="cls-7" cx="300.25" cy="380.61" r="7.59" />
-                            <path d="m491.86 91.54-88.73 88.73L330 107.16l-15.6-15.62a51.68 51.68 0 0 1 73.09-73.09l15.62 15.62 15.62-15.62a51.69 51.69 0 0 1 73.11 73.09z" style={{ fill: '#db3a46' }} />
-                            <path d="M403.13 180.27 330 107.16l-15.6-15.62a51.68 51.68 0 0 1 30.45-87.86c-3.59 37.95-.66 110.89 58.28 176.59z" style={{ fill: '#af3542' }} />
-                            <path d="M294.33 463v10a4.87 4.87 0 0 1-4.87 4.88h-5.75a4.88 4.88 0 0 0-4.88 4.87V511q-8.28.75-16.7 1-3.06.07-6.13.07t-6.36-.08l-2.81-.08q-5.87-.22-11.66-.7v-28.49a4.88 4.88 0 0 0-4.88-4.87h-5.75a4.87 4.87 0 0 1-4.87-4.88V463a4.87 4.87 0 0 1 4.87-4.88h64.92a4.87 4.87 0 0 1 4.87 4.88z" style={{ fill: '#d5d2d3' }} />
-                            <path className="cls-5" d="M294.33 463v10a4.87 4.87 0 0 1-4.87 4.88h-5.75a4.88 4.88 0 0 0-4.88 4.87V511q-8.28.75-16.7 1-3.06.07-6.13.07t-6.36-.08l-2.81-.08v-29.19a4.87 4.87 0 0 0-4.87-4.87h-5.75a4.87 4.87 0 0 1-4.87-4.88V463a4.87 4.87 0 0 1 4.87-4.88h53.25a4.87 4.87 0 0 1 4.87 4.88z" />
-                            <path d="M403.13 116.07a7.54 7.54 0 0 1-5.31-2.2l-26.13-26.13a7.5 7.5 0 0 1 10.61-10.61l20 20L438 48.65a7.5 7.5 0 1 1 12 8.9L409.16 113a7.46 7.46 0 0 1-5.47 3z" style={{ fill: '#fdfcfd' }} />
-                          </g>
-                        </svg>
-                      </span>
-                      <div className="stat-value stat-blue">{user.totalDonations}</div>
-                      <div className="stat-label">Total Donations</div>
-                    </div>
+
                     <div className="donation-stat">
                       {/* Last Donation SVG - Provided by user */}
                       <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>

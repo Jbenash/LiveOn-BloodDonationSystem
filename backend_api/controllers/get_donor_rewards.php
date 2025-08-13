@@ -13,10 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once __DIR__ . '/../classes/Database.php';
+require_once __DIR__ . '/../classes/Core/Database.php';
 
 try {
-    $database = Database::getInstance();
+    $database = \LiveOn\classes\Core\Database::getInstance();
     $pdo = $database->connect();
 
     $donor_id = $_GET['donor_id'] ?? null;

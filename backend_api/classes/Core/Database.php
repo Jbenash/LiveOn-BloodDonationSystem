@@ -1,6 +1,9 @@
 <?php
 
-require_once __DIR__ . '/Exceptions.php';
+namespace LiveOn\classes\Core;
+
+use PDOException;
+use PDO;
 
 class Database
 {
@@ -37,7 +40,7 @@ class Database
                 $this->conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
                 $this->conn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
             } catch (PDOException $e) {
-                throw new DatabaseException("Database connection failed: " . $e->getMessage());
+                throw new PDOException("Database connection failed: " . $e->getMessage());
             }
         }
         return $this->conn;

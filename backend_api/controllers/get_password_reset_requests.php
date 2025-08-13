@@ -10,9 +10,9 @@ header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header('Content-Type: application/json');
 
-require_once __DIR__ . '/../classes/Database.php';
+require_once __DIR__ . '/../classes/Core/Database.php';
 
-$db = Database::getInstance();
+$db = \LiveOn\classes\Core\Database::getInstance();
 $pdo = $db->getConnection();
 
 $stmt = $pdo->query("

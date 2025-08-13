@@ -19,7 +19,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 require 'vendor/autoload.php';
-require_once __DIR__ . '/../classes/Database.php';
+require_once __DIR__ . '/../classes/Core/Database.php';
 require_once __DIR__ . '/../classes/User.php';
 require_once __DIR__ . '/../classes/Donor.php';
 require_once __DIR__ . '/../services/DonorService.php';
@@ -135,7 +135,7 @@ try {
     }
 
     // Initialize database connection
-    $database = Database::getInstance();
+    $database = \LiveOn\classes\Core\Database::getInstance();
     $pdo = $database->getConnection();
 
     // Initialize controller

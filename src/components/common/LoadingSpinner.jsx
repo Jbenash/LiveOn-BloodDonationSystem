@@ -1,6 +1,4 @@
 import React from 'react';
-import { LineSpinner } from 'ldrs/react';
-import 'ldrs/react/LineSpinner.css';
 import './LoadingSpinner.css';
 
 const LoadingSpinner = ({ 
@@ -13,12 +11,7 @@ const LoadingSpinner = ({
 }) => {
   return (
     <div className={`loading-spinner-container ${className}`}>
-      <LineSpinner
-        size={size}
-        stroke={stroke}
-        speed={speed}
-        color={color}
-      />
+      <div className="spinner"></div>
       {text && <p className="loading-text">{text}</p>}
     </div>
   );

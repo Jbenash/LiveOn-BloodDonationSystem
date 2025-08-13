@@ -38,20 +38,56 @@ const LoginModal = ({ isOpen, onClose }) => {
         credentials: "include"
       });
 
-      const data = await response.json();
+      // Get response text first
+      const responseText = await response.text();
+      
+      // Check if response is ok
+      if (!response.ok) {
+        console.error('Login response error:', response.status, responseText);
+        toast.error(`Login failed: ${response.status} ${response.statusText}`);
+        return;
+      }
+
+      // Try to parse JSON response
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error('JSON parse error:', jsonError);
+        console.error('Raw response:', responseText);
+        toast.error('Login failed: Invalid server response');
+        return;
+      }
 
       if (data.success) {
         onClose(); // Close modal on successful login
 
-        if (data.user.role === "hospital") {
-          navigate('/HospitalDashboard');
-        } else if (data.user.role === "mro") {
-          navigate('/MRODashboard');
-        } else if (data.user.role === "admin") {
-          navigate('/AdminDashboard');
-        } else if (data.user.role === "donor") {
-          navigate('/DonorDashboard');
-        }
+        // Add a longer delay to ensure session is fully established and prevent race conditions
+        setTimeout(() => {
+          try {
+            if (data.user.role === "hospital") {
+              navigate('/HospitalDashboard', { replace: true });
+            } else if (data.user.role === "mro") {
+              navigate('/MRODashboard', { replace: true });
+            } else if (data.user.role === "admin") {
+              navigate('/AdminDashboard', { replace: true });
+            } else if (data.user.role === "donor") {
+              navigate('/DonorDashboard', { replace: true });
+            }
+          } catch (navError) {
+            console.log('Navigation error, using window.location:', navError);
+            // Fallback to window.location if navigate fails
+            if (data.user.role === "hospital") {
+              window.location.href = '/HospitalDashboard';
+            } else if (data.user.role === "mro") {
+              window.location.href = '/MRODashboard';
+            } else if (data.user.role === "admin") {
+              window.location.href = '/AdminDashboard';
+            } else if (data.user.role === "donor") {
+              window.location.href = '/DonorDashboard';
+            }
+          }
+        }, 200); // Increased delay to 200ms to ensure session is established
 
       } else {
         toast.error(data.message || "Login Failed");
@@ -192,6 +228,7 @@ const LoginModal = ({ isOpen, onClose }) => {
                     <LoadingSpinner
                       size="16"
                       stroke="2"
+                      speed="1"
                       color="#ffffff"
                       text="Signing in..."
                       className="button"
@@ -294,6 +331,7 @@ const ForgotPasswordPopup = ({isOpen, email, onClose, onSubmit}) => {
                   <LoadingSpinner
                     size="16"
                     stroke="2"
+                    speed="1"
                     color="#ffffff"
                     text="Submitting..."
                     className="button"
@@ -305,38 +343,6 @@ const ForgotPasswordPopup = ({isOpen, email, onClose, onSubmit}) => {
                   </>
                 )}
               </button>
-              <div className="login-form-container compact">
-                <div className="form-group compact">
-                  <label htmlFor="newPassword" className="form-label compact">New Password</label>
-                  <input
-                    type="password"
-                    id="newPassword"
-                    placeholder="Enter new password"
-                    className="form-input compact"
-                    value={newPassword}
-                    onChange={e => setNewPassword(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <button
-                  className="login-button compact"
-                  disabled={isSubmitting || !newPassword}
-                  onClick={() => { setIsSubmitting(true); onSubmit(newPassword); }}
-                >
-                  {isSubmitting ? (
-                    <span className="loading-spinner">
-                      <span className="spinner"></span>
-                      Submitting...
-                    </span>
-                  ) : (
-                    <>
-                      <span className="btn-text">Submit</span>
-                      <span className="btn-icon">✓</span>
-                    </>
-                  )}
-                </button>
-              </div>
             </div>
           </div>
         </div>

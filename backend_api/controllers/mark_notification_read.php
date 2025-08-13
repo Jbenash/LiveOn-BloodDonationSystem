@@ -1,35 +1,61 @@
 <?php
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
 header('Content-Type: application/json');
+require_once __DIR__ . '/../config/session_config.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
+
+// Initialize session properly
+initSession();
+
+// Check if user is logged in and has admin role
+$currentUser = getCurrentUser();
+if (!$currentUser) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Not logged in. Please log in first.']);
     exit();
 }
 
-require_once __DIR__ . '/../config/db_connection.php';
-
-$data = json_decode(file_get_contents('php://input'), true);
-$notification_id = $data['notification_id'] ?? null;
-
-if (!$notification_id) {
-    echo json_encode(['success' => false, 'error' => 'Missing notification_id']);
-    exit;
+if ($currentUser['role'] !== 'admin') {
+    http_response_code(403);
+    echo json_encode(['error' => 'Access denied. Admin role required.']);
+    exit();
 }
 
+require_once '../config/db_connection.php';
+
 try {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $notificationId = $input['notification_id'] ?? null;
+
+    if (!$notificationId) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Notification ID is required']);
+        exit;
+    }
+
+    // Use Database class for connection
     $db = new Database();
     $pdo = $db->connect();
-    $stmt = $pdo->prepare("UPDATE notifications SET status = 'read' WHERE notification_id = ?");
-    $stmt->execute([$notification_id]);
-    echo json_encode(['success' => true]);
+
+    // Mark notification as read
+    $query = "UPDATE notifications 
+              SET status = 'read' 
+              WHERE notification_id = ?";
+
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([$notificationId]);
+
+    if ($stmt->rowCount() > 0) {
+        echo json_encode(['success' => true, 'message' => 'Notification marked as read']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Notification not found or already read']);
+    }
+} catch (PDOException $e) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => 'Failed to mark notification as read', 'details' => $e->getMessage()]);
+    http_response_code(500);
+    echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
 }
