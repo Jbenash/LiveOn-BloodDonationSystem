@@ -38,25 +38,35 @@ try {
         exit;
     }
 
-    // Get donor's rewards data from existing rewards table
-    $stmt = $pdo->prepare("
-        SELECT * FROM rewards 
-        WHERE donor_id = ?
-    ");
-    $stmt->execute([$donor_id]);
-    $rewards_data = $stmt->fetch(PDO::FETCH_ASSOC);
+    // Get donor's rewards data from donor_rewards table
+    try {
+        $stmt = $pdo->prepare("
+            SELECT * FROM donor_rewards 
+            WHERE donor_id = ?
+        ");
+        $stmt->execute([$donor_id]);
+        $rewards_data = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        // If query fails, create default data
+        $rewards_data = [
+            'donor_id' => $donor_id,
+            'current_points' => 0,
+            'current_streak' => 0,
+            'last_donation_date' => null
+        ];
+    }
 
     // If no rewards record exists, create one
     if (!$rewards_data) {
         try {
             $stmt = $pdo->prepare("
-                INSERT INTO rewards (donor_id, points, badge) 
-                VALUES (?, 0, 'Bronze Donor')
+                INSERT INTO donor_rewards (donor_id, current_points, current_streak) 
+                VALUES (?, 0, 0)
             ");
             $stmt->execute([$donor_id]);
 
             $stmt = $pdo->prepare("
-                SELECT * FROM rewards 
+                SELECT * FROM donor_rewards 
                 WHERE donor_id = ?
             ");
             $stmt->execute([$donor_id]);
@@ -65,9 +75,9 @@ try {
             // If insert fails, create a default rewards data structure
             $rewards_data = [
                 'donor_id' => $donor_id,
-                'points' => 0,
-                'badge' => 'Bronze Donor',
-                'last_updated' => date('Y-m-d H:i:s')
+                'current_points' => 0,
+                'current_streak' => 0,
+                'last_donation_date' => null
             ];
         }
     }
@@ -273,10 +283,11 @@ try {
             'next_tier' => $next_tier,
             'progress_to_next_tier' => round($progress_to_next, 1),
             'rewards_data' => [
-                'current_points' => $rewards_data['points'],
-                'current_badge' => $rewards_data['badge'],
-                'current_streak' => $current_streak,
-                'last_updated' => $rewards_data['last_updated']
+                'current_points' => $rewards_data['current_points'] ?? 0,
+                'current_streak' => $rewards_data['current_streak'] ?? $current_streak,
+                'last_donation_date' => $rewards_data['last_donation_date'] ?? null,
+                'total_points_earned' => $rewards_data['total_points_earned'] ?? 0,
+                'total_points_spent' => $rewards_data['total_points_spent'] ?? 0
             ],
             'achievements' => $achievements,
             'partner_rewards' => $partner_rewards,

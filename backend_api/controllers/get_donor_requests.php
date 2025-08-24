@@ -32,22 +32,23 @@ try {
         exit();
     }
 
-    // Fetch donor requests from the new donor_requests table
+    // Fetch donation requests from the donation_requests table
     // Only show pending requests for this MRO's hospital
-    $sql = "SELECT dr.request_id, dr.donor_id, u.name AS donor_fullname, u.email AS donor_email, 
-            ov.otp_code AS otp_number, dr.dob, dr.address, dr.city, dr.preferred_hospital_id,
-            u.status, u.role, dr.created_at
-    FROM donor_requests dr
-    INNER JOIN users u ON dr.user_id = u.user_id
-    LEFT JOIN otp_verification ov ON u.user_id = ov.user_id AND ov.verified = 1
-    WHERE dr.status = 'pending' AND dr.preferred_hospital_id = ?
-    ORDER BY dr.created_at DESC";
+    $sql = "SELECT dr.request_id, dr.donor_id, dr.blood_type, dr.reason, dr.status, dr.request_date,
+            u.name AS donor_fullname, u.email AS donor_email, u.phone AS donor_phone,
+            h.name AS hospital_name, h.location AS hospital_location
+    FROM donation_requests dr
+    LEFT JOIN donors d ON dr.donor_id = d.donor_id
+    LEFT JOIN users u ON d.user_id = u.user_id
+    LEFT JOIN hospitals h ON dr.hospital_id = h.hospital_id
+    WHERE dr.status = 'pending' AND dr.hospital_id = ?
+    ORDER BY dr.request_date DESC";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$mro_hospital_id]);
-    $donors = $stmt->fetchAll();
+    $donationRequests = $stmt->fetchAll();
 
-    echo json_encode($donors);
+    echo json_encode($donationRequests);
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(["error" => "Database error: " . $e->getMessage()]);
