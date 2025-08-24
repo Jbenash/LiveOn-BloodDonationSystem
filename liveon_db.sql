@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 24, 2025 at 06:25 AM
+-- Generation Time: Aug 24, 2025 at 10:26 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -41,7 +41,9 @@ CREATE TABLE `admin_logs` (
 --
 
 INSERT INTO `admin_logs` (`log_id`, `admin_id`, `action`, `target_table`, `target_id`, `timestamp`) VALUES
-(1, 'US004', 'Approved donor registration', 'donors', 'DN001', '2025-07-03 18:37:19');
+(1, 'US004', 'Approved donor registration', 'donors', 'DN001', '2025-07-03 18:37:19'),
+(2, 'US006', 'Approved feedback', 'feedback', 'FB007', '2025-08-24 17:52:20'),
+(3, 'US006', 'Approved feedback', 'feedback', 'FB004', '2025-08-24 17:52:35');
 
 -- --------------------------------------------------------
 
@@ -190,6 +192,94 @@ INSERT INTO `donors` (`donor_id`, `user_id`, `dob`, `blood_type`, `address`, `ci
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `donor_achievements`
+--
+
+CREATE TABLE `donor_achievements` (
+  `id` int(11) NOT NULL,
+  `achievement_name` varchar(100) NOT NULL,
+  `achievement_type` enum('milestone','special','consistency','emergency') NOT NULL,
+  `trigger_condition` varchar(255) NOT NULL,
+  `badge_icon` varchar(255) DEFAULT NULL,
+  `points_reward` int(11) DEFAULT 0,
+  `description` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `donor_requests`
+--
+
+CREATE TABLE `donor_requests` (
+  `request_id` varchar(10) NOT NULL,
+  `donor_id` varchar(10) NOT NULL,
+  `user_id` varchar(10) NOT NULL,
+  `dob` date DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `city` varchar(100) DEFAULT NULL,
+  `preferred_hospital_id` varchar(10) DEFAULT NULL,
+  `status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `donor_requests`
+--
+
+INSERT INTO `donor_requests` (`request_id`, `donor_id`, `user_id`, `dob`, `address`, `city`, `preferred_hospital_id`, `status`, `created_at`, `updated_at`) VALUES
+('DRA53302', 'DBA6B92', 'US001', '1990-01-15', '123 Main Street', 'Sample City', 'HS002', 'pending', '2025-08-24 17:56:54', '2025-08-24 17:56:54');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `donor_rewards`
+--
+
+CREATE TABLE `donor_rewards` (
+  `id` int(11) NOT NULL,
+  `donor_id` varchar(50) NOT NULL,
+  `tier_id` int(11) DEFAULT NULL,
+  `current_points` int(11) DEFAULT 0,
+  `total_points_earned` int(11) DEFAULT 0,
+  `total_points_spent` int(11) DEFAULT 0,
+  `current_streak` int(11) DEFAULT 0,
+  `longest_streak` int(11) DEFAULT 0,
+  `last_donation_date` date DEFAULT NULL,
+  `achievements_earned` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`achievements_earned`)),
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `donor_rewards`
+--
+
+INSERT INTO `donor_rewards` (`id`, `donor_id`, `tier_id`, `current_points`, `total_points_earned`, `total_points_spent`, `current_streak`, `longest_streak`, `last_donation_date`, `achievements_earned`, `created_at`, `updated_at`) VALUES
+(1, 'DN6874b688', NULL, 0, 0, 0, 0, 0, NULL, NULL, '2025-08-24 20:24:19', '2025-08-24 20:24:19');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `donor_tiers`
+--
+
+CREATE TABLE `donor_tiers` (
+  `id` int(11) NOT NULL,
+  `tier_name` varchar(50) NOT NULL,
+  `tier_level` int(11) NOT NULL,
+  `min_donations` int(11) NOT NULL,
+  `badge_icon` varchar(255) DEFAULT NULL,
+  `discount_percentage` decimal(5,2) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `educational_content`
 --
 
@@ -244,21 +334,21 @@ CREATE TABLE `feedback` (
   `user_id` varchar(10) DEFAULT NULL,
   `role` enum('donor','hospital','mro','admin') NOT NULL,
   `message` text NOT NULL,
-  `approved` tinyint(1) DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `approved` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `feedback`
 --
 
-INSERT INTO `feedback` (`feedback_id`, `user_id`, `role`, `message`, `approved`, `created_at`) VALUES
-('FB001', 'US008', 'hospital', 'The donation process was smooth and staff were very helpful!', 1, '2025-07-10 05:15:00'),
-('FB002', 'US0011', 'mro', 'The new dashboard really helps track donor information efficiently.', 1, '2025-07-11 04:00:00'),
-('FB003', 'US007', 'hospital', 'We received emergency blood supply in time. Excellent coordination!', 1, '2025-07-12 09:50:00'),
-('FB004', 'US001', 'donor', 'I would appreciate more updates about my donation impact.', 1, '2025-07-13 07:40:00'),
-('FB005', 'US009', 'hospital', 'Can we have SMS alerts for donation eligibility renewals?', 1, '2025-07-13 12:10:00'),
-('FB007', 'US0010', 'mro', 'Proud to be part of this platform. Blood saves lives!', 1, '2025-07-15 03:20:00');
+INSERT INTO `feedback` (`feedback_id`, `user_id`, `role`, `message`, `created_at`, `approved`) VALUES
+('FB001', 'US008', 'hospital', 'The donation process was smooth and staff were very helpful!', '2025-07-10 05:15:00', 1),
+('FB002', 'US0011', 'mro', 'The new dashboard really helps track donor information efficiently.', '2025-07-11 04:00:00', 0),
+('FB003', 'US007', 'hospital', 'We received emergency blood supply in time. Excellent coordination!', '2025-07-12 09:50:00', 0),
+('FB004', 'US001', 'donor', 'I would appreciate more updates about my donation impact.', '2025-07-13 07:40:00', 1),
+('FB005', 'US009', 'hospital', 'Can we have SMS alerts for donation eligibility renewals?', '2025-07-13 12:10:00', 0),
+('FB007', 'US0010', 'mro', 'Proud to be part of this platform. Blood saves lives!', '2025-07-15 03:20:00', 1);
 
 -- --------------------------------------------------------
 
@@ -374,7 +464,9 @@ INSERT INTO `notifications` (`notification_id`, `user_id`, `message`, `type`, `s
 (34, 'US68807b16', 'New donation recorded: DON20250723092237613', '', 'unread', '2025-07-23 07:22:37'),
 (35, 'US68807b16', 'New donation recorded: DON20250723094415425', '', 'unread', '2025-07-23 07:44:15'),
 (36, 'US6874b688', 'New donation recorded: DON20250723094544194', '', 'unread', '2025-07-23 07:45:44'),
-(37, 'US68807b16', 'New donation recorded: DON20250723094650363', '', 'unread', '2025-07-23 07:46:50');
+(37, 'US68807b16', 'New donation recorded: DON20250723094650363', '', 'unread', '2025-07-23 07:46:50'),
+(38, 'US0010', 'Your feedback has been approved and is now visible on the homepage.', 'info', 'unread', '2025-08-24 17:52:20'),
+(39, 'US001', 'Your feedback has been approved and is now visible on the homepage.', 'info', 'unread', '2025-08-24 17:52:35');
 
 -- --------------------------------------------------------
 
@@ -406,6 +498,23 @@ INSERT INTO `otp_verification` (`otp_id`, `user_id`, `otp_code`, `expires_at`, `
 (33, 'US68788087', '978773', '2025-07-17 06:58:07', 1, '2025-07-17 04:48:07', '2025-07-17 10:19:24'),
 (35, 'US687d227f', '217426', '2025-07-20 19:18:15', 1, '2025-07-20 17:08:15', '2025-07-20 22:38:39'),
 (37, 'US68807b16', '637235', '2025-07-23 08:13:02', 1, '2025-07-23 06:03:02', '2025-07-23 11:34:08');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `partner_rewards`
+--
+
+CREATE TABLE `partner_rewards` (
+  `id` int(11) NOT NULL,
+  `partner_name` varchar(100) NOT NULL,
+  `partner_type` enum('hospital','restaurant','hotel','travel','health') NOT NULL,
+  `reward_description` text DEFAULT NULL,
+  `discount_percentage` decimal(5,2) DEFAULT NULL,
+  `points_required` int(11) DEFAULT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -443,18 +552,48 @@ INSERT INTO `password_reset_requests` (`request_id`, `user_id`, `requested_passw
 
 CREATE TABLE `rewards` (
   `reward_id` int(11) NOT NULL,
-  `donor_id` varchar(10) DEFAULT NULL,
+  `donor_id` varchar(10) NOT NULL,
   `points` int(11) DEFAULT 0,
-  `badge` varchar(50) DEFAULT NULL,
+  `badge` varchar(50) DEFAULT 'Bronze Donor',
   `last_updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
 --
--- Dumping data for table `rewards`
+-- Table structure for table `reward_points_history`
 --
 
-INSERT INTO `rewards` (`reward_id`, `donor_id`, `points`, `badge`, `last_updated`) VALUES
-(1, 'DN001', 150, 'Silver Donor', '2025-07-03 18:36:47');
+CREATE TABLE `reward_points_history` (
+  `id` int(11) NOT NULL,
+  `donor_id` varchar(10) NOT NULL,
+  `points_earned` int(11) NOT NULL,
+  `points_spent` int(11) DEFAULT 0,
+  `transaction_type` enum('earned','spent','bonus','penalty') NOT NULL,
+  `reason` varchar(255) NOT NULL,
+  `donation_id` int(11) DEFAULT NULL,
+  `achievement_id` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `reward_redemptions`
+--
+
+CREATE TABLE `reward_redemptions` (
+  `id` int(11) NOT NULL,
+  `donor_id` varchar(10) NOT NULL,
+  `redemption_type` varchar(100) NOT NULL,
+  `points_spent` int(11) NOT NULL,
+  `redemption_value` decimal(10,2) DEFAULT NULL,
+  `status` enum('pending','approved','redeemed','expired') DEFAULT 'pending',
+  `redemption_code` varchar(100) DEFAULT NULL,
+  `expiry_date` date DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -515,123 +654,10 @@ INSERT INTO `users` (`user_id`, `name`, `email`, `phone`, `password_hash`, `role
 ('US68711744', 'abinath', 'abinath157@gmail.com', '0741814245', '$2y$10$md0ER0hkvd1V9bZ6bHdC4.p6iqiNnEGOLQECmY6rrAoK515L5xkVa', 'donor', 'inactive'),
 ('US68727a8c', 'Abiramy', 'abinathan1123@gmail.com', '0778200752', '$2y$10$l6yBPRV.svOcQa3.kW/1wuqyVfowXUejIWjsuTkNsNr6n.UAo7Yp2', 'donor', 'inactive'),
 ('US6873e398', 'Mathangey', 'cst22081@std.uwu.ac.lk', '0778200752', '$2y$10$kRo38.tsl.yQjWWPV/Ca1OUU43E/gzjtSxoYT7LHltE8Ve/djsQEO', 'donor', 'inactive'),
-('US6874b688', 'Nuha', 'cst22069@std.uwu.ac.lk', '0757553132', '$2y$10$F.U3BMoSiie7oNVRx9GbveMccIJh5caI691X.4b/TzBs2zx/QEGWS', 'donor', 'inactive'),
+('US6874b688', 'Nuha', 'cst22069@std.uwu.ac.lk', '0757553132', '$2y$10$F.U3BMoSiie7oNVRx9GbveMccIJh5caI691X.4b/TzBs2zx/QEGWS', 'donor', 'active'),
 ('US68788087', 'tharsan ', 'cst22076@std.uwu.ac.lk', '123456', '$2y$10$BjLvNMRR1o7NsdcepsFzwuQnSIktjxLGsgvzmDkYMKNY7awgbMLk.', 'donor', 'inactive'),
 ('US687d227f', 'sivatheevan', 'cst22083@std.uwu.ac.lk', '1234567891', '$2y$10$ywKCK54OAmHACe05SeZeVue2BvNxntSTqaPFpoHjb.IEbYwwMqnVa', 'donor', 'inactive'),
 ('US68807b16', 'Ben Asher', 'mbenash961030@gmail.com', '0760312229', '$2y$10$TcMVQtRKa0B12jzhE/ahS.rmQOsiTceMH4Q79eUQ.Y/DWyg1pBWZq', 'donor', 'inactive');
-
--- Reward System Tables
-
--- Donor Tiers Table
-CREATE TABLE donor_tiers (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    tier_name VARCHAR(50) NOT NULL,
-    tier_level INT NOT NULL,
-    min_donations INT NOT NULL,
-    badge_icon VARCHAR(255),
-    discount_percentage DECIMAL(5,2),
-    description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Donor Achievements Table
-CREATE TABLE donor_achievements (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    achievement_name VARCHAR(100) NOT NULL,
-    achievement_type ENUM('milestone', 'special', 'consistency', 'emergency') NOT NULL,
-    trigger_condition VARCHAR(255) NOT NULL,
-    badge_icon VARCHAR(255),
-    points_reward INT DEFAULT 0,
-    description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Donor Rewards Table
-CREATE TABLE donor_rewards (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    donor_id VARCHAR(50) NOT NULL,
-    tier_id INT,
-    current_points INT DEFAULT 0,
-    total_points_earned INT DEFAULT 0,
-    total_points_spent INT DEFAULT 0,
-    current_streak INT DEFAULT 0,
-    longest_streak INT DEFAULT 0,
-    last_donation_date DATE,
-    achievements_earned JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (donor_id) REFERENCES donors(donor_id) ON DELETE CASCADE,
-    FOREIGN KEY (tier_id) REFERENCES donor_tiers(id)
-);
-
--- Reward Points History Table
-CREATE TABLE reward_points_history (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    donor_id VARCHAR(50) NOT NULL,
-    points_earned INT NOT NULL,
-    points_spent INT DEFAULT 0,
-    transaction_type ENUM('earned', 'spent', 'bonus', 'penalty') NOT NULL,
-    reason VARCHAR(255) NOT NULL,
-    donation_id VARCHAR(50),
-    achievement_id INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (donor_id) REFERENCES donors(donor_id) ON DELETE CASCADE,
-    FOREIGN KEY (donation_id) REFERENCES donations(donation_id) ON DELETE SET NULL,
-    FOREIGN KEY (achievement_id) REFERENCES donor_achievements(id) ON DELETE SET NULL
-);
-
--- Reward Redemptions Table
-CREATE TABLE reward_redemptions (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    donor_id VARCHAR(50) NOT NULL,
-    redemption_type VARCHAR(100) NOT NULL,
-    points_spent INT NOT NULL,
-    redemption_value DECIMAL(10,2),
-    status ENUM('pending', 'approved', 'redeemed', 'expired') DEFAULT 'pending',
-    redemption_code VARCHAR(100),
-    expiry_date DATE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (donor_id) REFERENCES donors(donor_id) ON DELETE CASCADE
-);
-
--- Partner Rewards Table
-CREATE TABLE partner_rewards (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    partner_name VARCHAR(100) NOT NULL,
-    partner_type ENUM('hospital', 'restaurant', 'hotel', 'travel', 'health') NOT NULL,
-    reward_description TEXT,
-    discount_percentage DECIMAL(5,2),
-    points_required INT,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Insert default donor tiers
-INSERT INTO donor_tiers (tier_name, tier_level, min_donations, badge_icon, discount_percentage, description) VALUES
-('Bronze Donor', 1, 1, '🥉', 10.00, 'Beginner donor with basic benefits'),
-('Silver Donor', 2, 6, '🥈', 15.00, 'Regular donor with enhanced benefits'),
-('Gold Donor', 3, 16, '🥇', 20.00, 'Experienced donor with premium benefits'),
-('Platinum Donor', 4, 31, '💎', 25.00, 'Elite donor with exclusive benefits');
-
--- Insert default achievements
-INSERT INTO donor_achievements (achievement_name, achievement_type, trigger_condition, badge_icon, points_reward, description) VALUES
-('First Donation', 'milestone', 'donation_count >= 1', '🎯', 100, 'Completed your first donation'),
-('Life Saver', 'special', 'emergency_donation = true', '🏥', 200, 'Made an emergency donation'),
-('Consistency Champion', 'consistency', 'streak >= 12', '📈', 500, '12 consecutive months of donations'),
-('Emergency Hero', 'emergency', 'emergency_response = true', '🚨', 150, 'Responded to emergency call'),
-('Weekend Warrior', 'special', 'weekend_donation = true', '⚡', 125, 'Donated on weekend'),
-('Holiday Hero', 'special', 'holiday_donation = true', '🎄', 125, 'Donated on holiday'),
-('10th Donation', 'milestone', 'donation_count >= 10', '🔟', 200, 'Completed 10 donations'),
-('50th Donation', 'milestone', 'donation_count >= 50', '5️⃣0️⃣', 500, 'Completed 50 donations'),
-('100th Donation', 'milestone', 'donation_count >= 100', '💯', 1000, 'Completed 100 donations');
-
--- Insert default partner rewards
-INSERT INTO partner_rewards (partner_name, partner_type, reward_description, discount_percentage, points_required) VALUES
-('General Hospital', 'hospital', 'Health checkup voucher', NULL, 500),
-('City Restaurant', 'restaurant', 'Dining voucher', 15.00, 1000),
-('Grand Hotel', 'hotel', 'Hotel stay voucher', 20.00, 2000),
-('Travel Agency', 'travel', 'Travel voucher', 25.00, 5000);
 
 --
 -- Indexes for dumped tables
@@ -674,6 +700,34 @@ ALTER TABLE `donors`
   ADD PRIMARY KEY (`donor_id`),
   ADD KEY `fk_donors_user` (`user_id`),
   ADD KEY `fk_preferred_hospital` (`preferred_hospital_id`);
+
+--
+-- Indexes for table `donor_achievements`
+--
+ALTER TABLE `donor_achievements`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `donor_requests`
+--
+ALTER TABLE `donor_requests`
+  ADD PRIMARY KEY (`request_id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `preferred_hospital_id` (`preferred_hospital_id`);
+
+--
+-- Indexes for table `donor_rewards`
+--
+ALTER TABLE `donor_rewards`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `donor_id` (`donor_id`),
+  ADD KEY `tier_id` (`tier_id`);
+
+--
+-- Indexes for table `donor_tiers`
+--
+ALTER TABLE `donor_tiers`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `educational_content`
@@ -733,6 +787,12 @@ ALTER TABLE `otp_verification`
   ADD KEY `fk_otp_user` (`user_id`);
 
 --
+-- Indexes for table `partner_rewards`
+--
+ALTER TABLE `partner_rewards`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `password_reset_requests`
 --
 ALTER TABLE `password_reset_requests`
@@ -743,6 +803,22 @@ ALTER TABLE `password_reset_requests`
 --
 ALTER TABLE `rewards`
   ADD PRIMARY KEY (`reward_id`),
+  ADD KEY `donor_id` (`donor_id`);
+
+--
+-- Indexes for table `reward_points_history`
+--
+ALTER TABLE `reward_points_history`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `donor_id` (`donor_id`),
+  ADD KEY `donation_id` (`donation_id`),
+  ADD KEY `achievement_id` (`achievement_id`);
+
+--
+-- Indexes for table `reward_redemptions`
+--
+ALTER TABLE `reward_redemptions`
+  ADD PRIMARY KEY (`id`),
   ADD KEY `donor_id` (`donor_id`);
 
 --
@@ -766,13 +842,31 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `admin_logs`
 --
 ALTER TABLE `admin_logs`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `donations`
 --
 ALTER TABLE `donations`
   MODIFY `donation_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=85;
+
+--
+-- AUTO_INCREMENT for table `donor_achievements`
+--
+ALTER TABLE `donor_achievements`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `donor_rewards`
+--
+ALTER TABLE `donor_rewards`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `donor_tiers`
+--
+ALTER TABLE `donor_tiers`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `educational_content`
@@ -790,13 +884,19 @@ ALTER TABLE `emergency_requests`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `notification_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
+  MODIFY `notification_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- AUTO_INCREMENT for table `otp_verification`
 --
 ALTER TABLE `otp_verification`
   MODIFY `otp_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
+
+--
+-- AUTO_INCREMENT for table `partner_rewards`
+--
+ALTER TABLE `partner_rewards`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `password_reset_requests`
@@ -808,7 +908,19 @@ ALTER TABLE `password_reset_requests`
 -- AUTO_INCREMENT for table `rewards`
 --
 ALTER TABLE `rewards`
-  MODIFY `reward_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `reward_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `reward_points_history`
+--
+ALTER TABLE `reward_points_history`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `reward_redemptions`
+--
+ALTER TABLE `reward_redemptions`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables
@@ -846,6 +958,20 @@ ALTER TABLE `donation_requests`
 ALTER TABLE `donors`
   ADD CONSTRAINT `fk_donors_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_preferred_hospital` FOREIGN KEY (`preferred_hospital_id`) REFERENCES `hospitals` (`hospital_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `donor_requests`
+--
+ALTER TABLE `donor_requests`
+  ADD CONSTRAINT `donor_requests_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `donor_requests_ibfk_2` FOREIGN KEY (`preferred_hospital_id`) REFERENCES `hospitals` (`hospital_id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `donor_rewards`
+--
+ALTER TABLE `donor_rewards`
+  ADD CONSTRAINT `donor_rewards_ibfk_1` FOREIGN KEY (`donor_id`) REFERENCES `donors` (`donor_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `donor_rewards_ibfk_2` FOREIGN KEY (`tier_id`) REFERENCES `donor_tiers` (`id`);
 
 --
 -- Constraints for table `emergency_requests`
@@ -895,7 +1021,21 @@ ALTER TABLE `otp_verification`
 -- Constraints for table `rewards`
 --
 ALTER TABLE `rewards`
-  ADD CONSTRAINT `rewards_ibfk_1` FOREIGN KEY (`donor_id`) REFERENCES `donors` (`donor_id`);
+  ADD CONSTRAINT `rewards_ibfk_1` FOREIGN KEY (`donor_id`) REFERENCES `donors` (`donor_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `reward_points_history`
+--
+ALTER TABLE `reward_points_history`
+  ADD CONSTRAINT `reward_points_history_ibfk_1` FOREIGN KEY (`donor_id`) REFERENCES `donors` (`donor_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `reward_points_history_ibfk_2` FOREIGN KEY (`donation_id`) REFERENCES `donations` (`donation_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `reward_points_history_ibfk_3` FOREIGN KEY (`achievement_id`) REFERENCES `donor_achievements` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `reward_redemptions`
+--
+ALTER TABLE `reward_redemptions`
+  ADD CONSTRAINT `reward_redemptions_ibfk_1` FOREIGN KEY (`donor_id`) REFERENCES `donors` (`donor_id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
