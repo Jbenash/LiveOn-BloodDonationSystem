@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { Avatar } from 'flowbite-react';
 import './DonorDashboard.css';
 import logo from '../../assets/logo.svg';
-import CountdownCircle from './CountdownCircle';
+import ConfirmDialog from '../common/ConfirmDialog';
+import ErrorDisplay from '../common/ErrorDisplay';
+import LoadingSpinner from '../common/LoadingSpinner';
+import RewardsDashboard from '../common/RewardsDashboard';
 
 const DonorDashboard = () => {
   const [user, setUser] = useState(null);
@@ -13,24 +18,126 @@ const DonorDashboard = () => {
   const [countdown, setCountdown] = useState('');
   const countdownInterval = useRef(null);
   const navigate = useNavigate();
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [showLogoDialog, setShowLogoDialog] = useState(false);
+  const [showSaveProfileDialog, setShowSaveProfileDialog] = useState(false);
+  const [isLogoutTriggered, setIsLogoutTriggered] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const [removeReason, setRemoveReason] = useState('');
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showHospitalPopup, setShowHospitalPopup] = useState(false);
+  const [hospitals, setHospitals] = useState([]);
+  const [loadingHospitals, setLoadingHospitals] = useState(false);
+  const [showHealthTipsPopup, setShowHealthTipsPopup] = useState(false);
+
+  // Ensure any modal-induced scroll lock is cleared when entering dashboard
+  useEffect(() => {
+    document.body.classList.remove('modal-open');
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, []);
+
+  // Browser back button handling
+  useEffect(() => {
+    const handlePopState = (e) => {
+      // Prevent browser back button from working normally
+      e.preventDefault();
+      // Only show logout dialog if not already showing and not triggered by button click
+      if (!showLogoutDialog && !isLogoutTriggered) {
+        setShowLogoutDialog(true);
+      }
+      // Push the current state back to prevent navigation
+      window.history.pushState(null, null, window.location.pathname);
+    };
+
+    // Add event listeners
+    window.addEventListener('popstate', handlePopState);
+    
+    // Push current state to prevent immediate back navigation
+    window.history.pushState(null, null, window.location.pathname);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []); // Remove showLogoutDialog from dependency array to prevent re-adding event listeners
 
   useEffect(() => {
-    fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
-      credentials: 'include'
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          navigate('/'); // If not logged in, redirect
-        } else {
-          setUser(data);
-        }
+    // Don't fetch data if we're logging out
+    if (isLoggingOut) return;
+
+    setLoading(true);
+    setError(null);
+
+    const controller = new AbortController();
+
+    // Add a small delay to ensure session is ready
+    const fetchData = () => {
+      // Check if we have any session-related cookies
+      const hasSessionCookie = document.cookie.includes('LIVEON_SESSION') || 
+                              document.cookie.includes('PHPSESSID') ||
+                              document.cookie.includes('session');
+      
+      // Don't redirect immediately - let the API call determine if session is valid
+      // The session might be valid even if we can't detect the cookie name
+      
+      fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
+        credentials: 'include',
+        signal: controller.signal
       })
-      .catch(err => {
-        console.error('Error fetching donor data:', err);
-        navigate('/'); // In case of error, redirect
-      });
-  }, [navigate]);
+        .then(res => {
+          if (!res.ok) {
+            if (res.status === 401) {
+              // Session expired or user not logged in - redirect to login
+              throw new Error('SESSION_EXPIRED');
+            }
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          }
+          return res.json();
+        })
+        .then(data => {
+          if (data.error) {
+            throw new Error(data.error);
+          } else {
+            setUser(data);
+            setError(null); // Clear any previous errors
+          }
+        })
+        .catch(err => {
+          // Don't set error if we're logging out or component is unmounting
+          if (!isLoggingOut && err.name !== 'AbortError') {
+            console.error('Error fetching donor data:', err);
+            
+            if (err.message === 'SESSION_EXPIRED') {
+              // Don't set error state, just redirect immediately
+              setLoading(false);
+              navigate('/');
+              return;
+            }
+            
+            // Only set error for non-session related issues
+            setError(err.message || 'Failed to load donor data');
+            toast.error('Failed to load donor data');
+          }
+        })
+        .finally(() => {
+          if (!isLoggingOut) {
+            setLoading(false);
+          }
+        });
+    };
+
+    // Add a longer delay to ensure session is ready and prevent unnecessary API calls
+    const timeoutId = setTimeout(fetchData, 200);
+
+    // Cleanup function to abort fetch if component unmounts or logout starts
+    return () => {
+      controller.abort();
+      clearTimeout(timeoutId);
+    };
+  }, [navigate, isLoggingOut]);
 
   useEffect(() => {
     if (activeSection === 'donations' && user?.donorId) {
@@ -47,10 +154,17 @@ const DonorDashboard = () => {
   }, [activeSection, user]);
 
   useEffect(() => {
+    // Use lastDonation if available, otherwise use registrationDate
+    let baseDate = null;
     if (user?.lastDonation && user.lastDonation !== 'N/A') {
-      const lastDonationDate = new Date(user.lastDonation);
+      baseDate = new Date(user.lastDonation);
+    } else if (user?.registrationDate) {
+      baseDate = new Date(user.registrationDate);
+    }
+
+    if (baseDate) {
       // Add 6 months
-      const nextEligibleDate = new Date(lastDonationDate);
+      const nextEligibleDate = new Date(baseDate);
       nextEligibleDate.setMonth(nextEligibleDate.getMonth() + 6);
 
       function updateCountdown() {
@@ -77,150 +191,708 @@ const DonorDashboard = () => {
       setCountdown('N/A');
       if (countdownInterval.current) clearInterval(countdownInterval.current);
     }
-  }, [user?.lastDonation]);
+  }, [user?.lastDonation, user?.registrationDate]);
 
-  const handleLogout = () => {
+  // Use custom dialog for logout
+  const handleLogout = (e) => {
+    // Prevent any default behavior
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    // Set flag to prevent browser back button handler from triggering
+    setIsLogoutTriggered(true);
+    // Only show dialog if not already showing
+    if (!showLogoutDialog) {
+      setShowLogoutDialog(true);
+    }
+    // Reset flag after a short delay
+    setTimeout(() => setIsLogoutTriggered(false), 100);
+  };
+  const confirmLogout = () => {
+    setShowLogoutDialog(false);
+    setIsLoggingOut(true); // Set logout flag to prevent API calls
+    setIsLogoutTriggered(true); // Prevent back button handler from triggering
+    setError(null); // Clear any error state during logout
+    
+    // Call logout API first
     fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
       method: 'POST',
       credentials: 'include'
     })
-      .then(() => {
-        navigate('/'); // Go to login or home page
-      })
-      .catch(error => {
-        console.error("Logout failed:", error);
+    .then((response) => {
+      // Check if logout was successful
+      if (response.ok) {
+        console.log('Logout successful');
+      } else {
+        console.log('Logout API returned error, but continuing with navigation');
+      }
+    })
+    .catch((error) => {
+      console.log('Logout API error, but continuing with navigation:', error);
+    })
+    .finally(() => {
+      // Add a longer delay to ensure session is properly destroyed and prevent race conditions
+      setTimeout(() => {
+        try {
+          // Clear any remaining state
+          setUser(null);
+          setError(null);
+          setLoading(false);
+          
+          // Navigate to home page
+          navigate('/', { replace: true });
+        } catch (navError) {
+          console.log('Navigation error, using window.location:', navError);
+          // Fallback to window.location if navigate fails
+          window.location.href = '/';
+        }
+      }, 300); // Increased delay to 300ms to prevent race conditions
+    });
+  };
+  const cancelLogout = () => setShowLogoutDialog(false);
+
+  // Use custom dialog for logo click
+  const handleLogoClick = () => {
+    setShowLogoDialog(true);
+  };
+  const confirmLogo = async () => {
+    setShowLogoDialog(false);
+    
+    // Actually logout the user instead of just navigating
+    setIsLoggingOut(true);
+    
+    try {
+      // Call logout API
+      const response = await fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
+        method: 'POST',
+        credentials: 'include',
       });
+      
+      console.log('Logout successful from home button');
+    } catch (error) {
+      console.log('Logout API error from home button:', error);
+    } finally {
+      // Clear any remaining state
+      setUser(null);
+      setError(null);
+      setLoading(false);
+      
+      // Navigate to home page after logout
+      setTimeout(() => {
+        try {
+          navigate('/', { replace: true });
+        } catch (navError) {
+          console.log('Navigation error, using window.location:', navError);
+          window.location.href = '/';
+        }
+      }, 200);
+    }
+  };
+  const cancelLogo = () => setShowLogoDialog(false);
+
+  // Profile save confirmation functions
+  const confirmSaveProfile = async () => {
+    setShowSaveProfileDialog(false);
+    const formData = new FormData();
+    formData.append('donorId', editForm.donorId);
+    formData.append('name', editForm.name);
+    formData.append('bloodType', editForm.bloodType);
+    formData.append('age', editForm.age);
+    formData.append('location', editForm.location);
+    formData.append('email', editForm.email);
+    if (editForm.profilePicFile) {
+      formData.append('profilePicFile', editForm.profilePicFile);
+    }
+    if (editForm.removeAvatar) {
+      formData.append('removeAvatar', '1');
+    }
+    try {
+      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/update_donor_profile.php', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Update user state with new profile data
+        setUser(u => ({ 
+          ...u, 
+          name: editForm.name, 
+          bloodType: editForm.bloodType, 
+          age: editForm.age, 
+          location: editForm.location, 
+          email: editForm.email, 
+          profilePic: (editForm.removeAvatar || data.avatarRemoved) ? null : (data.imagePath ? `http://localhost/liveonv2/${data.imagePath}` : u.profilePic) 
+        }));
+        
+        // Reset edit form to clear any cached data
+        setEditForm({});
+        setShowEditProfile(false);
+        toast.success('Profile updated successfully!');
+      } else {
+        toast.error(data.message || 'Failed to update profile');
+      }
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      toast.error('Error updating profile');
+    }
   };
 
-  if (!user) return <div>Loading dashboard...</div>;
+  const cancelSaveProfile = () => setShowSaveProfileDialog(false);
+
+  // Remove from system functions
+  const handleRemoveFromSystem = () => {
+    setShowRemoveDialog(true);
+  };
+
+  const confirmRemove = async () => {
+    if (!removeReason.trim()) {
+      toast.error('Please provide a reason for removal');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/request_donor_removal.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          donorId: user.donorId,
+          reason: removeReason.trim()
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Removal request sent to administrators successfully');
+        setShowRemoveDialog(false);
+        setRemoveReason('');
+      } else {
+        toast.error(data.message || 'Failed to send removal request');
+      }
+    } catch (error) {
+      console.error('Error sending removal request:', error);
+      toast.error('Error sending removal request');
+    }
+  };
+
+  const cancelRemove = () => {
+    setShowRemoveDialog(false);
+    setRemoveReason('');
+  };
+
+  // Function to fetch hospitals from database
+  const fetchHospitals = async (location) => {
+    setLoadingHospitals(true);
+    try {
+      const response = await fetch(`http://localhost/liveonv2/backend_api/controllers/get_hospitals.php?location=${encodeURIComponent(location)}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setHospitals(data.hospitals);
+      } else {
+        console.error('Failed to fetch hospitals:', data.error);
+        setHospitals([]);
+      }
+    } catch (error) {
+      console.error('Error fetching hospitals:', error);
+      setHospitals([]);
+    } finally {
+      setLoadingHospitals(false);
+    }
+  };
+
+  // Function to handle hospital popup opening
+  const handleHospitalPopupOpen = () => {
+    setShowHospitalPopup(true);
+    if (user?.location) {
+      fetchHospitals(user.location);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="donor-dashboard-root">
+        <LoadingSpinner
+          size="60"
+          stroke="4"
+          speed="1"
+          color="#dc2626"
+          text="Loading your donor dashboard..."
+          className="full-page"
+        />
+      </div>
+    );
+  }
+
+  // Don't show error if we're logging out or if it's a session expiration
+  if (error && !isLoggingOut) {
+    return (
+      <ErrorDisplay
+        error={error}
+        onRetry={() => {
+          setError(null);
+          setLoading(true);
+          // Re-fetch data
+          fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
+            credentials: 'include'
+          })
+            .then(res => {
+              if (!res.ok) {
+                if (res.status === 401) {
+                  throw new Error('SESSION_EXPIRED');
+                }
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+              }
+              return res.json();
+            })
+            .then(data => {
+              if (data.error) {
+                throw new Error(data.error);
+              } else {
+                setUser(data);
+              }
+            })
+            .catch(err => {
+              console.error('Error fetching donor data:', err);
+              if (err.message === 'SESSION_EXPIRED') {
+                navigate('/');
+                return;
+              }
+              setError(err.message || 'Failed to load donor data');
+              toast.error('Failed to load donor data');
+            })
+            .finally(() => {
+              setLoading(false);
+            });
+        }}
+        title="Failed to load donor dashboard"
+        buttonText="Retry"
+      />
+    );
+  }
+
+  // Show loading spinner if no user data and not logging out (initial load)
+  if (!user && !isLoggingOut && !loading) {
+    return (
+      <div className="donor-dashboard-root">
+        <LoadingSpinner
+          size="60"
+          stroke="4"
+          speed="1"
+          color="#dc2626"
+          text="Checking your session..."
+          className="full-page"
+        />
+      </div>
+    );
+  }
+
+  // Show loading spinner if logging out
+  if (isLoggingOut) {
+    return (
+      <div className="donor-dashboard-root">
+        <LoadingSpinner
+          size="60"
+          stroke="4"
+          speed="1"
+          color="#dc2626"
+          text="Logging you out..."
+          className="full-page"
+        />
+      </div>
+    );
+  }
+
+  if (!user && !isLoggingOut) {
+    return (
+      <ErrorDisplay
+        error="No donor data available"
+        title="Donor data not found"
+        buttonText="Retry"
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
 
   return (
     <div className="donor-dashboard-container">
-      <aside className="sidebar" style={{ width: '180px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '100vh' }}>
-        <div style={{ width: '100%' }}>
-          <div className="logo" style={{ cursor: 'pointer', padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginLeft: 32, marginBottom: 40 }} onClick={() => navigate('/') }>
-            <img src={logo} alt="LiveOn Logo" style={{ height: 120, width: 'auto', display: 'block' }} />
+      <ConfirmDialog
+        open={showLogoutDialog}
+        title="Confirm Logout"
+        message="Are you sure you want to logout?"
+        onConfirm={confirmLogout}
+        onCancel={cancelLogout}
+        confirmText="Logout"
+        cancelText="Cancel"
+      />
+      <ConfirmDialog
+        open={showLogoDialog}
+        title="Confirm Navigation"
+        message="Are you sure you want to go to the home page? You will be logged out."
+        onConfirm={confirmLogo}
+        onCancel={cancelLogo}
+        confirmText="Go Home"
+        cancelText="Cancel"
+      />
+      <ConfirmDialog
+        open={showSaveProfileDialog}
+        title="Confirm Profile Changes"
+        message="Are you sure you want to save these profile changes?"
+        onConfirm={confirmSaveProfile}
+        onCancel={cancelSaveProfile}
+        confirmText="Save Changes"
+        cancelText="Cancel"
+      />
+      {/* Remove from System Modal */}
+      {showRemoveDialog && (
+        <div className="modal-overlay" onClick={cancelRemove}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={cancelRemove}>&times;</button>
+
+            <div>
+              <h2>Remove from System</h2>
+              <p>Please provide a reason for requesting removal from the donation system. This request will be sent to administrators for review.</p>
+            </div>
+
+            <div className="form-field">
+              <label>Reason for Removal *</label>
+              <textarea
+                value={removeReason}
+                onChange={(e) => setRemoveReason(e.target.value)}
+                placeholder="Please explain why you want to be removed from the system..."
+                rows={4}
+                style={{ width: '100%', padding: '12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: '1rem', resize: 'vertical' }}
+              />
+            </div>
+
+            <div className="action-buttons">
+              <button
+                type="button"
+                className="cancel-btn"
+                onClick={cancelRemove}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="save-btn"
+                onClick={confirmRemove}
+                disabled={!removeReason.trim()}
+              >
+                Send Request
+              </button>
+            </div>
+          </div>
         </div>
-        <nav>
-            <ul style={{ padding: 0, margin: 0 }}>
-              <li className={activeSection === 'dashboard' ? 'active' : ''} onClick={() => setActiveSection('dashboard')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+      )}
+      <aside className="sidebar">
+        <div style={{ width: '100%' }}>
+          <div className="logo" onClick={handleLogoClick}>
+            <img src={logo} alt="LiveOn Logo" />
+          </div>
+          <nav>
+            <ul>
+              <li className={activeSection === 'dashboard' ? 'active' : ''} onClick={() => setActiveSection('dashboard')}>
                 <span className="sidebar-label">Dashboard</span>
               </li>
-              <li className={activeSection === 'profile' ? 'active' : ''} onClick={() => setActiveSection('profile')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+              <li className={activeSection === 'profile' ? 'active' : ''} onClick={() => setActiveSection('profile')}>
                 <span className="sidebar-label">Profile</span>
               </li>
-              <li className={activeSection === 'donations' ? 'active' : ''} onClick={() => setActiveSection('donations')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+              <li className={activeSection === 'donations' ? 'active' : ''} onClick={() => setActiveSection('donations')}>
                 <span className="sidebar-label">Donations</span>
               </li>
-              <li className={activeSection === 'rewards' ? 'active' : ''} onClick={() => setActiveSection('rewards')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+              <li className={activeSection === 'rewards' ? 'active' : ''} onClick={() => setActiveSection('rewards')}>
                 <span className="sidebar-label">Rewards</span>
               </li>
-              <li className={activeSection === 'feedback' ? 'active' : ''} onClick={() => setActiveSection('feedback')}
-                  style={{ fontSize: '1.18rem', padding: '18px 0 18px 18px', marginBottom: 8, borderRadius: 10, cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center' }}>
+              <li className={activeSection === 'feedback' ? 'active' : ''} onClick={() => setActiveSection('feedback')}>
                 <span className="sidebar-label">Feedback</span>
               </li>
-          </ul>
-        </nav>
+            </ul>
+          </nav>
         </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            width: '90%',
-            margin: '0 auto 24px auto',
-            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 10,
-            padding: '14px 0',
-            fontSize: '1.1rem',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(220,38,38,0.13)',
-            transition: 'background 0.2s',
-          }}
-        >
+        <button className="logout-btn" onClick={handleLogout}>
           <span style={{ fontSize: 20, display: 'flex', alignItems: 'center' }}>⎋</span> Logout
         </button>
       </aside>
       <div className="dashboard-main">
-        <div className="dashboard-section" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 36, padding: '28px 32px' }}>
-          <header className="dashboard-header" style={{ margin: 0 }}>
-            <h1 style={{ margin: 0 }}>Donor Dashboard</h1>
-          </header>
-            <div className="dashboard-user-info">
-            <img src={user.profilePic} alt="Profile" className="dashboard-user-avatar" onClick={() => setActiveSection('profile')} />
-              <span className="dashboard-user-name">Welcome, {user.name}</span>
-            </div>
+        <header className="dashboard-header">
+          <h1>Donor Dashboard</h1>
+          <div className="dashboard-user-info">
+            <Avatar
+              img={user.profilePic || null}
+              alt="Profile"
+              size="md"
+              rounded
+              placeholderInitials={user.name ? user.name.substring(0, 2).toUpperCase() : "DN"}
+              className="custom-avatar"
+              style={{
+                backgroundColor: '#6b7280',
+                color: '#ffffff',
+                border: '2px solid #6b7280'
+              }}
+              onClick={() => setShowEditProfile(true)}
+            />
+            <span className="dashboard-user-name">{user.name || 'Donor'}</span>
           </div>
+        </header>
         <div className="dashboard-content">
           {activeSection === 'profile' && (
             <div className="dashboard-stats-grid">
-              {/* Redesigned Profile Card */}
-              <div className="dashboard-card glassy profile-summary animate-fadein" style={{ maxWidth: 600, margin: '0 auto', padding: '3.5rem 2.5rem', boxShadow: '0 12px 40px rgba(220,53,69,0.13)', background: 'rgba(255,255,255,0.99)' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 32 }}>
-                  <img src={user.profilePic} alt="Profile" style={{ width: 150, height: 150, borderRadius: '50%', objectFit: 'cover', border: '6px solid #dc3545', boxShadow: '0 6px 24px rgba(220,53,69,0.13)' }} />
-                  <div style={{ fontWeight: 700, fontSize: '2.1rem', marginTop: 24, color: '#1e293b', letterSpacing: 0.5 }}>{user.name}</div>
-                  <div style={{ fontWeight: 600, fontSize: '1.3rem', color: '#dc3545', marginTop: 4 }}>Donor ID: {user.donorId}</div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 28 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.18rem' }}>
-                    <span style={{ fontWeight: 600, color: '#64748b' }}>Blood Type:</span>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>{user.bloodType}</span>
+              {/* Enhanced Profile Section */}
+              <div className="profile-section-container">
+                
+                {/* Main Profile Card */}
+                <div className="profile-main-card">
+                  <div className="profile-header">
+                    <Avatar
+                      img={user.profilePic || null}
+                      alt="Profile"
+                      size="xl"
+                      rounded
+                      placeholderInitials={user.name ? user.name.substring(0, 2).toUpperCase() : "DN"}
+                      className="profile-card-avatar"
+                    />
+                    <div className="profile-info">
+                      <h2 className="profile-name">{user.name}</h2>
+                      <p className="profile-id">Donor ID: {user.donorId}</p>
+                      <div className="status-indicator">
+                        <span className="status-dot"></span>
+                        <span className="status-text">Available for Donation</span>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.18rem' }}>
-                    <span style={{ fontWeight: 600, color: '#64748b' }}>Age:</span>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>{user.age}</span>
+                  
+                  <div className="profile-details">
+                    <div className="detail-item">
+                      <span className="detail-label">Blood Type</span>
+                      <span className="detail-value blood-type-badge">{user.bloodType}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Age</span>
+                      <span className="detail-value">{user.age}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Location</span>
+                      <span className="detail-value">{user.location}</span>
+                    </div>
+                                         <div className="detail-item email-item">
+                       <span className="detail-label">Email</span>
+                       <span className="detail-value">{user.email}</span>
+                     </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.18rem' }}>
-                    <span style={{ fontWeight: 600, color: '#64748b' }}>Location:</span>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>{user.location}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.18rem' }}>
-                    <span style={{ fontWeight: 600, color: '#64748b' }}>Email:</span>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>{user.email}</span>
-                  </div>
-                </div>
-                <button className="dashboard-btn primary" style={{ width: '100%', marginTop: 16, fontSize: '1.15rem', padding: '14px 0' }}
-                  onClick={() => {
+                  
+                  <button className="edit-profile-btn" onClick={() => {
                     setEditForm({
                       donorId: user.donorId,
                       name: user.name,
                       bloodType: user.bloodType,
                       age: user.age,
                       location: user.location,
-                      email: user.email
+                      email: user.email,
+                      profilePic: user.profilePic,
+                      removeAvatar: false
                     });
                     setShowEditProfile(true);
-                  }}
-                >Edit Profile</button>
+                  }}>
+                    <span className="btn-icon">✏️</span>
+                    Edit Profile
+                  </button>
+                </div>
+
+                {/* Stats Cards Grid */}
+                <div className="stats-grid">
+                  {/* Donation Progress Card */}
+                  <div className="stats-card progress-card">
+                    <div className="card-header">
+                      <div className="card-icon">🩸</div>
+                      <h3>Donation Progress</h3>
+                    </div>
+                    <div className="progress-section">
+                      <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: `${Math.min((user.totalDonations || 0) * 20, 100)}%` }}></div>
+                      </div>
+                      <div className="progress-text">
+                        <span>{user.totalDonations || 0} donations</span>
+                        <span>Goal: 5 donations</span>
+                      </div>
+                    </div>
+                  </div>
+
+
+
+                  {/* Eligibility Card */}
+                  <div className="stats-card eligibility-card">
+                    <div className="card-header">
+                      <div className="card-icon">⏰</div>
+                      <h3>Next Donation</h3>
+                    </div>
+                    <div className="eligibility-info">
+                      <div className="eligibility-status">
+                        {countdown && countdown !== 'N/A' && countdown !== 'Eligible now!' ? (
+                          <span className="status-waiting">Wait {countdown}</span>
+                        ) : (
+                          <span className="status-eligible">Eligible Now!</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Points Card */}
+                  <div className="stats-card points-card">
+                    <div className="card-header">
+                      <div className="card-icon">🏆</div>
+                      <h3>Reward Points</h3>
+                    </div>
+                    <div className="points-number">
+                      <span className="number">{user.points || 0}</span>
+                      <span className="label">points</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Smart Recommendations */}
+                <div className="recommendations-section">
+                  <h3 className="section-title">Smart Recommendations</h3>
+                  
+                  <div className="recommendations-grid">
+                    {/* Donation Reminder */}
+                    {countdown === 'Eligible now!' && (
+                      <div className="recommendation-card reminder-card">
+                        <div className="rec-icon">🔔</div>
+                        <div className="rec-content">
+                          <h4>Ready to Donate!</h4>
+                          <p>You're eligible to donate again. Schedule your next donation.</p>
+                        </div>
+                        <button className="rec-action-btn">Schedule Now</button>
+                      </div>
+                    )}
+
+                                    {/* Hospital Suggestion */}
+                <div className="recommendation-card hospital-card">
+                  <div className="rec-icon">🏥</div>
+                  <div className="rec-content">
+                    <h4>Nearby Hospitals</h4>
+                    <p>Try these hospitals near {user.location} for your next donation.</p>
+                  </div>
+                  <button className="rec-action-btn" onClick={handleHospitalPopupOpen}>View Hospitals</button>
+                </div>
+
+                    {/* Health Tips */}
+                    <div className="recommendation-card health-card">
+                      <div className="rec-icon">💧</div>
+                      <div className="rec-content">
+                        <h4>Health Tip</h4>
+                        <p>Stay hydrated and get plenty of rest before your donation.</p>
+                      </div>
+                      <button className="rec-action-btn" onClick={() => setShowHealthTipsPopup(true)}>Learn More</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
           {activeSection === 'dashboard' && (
             <>
-          <div className="dashboard-stats-grid">
-            {/* Profile Card */}
-            <div className="dashboard-card glassy profile-summary animate-fadein">
-              <div className="profile-summary-title gradient-text">Profile Summary</div>
-              <div className="profile-summary-details">
-                <img src={user.profilePic} alt="Profile" className="profile-avatar" />
-                <div className="profile-summary-text">
-                      <div><span className="label">Donor ID:</span> {user.donorId}</div>
-                  <div><span className="label">Name:</span> {user.name}</div>
-                  <div><span className="label">Blood Type:</span> {user.bloodType}</div>
-                  <div><span className="label">Age:</span> {user.age}</div>
-                  <div><span className="label">Location:</span> {user.location}</div>
-                  <div><span className="label">Email:</span> {user.email}</div>
-                </div>
-              </div>
+              <div className="dashboard-stats-grid">
+                {/* Enhanced Profile Summary Card */}
+                <div className="enhanced-profile-summary-card">
+                  <div className="profile-summary-header">
+                    <div className="profile-summary-avatar-section">
+                      <Avatar
+                        img={user.profilePic || null}
+                        alt="Profile"
+                        size="xl"
+                        rounded
+                        placeholderInitials={user.name ? user.name.substring(0, 2).toUpperCase() : "DN"}
+                        className="profile-summary-avatar"
+                      />
+                      <div className="profile-summary-status">
+                        <div className="status-badge">
+                          <span className="status-dot-active"></span>
+                          <span>Active Donor</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="profile-summary-info">
+                      <h2 className="profile-summary-name">{user.name}</h2>
+                      <p className="profile-summary-id">#{user.donorId}</p>
+                      <div className="profile-summary-badges">
+                        <span className="blood-type-badge-summary">{user.bloodType}</span>
+                        <span className="age-badge">{user.age} years</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="profile-summary-details">
+                    <div className="detail-row">
+                      <div className="detail-item-summary">
+                        <span className="detail-icon">📍</span>
+                        <div className="detail-content">
+                          <span className="detail-label-summary">Location</span>
+                          <span className="detail-value-summary">{user.location}</span>
+                        </div>
+                      </div>
+                      <div className="detail-item-summary">
+                        <span className="detail-icon">📧</span>
+                        <div className="detail-content">
+                          <span className="detail-label-summary">Email</span>
+                          <span className="detail-value-summary email-value">{user.email}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="profile-summary-stats">
+                      <div className="stat-item">
+                        <span className="stat-number">{user.totalDonations || 0}</span>
+                        <span className="stat-label">Donations</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-number">{user.totalDonations ? user.totalDonations * 3 : 0}</span>
+                        <span className="stat-label">Lives Saved</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-number">{user.points || 0}</span>
+                        <span className="stat-label">Points</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="profile-summary-actions">
+                    <button className="edit-profile-summary-btn" onClick={(e) => {
+                      e.stopPropagation();
+                      setEditForm({
+                        donorId: user.donorId,
+                        name: user.name,
+                        bloodType: user.bloodType,
+                        age: user.age,
+                        location: user.location,
+                        email: user.email,
+                        profilePic: user.profilePic,
+                        removeAvatar: false
+                      });
+                      setShowEditProfile(true);
+                    }}>
+                      <span className="btn-icon">✏️</span>
+                      Edit Profile
+                    </button>
+                    <button className="view-history-btn" onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveSection('donations');
+                    }}>
+                      <span className="btn-icon">📋</span>
+                      View History
+                    </button>
+                  </div>
                 </div>
               </div>
               {/* Countdown Box - moved here */}
@@ -244,16 +916,50 @@ const DonorDashboard = () => {
                   return (
                     <div style={{
                       display: 'flex',
-                      gap: 28,
-                      background: 'linear-gradient(90deg, #f43f5e 0%, #3b82f6 100%)',
-                      borderRadius: 18,
+                      flexDirection: 'column',
+                      alignItems: 'center',
                       padding: '18px 24px',
-                      boxShadow: '0 2px 8px rgba(37,99,235,0.08)'
+                      minWidth: 320,
+                      margin: '0 auto',
                     }}>
-                      <CountdownCircle value={days} max={180} label="Days" />
-                      <CountdownCircle value={hours} max={24} label="Hours" />
-                      <CountdownCircle value={minutes} max={60} label="Minutes" />
-                      <CountdownCircle value={seconds} max={60} label="Seconds" />
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: '#2d3a8c',
+                        WebkitTextStroke: '0px',
+                        textShadow: 'none',
+                        filter: 'none',
+                        fontWeight: 500,
+                        fontSize: '2.6rem',
+                        letterSpacing: 2,
+                        marginBottom: 4,
+                      }}>
+                        <span style={{ color: '#2d3a8c', fontWeight: 700 }}>{days}</span>
+                        <span style={{ margin: '0 8px', color: '#2d3a8c' }}>:</span>
+                        <span style={{ color: '#2d3a8c', fontWeight: 700 }}>{hours.toString().padStart(2, '0')}</span>
+                        <span style={{ margin: '0 8px', color: '#2d3a8c' }}>:</span>
+                        <span style={{ color: '#2d3a8c', fontWeight: 700 }}>{minutes.toString().padStart(2, '0')}</span>
+                        <span style={{ margin: '0 8px', color: '#2d3a8c' }}>:</span>
+                        <span style={{ color: '#2d3a8c', fontWeight: 700 }}>{seconds.toString().padStart(2, '0')}</span>
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        gap: 38,
+                        color: '#2d3a8c',
+                        WebkitTextStroke: '0px',
+                        textShadow: 'none',
+                        filter: 'none',
+                        fontSize: '1.1rem',
+                        fontWeight: 400,
+                        opacity: 0.85,
+                        letterSpacing: 1,
+                      }}>
+                        <span style={{ color: '#2d3a8c' }}>day</span>
+                        <span style={{ color: '#2d3a8c' }}>hour</span>
+                        <span style={{ color: '#2d3a8c' }}>min</span>
+                        <span style={{ color: '#2d3a8c' }}>sec</span>
+                      </div>
                     </div>
                   );
                 })() : countdown === 'Eligible now!' && (
@@ -274,84 +980,45 @@ const DonorDashboard = () => {
                     Eligible now!
                   </div>
                 )}
-            </div>
+              </div>
               <div className="dashboard-stats-grid">
-            {/* Donation Stats */}
-            <div className="dashboard-card glassy donation-stats animate-fadein">
-              <div className="donation-stats-title gradient-text">Donation Statistics</div>
-              <div className="donation-stats-grid">
-                <div className="donation-stat">
-                      {/* Total Donations SVG - Provided by user */}
-                      <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="32" height="32">
-                          <defs>
-                            <style>{`.cls-2{fill:#afccd9}.cls-3{fill:#c2e2f5}.cls-4{fill:#ad3542}.cls-5{fill:#fff}.cls-6{fill:#d93a46}.cls-7{fill:#d65366}`}</style>
-                          </defs>
-                          <circle cx="256" cy="262" r="250" style={{ fill: '#76c27d' }} />
-                          <g>
-                            <path className="cls-2" d="M386.2 140.88v167a130.3 130.3 0 0 1-121.85 130c-2.79.19-5.62.28-8.47.28a130.31 130.31 0 0 1-130.31-130.31v-167a55.76 55.76 0 0 1 55.77-55.76h149.09a55.76 55.76 0 0 1 55.77 55.79z" />
-                            <path className="cls-3" d="M386.2 140.88v167a130.3 130.3 0 0 1-121.85 130 130.29 130.29 0 0 1-121.83-130v-167a55.75 55.75 0 0 1 55.75-55.76h132.16a55.76 55.76 0 0 1 55.77 55.76z" />
-                            <path className="cls-4" d="M360 282.18V340c0 38.37-38.31 69.48-85.58 69.48h-34c-47.28 0-85.6-31.11-85.6-69.48v-57.82c0-16.43 16.4-29.75 36.64-29.75h131.93c20.22 0 36.61 13.32 36.61 29.75z" />
-                            <circle className="cls-3" cx="255.88" cy="50.92" r="44.36" />
-                            <rect className="cls-5" x="200.2" y="115.39" width="114.44" height="86.12" rx="10.53" />
-                            <path className="cls-6" d="M237 166.94a20.45 20.45 0 1 0 40.9 0c0-11.29-20.45-37.42-20.45-37.42S237 155.65 237 166.94z" />
-                            <circle className="cls-2" cx="255.88" cy="50.92" r="25.88" />
-                            <path className="cls-6" d="M262.13 409.51v102.42q-3.06.07-6.13.07t-6.36-.08V409.51zM360 247.23V340c0 38.38-38.32 69.48-85.58 69.48h-3.2c-47.26 0-85.58-31.1-85.58-69.48v-57.83a23.84 23.84 0 0 1 .28-3.6l-31.1 2.55s-.83-44.69 35.67-47.19c0 0 3.93-.45 9.71-.52 10.31-.12 26.49 1 36.76 8 0 0 15.19 9.5 35.86 0 0 0 19.16-14.08 43-5.39a28.31 28.31 0 0 0 20-.45 20.47 20.47 0 0 1 18.18 1.19 12 12 0 0 1 6 10.47z" />
-                            <path className="cls-4" d="m185.93 278.57-31.1 2.55s-.83-44.69 35.67-47.19c0 0 3.93-.45 9.71-.52-14.65 15.08-14.28 45.16-14.28 45.16z" />
-                            <rect className="cls-5" x="320" y="154.1" width="46.67" height="16.67" rx="8.33" />
-                            <rect className="cls-5" x="336" y="187.39" width="30.67" height="16.67" rx="8.33" />
-                            <rect className="cls-5" x="320" y="221.43" width="46.67" height="16.67" rx="8.33" />
-                            <rect className="cls-5" x="336" y="254.72" width="30.67" height="16.67" rx="8.33" />
-                            <rect className="cls-5" x="320" y="289.69" width="46.67" height="16.67" rx="8.33" />
-                            <rect className="cls-5" x="336" y="322.98" width="30.67" height="16.67" rx="8.33" />
-                            <circle className="cls-7" cx="236.97" cy="280.41" r="12.31" />
-                            <circle className="cls-7" cx="289.35" cy="298.03" r="12.31" />
-                            <circle className="cls-7" cx="264.36" cy="331.31" r="7.59" />
-                            <circle className="cls-7" cx="236.97" cy="365.43" r="7.59" />
-                            <circle className="cls-7" cx="300.25" cy="380.61" r="7.59" />
-                            <path d="m491.86 91.54-88.73 88.73L330 107.16l-15.6-15.62a51.68 51.68 0 0 1 73.09-73.09l15.62 15.62 15.62-15.62a51.69 51.69 0 0 1 73.11 73.09z" style={{ fill: '#db3a46' }} />
-                            <path d="M403.13 180.27 330 107.16l-15.6-15.62a51.68 51.68 0 0 1 30.45-87.86c-3.59 37.95-.66 110.89 58.28 176.59z" style={{ fill: '#af3542' }} />
-                            <path d="M294.33 463v10a4.87 4.87 0 0 1-4.87 4.88h-5.75a4.88 4.88 0 0 0-4.88 4.87V511q-8.28.75-16.7 1-3.06.07-6.13.07t-6.36-.08l-2.81-.08q-5.87-.22-11.66-.7v-28.49a4.88 4.88 0 0 0-4.88-4.87h-5.75a4.87 4.87 0 0 1-4.87-4.88V463a4.87 4.87 0 0 1 4.87-4.88h64.92a4.87 4.87 0 0 1 4.87 4.88z" style={{ fill: '#d5d2d3' }} />
-                            <path className="cls-5" d="M294.33 463v10a4.87 4.87 0 0 1-4.87 4.88h-5.75a4.88 4.88 0 0 0-4.88 4.87V511q-8.28.75-16.7 1-3.06.07-6.13.07t-6.36-.08l-2.81-.08v-29.19a4.87 4.87 0 0 0-4.87-4.87h-5.75a4.87 4.87 0 0 1-4.87-4.88V463a4.87 4.87 0 0 1 4.87-4.88h53.25a4.87 4.87 0 0 1 4.87 4.88z" />
-                            <path d="M403.13 116.07a7.54 7.54 0 0 1-5.31-2.2l-26.13-26.13a7.5 7.5 0 0 1 10.61-10.61l20 20L438 48.65a7.5 7.5 0 1 1 12 8.9L409.16 113a7.46 7.46 0 0 1-5.47 3z" style={{ fill: '#fdfcfd' }} />
-                          </g>
-                        </svg>
-                      </span>
-                  <div className="stat-value stat-blue">{user.totalDonations}</div>
-                  <div className="stat-label">Total Donations</div>
-                </div>
-                <div className="donation-stat">
+                {/* Donation Stats */}
+                <div className="dashboard-card glassy donation-stats animate-fadein">
+                  <div className="donation-stats-title gradient-text">Donation Statistics</div>
+                  <div className="donation-stats-grid">
+
+                    <div className="donation-stat">
                       {/* Last Donation SVG - Provided by user */}
                       <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>
                         <svg xmlns="http://www.w3.org/2000/svg" xmlSpace="preserve" width="32" height="32" viewBox="0 0 2048 2048" style={{ shapeRendering: 'geometricPrecision', textRendering: 'geometricPrecision', imageRendering: 'optimizeQuality', fillRule: 'evenodd', clipRule: 'evenodd' }}>
                           <defs>
-                            <clipPath id="id0"><path d="M1024-.001c565.541 0 1024 458.46 1024 1024s-458.461 1024-1024 1024c-565.541 0-1024-458.461-1024-1024 0-565.541 458.461-1024 1024-1024z"/></clipPath>
+                            <clipPath id="id0"><path d="M1024-.001c565.541 0 1024 458.46 1024 1024s-458.461 1024-1024 1024c-565.541 0-1024-458.461-1024-1024 0-565.541 458.461-1024 1024-1024z" /></clipPath>
                             <style>{`.fil17{fill:#223539}.fil7{fill:#263238}.fil1{fill:#f57c00}.fil6{fill:#0091ea;fill-rule:nonzero}`}</style>
                           </defs>
                           <g id="Layer_x0020_1">
                             <path d="M1024-.001c565.541 0 1024 458.46 1024 1024s-458.461 1024-1024 1024c-565.541 0-1024-458.461-1024-1024 0-565.541 458.461-1024 1024-1024z" style={{ fill: '#ff9800' }} />
                             <g style={{ clipPath: 'url(#id0)' }}>
                               <g id="_466417432">
-                                <path className="fil1" d="M871.208 468.827 2007.09 1604.71l1.06 1.17.95 1.27.83 1.36.69 1.44.56 1.51.4 1.58.25 1.64.09 1.68L876.035 480.482l-.085-1.685-.251-1.636-.405-1.58-.555-1.514-.693-1.441-.826-1.359-.949-1.269z"/>
-                                <path className="fil1" d="M681.671 468.827 1817.55 1604.71l1.07 1.17.95 1.27.82 1.36.69 1.44.56 1.51.4 1.58.25 1.64.09 1.68L686.499 480.482l-.085-1.685-.251-1.636-.405-1.58-.555-1.514-.693-1.441-.826-1.359-.95-1.269z"/>
-                                <path className="fil1" d="m1485.59 1485.59 1135.88 1135.88-5.77 5.63-5.9 5.5-6.03 5.35-6.16 5.21-6.29 5.06-6.41 4.91-6.52 4.76-6.65 4.61-6.76 4.45-6.87 4.29-6.98 4.13-7.09 3.96-7.2 3.79-7.29 3.63-7.39 3.45-7.49 3.28-7.59 3.1-7.67 2.74-7.77 2.55-7.94 2.36-8.01 2.16-8.09 1.98-8.16 1.78-8.24 1.57-8.31 1.38-8.38 1.17-8.44.97-8.5.75-8.56.55-8.62.32-8.67.11L1248 1584l8.67-.11 8.62-.33 8.56-.54 8.5-.76 8.44-.96 8.38-1.17 8.31-1.38 8.23-1.57 8.17-1.78 8.09-1.98 8.01-2.16 7.93-2.36 7.85-2.54 7.77-2.74 7.67-2.92 7.58-3.09 7.49-3.28 7.4-3.45 7.29-3.63 7.2-3.79 7.08-3.97 6.99-4.12 6.87-4.29 6.76-4.45 6.64-4.61 6.53-4.76 6.41-4.91 6.29-5.07 6.15-5.21 6.03-5.35 5.9-5.49z"/>
-                                <path className="fil1" d="M912.073 1255.11 2047.95 2391h-72.39L839.675 1255.11z"/>
-                                <path className="fil1" d="M839.675 1255.11 1975.56 2391h-333.45L506.233 1255.11z"/>
-                                <path className="fil1" d="m1248 1584 1135.88 1135.88-8.67-.11-8.62-.32-8.56-.55-8.5-.75-8.44-.97-8.38-1.17-8.31-1.38-8.23-1.57-8.17-1.78-8.09-1.98-8.01-2.16-7.93-2.36-7.85-2.55-7.77-2.74-7.67-2.91-7.58-3.1-7.49-3.28-7.4-3.45-7.29-3.63-7.2-3.79-7.08-3.96-6.99-4.13-6.87-4.29-6.76-4.45-6.64-4.61-6.53-4.76-6.41-4.91-6.29-5.06-6.16-5.21-6.03-5.35-1135.88-1135.89 6.03 5.35 6.16 5.21 6.29 5.07 6.41 4.91 6.52 4.76 6.65 4.61 6.76 4.45 6.87 4.29 6.98 4.12 7.09 3.97 7.2 3.79 7.29 3.63 7.39 3.45 7.49 3.28 7.59 3.09 7.67 2.92 7.77 2.74 7.84 2.54 7.94 2.36 8.01 2.17 8.09 1.98 8.16 1.77 8.24 1.58 8.31 1.38 8.38 1.17 8.44.96 8.5.76 8.56.54 8.62.33z"/>
-                                <path className="fil1" d="M506.233 1255.11 1642.11 2391l-2.16-.06-2.14-.16-2.11-.27-2.08-.38-2.04-.47-2-.57-1.96-.67-1.92-.75-1.87-.85-1.82-.94-1.77-1.02-1.71-1.09-1.66-1.18-1.6-1.26-1.53-1.33L477.859 1244.12l1.533 1.33 1.597 1.25 1.656 1.18 1.714 1.1 1.769 1.02 1.82.94 1.871.84 1.917.76 1.96.67 2.002.57 2.041.47 2.077.37 2.109.28 2.14.16z"/>
-                                <path className="fil1" d="M686.499 480.482 1822.38 1616.36v65.93L686.499 546.403z"/>
-                                <path className="fil1" d="M876.035 480.482 2011.92 1616.36v65.93L876.035 546.403z"/>
-                                <path className="fil1" d="M1255.11 747.806 2390.99 1883.69v164.27L1255.11 912.073z"/>
-                                <path className="fil1" d="m1584 1248 1135.88 1135.88-.11 8.67-.33 8.62-.54 8.56-.75 8.51-.97 8.44-1.17 8.37-1.38 8.31-1.58 8.24-1.77 8.16-1.98 8.09-2.17 8.02-2.36 7.93-2.54 7.85-2.74 7.76-2.92 7.67-3.09 7.59-3.28 7.49-3.45 7.39-3.63 7.3-3.79 7.19-3.97 7.09-4.12 6.98-4.29 6.87-4.45 6.76-4.61 6.65-4.76 6.53-4.91 6.4-5.07 6.29-5.21 6.16-5.35 6.03-5.49 5.9-5.63 5.77-1135.88-1135.88 5.63-5.77 5.49-5.9 5.35-6.03 5.21-6.16 5.06-6.29 4.92-6.41 4.76-6.52 4.6-6.65 4.45-6.76 4.29-6.87 4.13-6.98 3.96-7.09 3.8-7.2 3.63-7.29 3.45-7.39 3.27-7.5 3.1-7.58 2.92-7.67 2.73-7.77 2.55-7.85 2.36-7.93 2.17-8.01 1.97-8.09 1.78-8.17 1.58-8.23 1.38-8.31 1.17-8.38.96-8.44.76-8.5.54-8.56.33-8.62z"/>
-                                <path className="fil1" d="M1061.81 469.998 2197.69 1605.88l.95 1.27.82 1.36.7 1.44.55 1.51.41 1.58.25 1.64.08 1.68L1065.57 480.482l-.08-1.685-.25-1.636-.41-1.58-.55-1.514-.7-1.441-.82-1.359z"/>
-                                <path className="fil1" d="M1065.57 480.482 2201.45 1616.36v65.93L1065.57 546.403z"/>
-                                <path className="fil1" d="M1255.11 546.404 2390.99 1682.29v16.48L1255.11 562.885z"/>
-                                <path className="fil1" d="M1255.11 562.885 2390.99 1698.77v161.19L1255.11 724.077z"/>
-                                <path className="fil1" d="M1255.11 724.077 2390.99 1859.96v3.62L1255.11 727.701z"/>
-                                <path className="fil1" d="M1255.11 727.701 2390.99 1863.58v17.95L1255.11 745.649z"/>
-                                <path className="fil1" d="M1255.11 745.649 2390.99 1881.53v2.16L1255.11 747.806z"/>
-                                <path className="fil1" d="m1496.71 1022.08 1135.88 1135.89 5.35 6.03 5.21 6.16 5.07 6.28 4.91 6.41 4.76 6.53 4.61 6.64 4.45 6.76 4.29 6.88 4.12 6.98 3.97 7.09 3.79 7.19 3.63 7.29 3.45 7.4 3.28 7.49 3.09 7.58 2.92 7.68 2.74 7.76 2.54 7.85 2.36 7.93 2.17 8.01 1.98 8.09 1.77 8.17 1.58 8.24 1.38 8.3 1.17 8.38.97 8.44.75 8.5.54 8.56.33 8.62.11 8.67L1584 1248l-.11-8.67-.33-8.62-.54-8.56-.76-8.5-.96-8.44-1.17-8.38-1.38-8.31-1.58-8.24-1.78-8.16-1.97-8.09-2.17-8.01-2.36-7.93-2.55-7.85-2.73-7.77-2.92-7.67-3.1-7.58-3.27-7.5-3.45-7.39-3.63-7.29-3.8-7.2-3.96-7.09-4.13-6.98-4.29-6.87-4.45-6.76-4.6-6.64-4.76-6.53-4.92-6.41-5.06-6.29-5.21-6.16z"/>
-                                <path className="fil1" d="M1255.11 912.073c89.956 1.87 171.226 39.093 230.472 98.341 60.804 60.803 98.413 144.804 98.413 237.586 0 92.782-37.609 176.783-98.413 237.587-60.804 60.804-144.804 98.413-237.586 98.413-92.783 0-176.783-37.609-237.587-98.413-59.247-59.246-96.47-140.517-98.34-230.473H506.23c-11.63 0-22.194-4.747-29.84-12.393-7.646-7.648-12.394-18.21-12.394-29.842V546.405h189.536v-65.922c0-9.103 7.38-16.482 16.482-16.482s16.482 7.38 16.482 16.482v65.921h156.573v-65.92c0-9.104 7.38-16.483 16.482-16.483s16.481 7.38 16.481 16.482v65.921h156.573v-65.92c0-9.104 7.38-16.483 16.483-16.483 9.101 0 16.482 7.38 16.482 16.482v65.921h173.059l16.482.001v365.669z"/>
+                                <path className="fil1" d="M871.208 468.827 2007.09 1604.71l1.06 1.17.95 1.27.83 1.36.69 1.44.56 1.51.4 1.58.25 1.64.09 1.68L876.035 480.482l-.085-1.685-.251-1.636-.405-1.58-.555-1.514-.693-1.441-.826-1.359-.949-1.269z" />
+                                <path className="fil1" d="M681.671 468.827 1817.55 1604.71l1.07 1.17.95 1.27.82 1.36.69 1.44.56 1.51.4 1.58.25 1.64.09 1.68L686.499 480.482l-.085-1.685-.251-1.636-.405-1.58-.555-1.514-.693-1.441-.826-1.359-.95-1.269z" />
+                                <path className="fil1" d="m1485.59 1485.59 1135.88 1135.88-5.77 5.63-5.9 5.5-6.03 5.35-6.16 5.21-6.29 5.06-6.41 4.91-6.52 4.76-6.65 4.61-6.76 4.45-6.87 4.29-6.98 4.13-7.09 3.96-7.2 3.79-7.29 3.63-7.39 3.45-7.49 3.28-7.59 3.1-7.67 2.74-7.77 2.55-7.94 2.36-8.01 2.16-8.09 1.98-8.16 1.78-8.24 1.57-8.31 1.38-8.38 1.17-8.44.97-8.5.75-8.56.55-8.62.32-8.67.11L1248 1584l8.67-.11 8.62-.33 8.56-.54 8.5-.76 8.44-.96 8.38-1.17 8.31-1.38 8.23-1.57 8.17-1.78 8.09-1.98 8.01-2.16 7.93-2.36 7.85-2.54 7.77-2.74 7.67-2.92 7.58-3.09 7.49-3.28 7.4-3.45 7.29-3.63 7.2-3.79 7.08-3.97 6.99-4.12 6.87-4.29 6.76-4.45 6.64-4.61 6.53-4.76 6.41-4.91 6.29-5.07 6.15-5.21 6.03-5.35 5.9-5.49z" />
+                                <path className="fil1" d="M912.073 1255.11 2047.95 2391h-72.39L839.675 1255.11z" />
+                                <path className="fil1" d="M839.675 1255.11 1975.56 2391h-333.45L506.233 1255.11z" />
+                                <path className="fil1" d="m1248 1584 1135.88 1135.88-8.67-.11-8.62-.32-8.56-.55-8.5-.75-8.44-.97-8.38-1.17-8.31-1.38-8.23-1.57-8.17-1.78-8.09-1.98-8.01-2.16-7.93-2.36-7.85-2.55-7.77-2.74-7.67-2.91-7.58-3.1-7.49-3.28-7.4-3.45-7.29-3.63-7.2-3.79-7.08-3.96-6.99-4.13-6.87-4.29-6.76-4.45-6.64-4.61-6.53-4.76-6.41-4.91-6.29-5.06-6.16-5.21-6.03-5.35-1135.88-1135.89 6.03 5.35 6.16 5.21 6.29 5.07 6.41 4.91 6.52 4.76 6.65 4.61 6.76 4.45 6.87 4.29 6.98 4.12 7.09 3.97 7.2 3.79 7.29 3.63 7.39 3.45 7.49 3.28 7.59 3.09 7.67 2.92 7.77 2.74 7.84 2.54 7.94 2.36 8.01 2.17 8.09 1.98 8.16 1.77 8.24 1.58 8.31 1.38 8.38 1.17 8.44.96 8.5.76 8.56.54 8.62.33z" />
+                                <path className="fil1" d="M506.233 1255.11 1642.11 2391l-2.16-.06-2.14-.16-2.11-.27-2.08-.38-2.04-.47-2-.57-1.96-.67-1.92-.75-1.87-.85-1.82-.94-1.77-1.02-1.71-1.09-1.66-1.18-1.6-1.26-1.53-1.33L477.859 1244.12l1.533 1.33 1.597 1.25 1.656 1.18 1.714 1.1 1.769 1.02 1.82.94 1.871.84 1.917.76 1.96.67 2.002.57 2.041.47 2.077.37 2.109.28 2.14.16z" />
+                                <path className="fil1" d="M686.499 480.482 1822.38 1616.36v65.93L686.499 546.403z" />
+                                <path className="fil1" d="M876.035 480.482 2011.92 1616.36v65.93L876.035 546.403z" />
+                                <path className="fil1" d="M1255.11 747.806 2390.99 1883.69v164.27L1255.11 912.073z" />
+                                <path className="fil1" d="m1584 1248 1135.88 1135.88-.11 8.67-.33 8.62-.54 8.56-.75 8.51-.97 8.44-1.17 8.37-1.38 8.31-1.58 8.24-1.77 8.16-1.98 8.09-2.17 8.02-2.36 7.93-2.54 7.85-2.74 7.76-2.92 7.67-3.09 7.59-3.28 7.49-3.45 7.39-3.63 7.3-3.79 7.19-3.97 7.09-4.12 6.98-4.29 6.87-4.45 6.76-4.61 6.65-4.76 6.53-4.91 6.4-5.07 6.29-5.21 6.16-5.35 6.03-5.49 5.9-5.63 5.77-1135.88-1135.88 5.63-5.77 5.49-5.9 5.35-6.03 5.21-6.16 5.06-6.29 4.92-6.41 4.76-6.52 4.6-6.65 4.45-6.76 4.29-6.87 4.13-6.98 3.96-7.09 3.8-7.2 3.63-7.29 3.45-7.39 3.27-7.5 3.1-7.58 2.92-7.67 2.73-7.77 2.55-7.85 2.36-7.93 2.17-8.01 1.97-8.09 1.78-8.17 1.58-8.23 1.38-8.31 1.17-8.38.96-8.44.76-8.5.54-8.56.33-8.62z" />
+                                <path className="fil1" d="M1061.81 469.998 2197.69 1605.88l.95 1.27.82 1.36.7 1.44.55 1.51.41 1.58.25 1.64.08 1.68L1065.57 480.482l-.08-1.685-.25-1.636-.41-1.58-.55-1.514-.7-1.441-.82-1.359z" />
+                                <path className="fil1" d="M1065.57 480.482 2201.45 1616.36v65.93L1065.57 546.403z" />
+                                <path className="fil1" d="M1255.11 546.404 2390.99 1682.29v16.48L1255.11 562.885z" />
+                                <path className="fil1" d="M1255.11 562.885 2390.99 1698.77v161.19L1255.11 724.077z" />
+                                <path className="fil1" d="M1255.11 724.077 2390.99 1859.96v3.62L1255.11 727.701z" />
+                                <path className="fil1" d="M1255.11 727.701 2390.99 1863.58v17.95L1255.11 745.649z" />
+                                <path className="fil1" d="M1255.11 745.649 2390.99 1881.53v2.16L1255.11 747.806z" />
+                                <path className="fil1" d="m1496.71 1022.08 1135.88 1135.89 5.35 6.03 5.21 6.16 5.07 6.28 4.91 6.41 4.76 6.53 4.61 6.64 4.45 6.76 4.29 6.88 4.12 6.98 3.97 7.09 3.79 7.19 3.63 7.29 3.45 7.4 3.28 7.49 3.09 7.58 2.92 7.68 2.74 7.76 2.54 7.85 2.36 7.93 2.17 8.01 1.98 8.09 1.77 8.17 1.58 8.24 1.38 8.3 1.17 8.38.97 8.44.75 8.5.54 8.56.33 8.62.11 8.67L1584 1248l-.11-8.67-.33-8.62-.54-8.56-.76-8.5-.96-8.44-1.17-8.38-1.38-8.31-1.58-8.24-1.78-8.16-1.97-8.09-2.17-8.01-2.36-7.93-2.55-7.85-2.73-7.77-2.92-7.67-3.1-7.58-3.27-7.5-3.45-7.39-3.63-7.29-3.8-7.2-3.96-7.09-4.13-6.98-4.29-6.87-4.45-6.76-4.6-6.64-4.76-6.53-4.92-6.41-5.06-6.29-5.21-6.16z" />
+                                <path className="fil1" d="M1255.11 912.073c89.956 1.87 171.226 39.093 230.472 98.341 60.804 60.803 98.413 144.804 98.413 237.586 0 92.782-37.609 176.783-98.413 237.587-60.804 60.804-144.804 98.413-237.586 98.413-92.783 0-176.783-37.609-237.587-98.413-59.247-59.246-96.47-140.517-98.34-230.473H506.23c-11.63 0-22.194-4.747-29.84-12.393-7.646-7.648-12.394-18.21-12.394-29.842V546.405h189.536v-65.922c0-9.103 7.38-16.482 16.482-16.482s16.482 7.38 16.482 16.482v65.921h156.573v-65.92c0-9.104 7.38-16.483 16.482-16.483s16.481 7.38 16.481 16.482v65.921h156.573v-65.92c0-9.104 7.38-16.483 16.483-16.483 9.101 0 16.482 7.38 16.482 16.482v65.921h173.059l16.482.001v365.669z" />
                               </g>
                             </g>
                             <path d="M1024-.001c565.541 0 1024 458.46 1024 1024s-458.461 1024-1024 1024c-565.541 0-1024-458.461-1024-1024 0-565.541 458.461-1024 1024-1024z" style={{ fill: 'none' }} />
@@ -386,9 +1053,9 @@ const DonorDashboard = () => {
                             : user.lastDonation.slice(0, 10))
                           : 'N/A'
                       }</div>
-                  <div className="stat-label">Last Donation</div>
-                </div>
-                <div className="donation-stat">
+                      <div className="stat-label">Last Donation</div>
+                    </div>
+                    <div className="donation-stat">
                       {/* Next Eligible SVG - Provided by user */}
                       <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>
                         <svg xmlns="http://www.w3.org/2000/svg" xmlSpace="preserve" width="32" height="32" viewBox="0 0 2048 2048" style={{ shapeRendering: 'geometricPrecision', textRendering: 'geometricPrecision', imageRendering: 'optimizeQuality', fillRule: 'evenodd', clipRule: 'evenodd' }}>
@@ -429,10 +1096,10 @@ const DonorDashboard = () => {
                           </g>
                         </svg>
                       </span>
-                  <div className="stat-value stat-blue">{user.nextEligible}</div>
-                  <div className="stat-label">Next Eligible</div>
-                </div>
-                <div className="donation-stat">
+                      <div className="stat-value stat-blue">{user.nextEligible}</div>
+                      <div className="stat-label">Next Eligible</div>
+                    </div>
+                    <div className="donation-stat">
                       {/* Lives Saved SVG - Provided by user */}
                       <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: 8 }}>
                         <svg version="1.1" id="Icon_Set" xmlns="http://www.w3.org/2000/svg" x="0" y="0" viewBox="0 0 512 512" width="32" height="32" style={{ enableBackground: 'new 0 0 512 512' }} xmlSpace="preserve">
@@ -454,108 +1121,241 @@ const DonorDashboard = () => {
                           </g>
                         </svg>
                       </span>
-                  <div className="stat-value stat-green">{user.livesSaved}</div>
-                  <div className="stat-label">Lives Saved</div>
+                      <div className="stat-value stat-green">{user.totalDonations ? user.totalDonations * 3 : 0}</div>
+                      <div className="stat-label">Lives Saved</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reward Section */}
+                <div className="dashboard-card glassy reward-stats animate-fadein">
+                  <div className="reward-title gradient-text">Reward Points & Ranking</div>
+                  <div className="reward-points stat-green">{user.points} Points</div>
+                  <div className="reward-rank">Rank: {user.rank}</div>
                 </div>
               </div>
-            </div>
 
-            {/* Reward Section */}
-            <div className="dashboard-card glassy reward-stats animate-fadein">
-              <div className="reward-title gradient-text">Reward Points & Ranking</div>
-              <div className="reward-points stat-green">{user.points} Points</div>
-              <div className="reward-rank">Rank: {user.rank}</div>
-            </div>
-          </div>
-
-          {/* Call to Action */}
-          <div className="dashboard-cta-card glassy animate-fadein">
-            <h3 className="cta-title gradient-text">Ready for your next donation?</h3>
-            <p className="cta-desc">Book your next appointment and keep saving lives!</p>
-            <button className="dashboard-btn primary">Book Next Donation</button>
-          </div>
+              {/* Remove from System Option */}
+              <div className="dashboard-cta-card glassy animate-fadein">
+                <h3 className="cta-title gradient-text">System Management</h3>
+                <p className="cta-desc">If you no longer wish to be part of the continuous donation program, you can request removal from the system.</p>
+                <button className="dashboard-btn danger" onClick={handleRemoveFromSystem}>Remove from System</button>
+              </div>
             </>
           )}
           {activeSection === 'donations' && (
-            <div style={{ maxWidth: 900, margin: '0 auto' }}>
-              <h2 style={{ marginBottom: 24 }}>My Donation History</h2>
+            <div className="donation-history-container">
+              <h2 className="donation-history-title">My Donation History</h2>
               {donations.length === 0 ? (
-                <div>No donation records found.</div>
+                <div className="no-donations-message">
+                  <p>No donation records found.</p>
+                </div>
               ) : (
-                <table className="dashboard-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 24px rgba(59,130,246,0.10)' }}>
-                  <thead>
-                    <tr style={{ background: 'linear-gradient(90deg, #f43f5e 0%, #3b82f6 100%)' }}>
-                      <th style={{ color: '#f43f5e', fontWeight: 700, padding: '14px 0', fontSize: '1.08rem', border: 'none', textAlign: 'center' }}>No.</th>
-                      <th style={{ color: '#2563eb', fontWeight: 700, padding: '14px 0', fontSize: '1.08rem', border: 'none', textAlign: 'center' }}>Volume (ml)</th>
-                      <th style={{ color: '#334155', fontWeight: 700, padding: '14px 0', fontSize: '1.08rem', border: 'none', textAlign: 'center' }}>Date</th>
-                      <th style={{ color: '#10b981', fontWeight: 700, padding: '14px 0', fontSize: '1.08rem', border: 'none', textAlign: 'center' }}>Hospital</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {donations.map((don, idx) => (
-                      <tr key={don.donation_id || idx} style={{ background: idx % 2 === 0 ? '#f1f5f9' : '#e0e7ff', transition: 'background 0.2s' }}>
-                        <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: 600, color: '#f43f5e', fontSize: '1.05rem', border: 'none' }}>{idx + 1}</td>
-                        <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: 600, color: '#2563eb', fontSize: '1.05rem', border: 'none' }}>{don.units_donated}</td>
-                        <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: 600, color: '#334155', fontSize: '1.05rem', border: 'none' }}>{new Date(don.donation_date).toLocaleString()}</td>
-                        <td style={{ padding: '12px 0', textAlign: 'center', fontWeight: 600, color: '#10b981', fontSize: '1.05rem', border: 'none' }}>{don.hospital_id}</td>
+                <div className="donation-table-wrapper">
+                  <table className="donation-history-table">
+                    <thead>
+                      <tr>
+                        <th className="th-number">No.</th>
+                        <th className="th-volume">Volume (ml)</th>
+                        <th className="th-date">Date</th>
+                        <th className="th-hospital">Hospital</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {donations.map((don, idx) => (
+                        <tr key={don.donation_id || idx} className={idx % 2 === 0 ? 'row-even' : 'row-odd'}>
+                          <td className="td-number">{idx + 1}</td>
+                          <td className="td-volume">{don.units_donated}</td>
+                          <td className="td-date">{new Date(don.donation_date).toLocaleString()}</td>
+                          <td className="td-hospital">{don.hospital_id}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           )}
-          {activeSection === 'rewards' && (
-            <div className="dashboard-stats-grid">
-              {/* Reward Points & Ranking Only */}
-              <div className="dashboard-card glassy reward-stats animate-fadein" style={{ gridColumn: '1 / span 3' }}>
-                <div className="reward-title gradient-text">Reward Points & Ranking</div>
-                <div className="reward-points stat-green">{user.points} Points</div>
-                <div className="reward-rank">Rank: {user.rank}</div>
-              </div>
-            </div>
+          {activeSection === 'rewards' && user && user.donorId && (
+            <RewardsDashboard donorId={user.donorId} />
           )}
           {activeSection === 'feedback' && (
-            <div className="dashboard-stats-grid" style={{ justifyContent: 'center' }}>
-              <div className="dashboard-card glassy animate-fadein" style={{ gridColumn: '1 / span 3', maxWidth: 500, margin: '0 auto' }}>
-                <div className="feedback-title gradient-text" style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 18 }}>Submit Feedback</div>
+            <div className="feedback-section-container">
+              {/* Feedback Header */}
+              <div className="feedback-header">
+                <div className="feedback-header-content">
+                  <h2 className="feedback-title">💬 Share Your Experience</h2>
+                  <p className="feedback-subtitle">Help us improve our blood donation platform by sharing your thoughts and suggestions</p>
+                </div>
+                <div className="feedback-stats">
+                  <div className="feedback-stat">
+                    <div className="stat-icon">🎤</div>
+                    <div className="stat-content">
+                      <span className="stat-number">Your Voice</span>
+                      <span className="stat-label">Matters</span>
+                    </div>
+                    <div className="stat-decoration">
+                      <div className="decoration-dot"></div>
+                      <div className="decoration-dot"></div>
+                      <div className="decoration-dot"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Feedback Form Card */}
+              <div className="feedback-form-card">
+                <div className="form-header">
+                  <h3>📝 Submit Feedback</h3>
+                  <p>Tell us about your experience with our blood donation platform</p>
+                </div>
+                
                 <form
+                  className="feedback-form"
                   onSubmit={async e => {
                     e.preventDefault();
                     const feedback = e.target.elements.feedback.value.trim();
+                    const feedbackType = e.target.elements.feedbackType.value;
+                    const rating = e.target.elements.rating.value;
+                    
                     if (!feedback) {
-                      alert('Please enter your feedback.');
+                      toast.error('Please enter your feedback.');
                       return;
                     }
+                    
                     try {
                       const res = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_feedback.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ donorId: user.donorId, feedback }),
+                        body: JSON.stringify({ 
+                          donorId: user.donorId, 
+                          feedback,
+                          feedbackType,
+                          rating
+                        }),
                         credentials: 'include',
                       });
                       const data = await res.json();
                       if (data.success) {
-                        alert('Thank you for your feedback!');
+                        toast.success('Thank you for your feedback! It will be reviewed by an admin before being displayed on the homepage.');
                         e.target.reset();
+                        // Reset rating display
+                        document.querySelectorAll('.rating-star').forEach(star => {
+                          star.classList.remove('active');
+                        });
                       } else {
-                        alert(data.message || 'Failed to submit feedback');
+                        toast.error(data.message || 'Failed to submit feedback');
                       }
                     } catch (err) {
-                      alert('Error submitting feedback');
+                      toast.error('Error submitting feedback');
                     }
                   }}
-                  style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
                 >
-                  <textarea
-                    name="feedback"
-                    rows={5}
-                    placeholder="Enter your feedback here..."
-                    style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '12px', fontSize: '1.08rem', resize: 'vertical', minHeight: 100 }}
-                  />
-                  <button type="submit" className="dashboard-btn primary" style={{ fontSize: '1.08rem', padding: '12px 0' }}>Submit Feedback</button>
+                  {/* Feedback Type Selection */}
+                  <div className="form-group">
+                    <label className="form-label">Feedback Type</label>
+                    <select name="feedbackType" className="form-select" required>
+                      <option value="">Select feedback type</option>
+                      <option value="general">General Feedback</option>
+                      <option value="suggestion">Suggestion</option>
+                      <option value="complaint">Complaint</option>
+                      <option value="praise">Praise</option>
+                      <option value="bug">Bug Report</option>
+                    </select>
+                  </div>
+
+                  {/* Rating Section */}
+                  <div className="form-group">
+                    <label className="form-label">Overall Rating</label>
+                    <div className="rating-container">
+                      <div className="rating-stars">
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <span
+                            key={star}
+                            className="rating-star"
+                            onClick={() => {
+                              // Update visual stars
+                              document.querySelectorAll('.rating-star').forEach((s, index) => {
+                                if (index < star) {
+                                  s.classList.add('active');
+                                } else {
+                                  s.classList.remove('active');
+                                }
+                              });
+                              // Update hidden input
+                              document.querySelector('input[name="rating"]').value = star;
+                            }}
+                          >
+                            ⭐
+                          </span>
+                        ))}
+                      </div>
+                      <input type="hidden" name="rating" value="0" />
+                      <span className="rating-text">Click to rate your experience</span>
+                    </div>
+                  </div>
+
+                  {/* Feedback Text */}
+                  <div className="form-group">
+                    <label className="form-label">Your Feedback</label>
+                                         <textarea
+                       name="feedback"
+                       className="feedback-textarea"
+                       rows={6}
+                       placeholder="Share your thoughts, suggestions, or experiences with our blood donation platform..."
+                       required
+                       onChange={(e) => {
+                         const charCount = e.target.value.length;
+                         e.target.parentNode.querySelector('.char-count').textContent = charCount;
+                       }}
+                     />
+                    <div className="textarea-counter">
+                      <span className="char-count">0</span> / 500 characters
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <button type="submit" className="submit-feedback-btn">
+                    <span className="btn-icon">📤</span>
+                    Submit Feedback
+                  </button>
                 </form>
-          </div>
+              </div>
+
+              {/* Feedback Guidelines */}
+              <div className="feedback-guidelines">
+                <h3>📋 Feedback Guidelines</h3>
+                <div className="guidelines-grid">
+                  <div className="guideline-item">
+                    <span className="guideline-icon">💡</span>
+                    <div className="guideline-content">
+                      <h4>Be Specific</h4>
+                      <p>Provide detailed feedback about specific features or experiences</p>
+                    </div>
+                  </div>
+                  <div className="guideline-item">
+                    <span className="guideline-icon">🤝</span>
+                    <div className="guideline-content">
+                      <h4>Be Constructive</h4>
+                      <p>Share suggestions for improvement along with any concerns</p>
+                    </div>
+                  </div>
+                  <div className="guideline-item">
+                    <span className="guideline-icon">🔒</span>
+                    <div className="guideline-content">
+                      <h4>Privacy First</h4>
+                      <p>Don't include personal information in your feedback</p>
+                    </div>
+                  </div>
+                  <div className="guideline-item">
+                    <span className="guideline-icon">⏰</span>
+                    <div className="guideline-content">
+                      <h4>Response Time</h4>
+                      <p>We review and respond to feedback within 48 hours</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           {/* Add similar blocks for Donations, Rewards, Feedback, etc. if needed */}
@@ -565,103 +1365,396 @@ const DonorDashboard = () => {
 
       {/* Edit Profile Modal */}
       {showEditProfile && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(30,41,59,0.25)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="modal-content" style={{ background: '#fff', borderRadius: 18, maxWidth: 480, width: '95%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(59,130,246,0.13)', padding: '2.2rem 2rem', position: 'relative' }}>
-            <button onClick={() => setShowEditProfile(false)} style={{ position: 'absolute', top: 18, right: 18, background: 'none', border: 'none', fontSize: 26, color: '#dc3545', cursor: 'pointer' }}>&times;</button>
-            <h2 style={{ textAlign: 'center', marginBottom: 24, color: '#1e293b', fontWeight: 700 }}>Edit Profile</h2>
-            <form style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Donor ID:
-                <input type="text" value={editForm.donorId} readOnly style={{ background: '#f1f5f9', color: '#64748b', fontWeight: 600, border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', marginTop: 4 }} />
-              </label>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Profile Picture:
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={e => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = ev => {
-                        setEditForm(f => ({ ...f, profilePic: ev.target.result, profilePicFile: file }));
-                      };
-                      reader.readAsDataURL(file);
+        <div className="modal-overlay" onClick={() => {
+          setShowEditProfile(false);
+          // Reset user state if modal is closed without saving
+          if (editForm.removeAvatar && !editForm.profilePicFile) {
+            setUser(u => ({ ...u, profilePic: editForm.profilePic }));
+          }
+        }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => {
+              setShowEditProfile(false);
+              // Reset user state if modal is closed without saving
+              if (editForm.removeAvatar && !editForm.profilePicFile) {
+                setUser(u => ({ ...u, profilePic: editForm.profilePic }));
+              }
+            }}>&times;</button>
+
+            {/* Header */}
+            <div>
+              <h2>Edit Profile</h2>
+              <p>Update your personal information</p>
+            </div>
+
+            <form>
+              {/* Profile Picture Section */}
+              <div className="profile-picture-section">
+                <div>
+                  <img
+                    src={editForm.profilePic || user.profilePic}
+                    alt="Profile"
+                  />
+                  <div className="profile-picture-buttons">
+                    <label className="change-photo-btn">
+                      Change Photo
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = ev => {
+                              setEditForm(f => ({ ...f, profilePic: ev.target.result, profilePicFile: file }));
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                    {(editForm.profilePic || user.profilePic) && (
+                      <button
+                        type="button"
+                        className="remove-avatar-btn"
+                        onClick={() => {
+                          setEditForm(f => ({ 
+                            ...f, 
+                            profilePic: null, 
+                            profilePicFile: null,
+                            removeAvatar: true 
+                          }));
+                          // Immediately update the user state for instant UI feedback
+                          setUser(u => ({ ...u, profilePic: null }));
+                        }}
+                      >
+                        Remove Avatar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Fields in Single Column */}
+              <div className="form-grid">
+                {/* Donor ID */}
+                <div className="form-field">
+                  <label>Donor ID</label>
+                  <input
+                    type="text"
+                    value={editForm.donorId}
+                    readOnly
+                  />
+                </div>
+
+                {/* Name */}
+                <div className="form-field">
+                  <label>Full Name</label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="Enter your full name"
+                  />
+                </div>
+
+                {/* Age */}
+                <div className="form-field">
+                  <label>Age</label>
+                  <input
+                    type="number"
+                    value={editForm.age}
+                    onChange={e => setEditForm(f => ({ ...f, age: e.target.value }))}
+                    placeholder="Enter your age"
+                    min="18"
+                    max="65"
+                  />
+                </div>
+
+                {/* Blood Type */}
+                <div className="form-field">
+                  <label>Blood Type</label>
+                  <select
+                    value={editForm.bloodType}
+                    onChange={e => setEditForm(f => ({ ...f, bloodType: e.target.value }))}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '14px', backgroundColor: '#ffffff' }}
+                    required
+                  >
+                    <option value="">Select Blood Type</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                  </select>
+                </div>
+
+                {/* Location */}
+                <div className="form-field">
+                  <label>Location</label>
+                  <input
+                    type="text"
+                    value={editForm.location}
+                    onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))}
+                    placeholder="Enter your location"
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="form-field">
+                  <label>Email Address</label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    readOnly
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="action-buttons">
+                <button
+                  type="button"
+                  className="cancel-btn"
+                  onClick={() => {
+                    setShowEditProfile(false);
+                    // Reset user state if modal is closed without saving
+                    if (editForm.removeAvatar && !editForm.profilePicFile) {
+                      setUser(u => ({ ...u, profilePic: editForm.profilePic }));
                     }
                   }}
-                  style={{ marginTop: 4 }}
-                />
-                {editForm.profilePic && (
-                  <img
-                    src={editForm.profilePic}
-                    alt="Preview"
-                    style={{ width: 90, height: 90, borderRadius: '50%', objectFit: 'cover', marginTop: 10, border: '3px solid #dc3545', boxShadow: '0 2px 8px rgba(220,53,69,0.13)' }}
-                  />
-                )}
-              </label>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Name:
-                <input type="text" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', marginTop: 4 }} />
-              </label>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Blood Type:
-                <select value={editForm.bloodType} onChange={e => setEditForm(f => ({ ...f, bloodType: e.target.value }))} style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', marginTop: 4 }}>
-                  <option value="">Select Blood Group</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                </select>
-              </label>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Age:
-                <input type="number" value={editForm.age} onChange={e => setEditForm(f => ({ ...f, age: e.target.value }))} style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', marginTop: 4 }} />
-              </label>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Location:
-                <input type="text" value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', marginTop: 4 }} />
-              </label>
-              <label style={{ fontWeight: 600, color: '#64748b' }}>
-                Email:
-                <input type="email" value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', marginTop: 4 }} />
-              </label>
-              <button type="button" className="dashboard-btn primary" style={{ marginTop: 10, fontSize: '1.08rem', padding: '12px 0' }}
-                onClick={async () => {
-                  const formData = new FormData();
-                  formData.append('donorId', editForm.donorId);
-                  formData.append('name', editForm.name);
-                  formData.append('bloodType', editForm.bloodType);
-                  formData.append('age', editForm.age);
-                  formData.append('location', editForm.location);
-                  formData.append('email', editForm.email);
-                  if (editForm.profilePicFile) {
-                    formData.append('profilePicFile', editForm.profilePicFile);
-                  }
-                  try {
-                    const res = await fetch('http://localhost/liveonv2/backend_api/controllers/update_donor_profile.php', {
-                      method: 'POST',
-                      body: formData,
-                      credentials: 'include',
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                      setUser(u => ({ ...u, name: editForm.name, bloodType: editForm.bloodType, age: editForm.age, location: editForm.location, email: editForm.email, profilePic: data.imagePath ? `http://localhost/liveonv2/${data.imagePath}` : u.profilePic }));
-                      setShowEditProfile(false);
-                    } else {
-                      alert(data.message || 'Failed to update profile');
-                    }
-                  } catch (err) {
-                    alert('Error updating profile');
-                  }
-                }}
-              >Save Changes</button>
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="save-btn"
+                  onClick={() => setShowSaveProfileDialog(true)}
+                >
+                  Save Changes
+                </button>
+              </div>
             </form>
           </div>
-      </div>
+        </div>
+      )}
+
+      {/* Hospital Popup */}
+      {showHospitalPopup && (
+        <div className="hospital-popup-overlay" onClick={() => setShowHospitalPopup(false)}>
+          <div className="hospital-popup" onClick={e => e.stopPropagation()}>
+            <div className="popup-header">
+              <h3>🏥 Nearby Hospitals</h3>
+              <button 
+                className="close-btn" 
+                onClick={() => setShowHospitalPopup(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="popup-content">
+              <p className="location-info">Hospitals near <strong>{user?.location || 'your location'}</strong></p>
+              {loadingHospitals ? (
+                <div className="loading-hospitals">
+                  <div className="loading-spinner"></div>
+                  <p>Loading hospitals...</p>
+                </div>
+              ) : hospitals.length > 0 ? (
+                <div className="hospitals-list">
+                  {hospitals.map((hospital, index) => (
+                    <div key={hospital.id || index} className="hospital-item">
+                      <div className="hospital-info">
+                        <h4 className="hospital-name">{hospital.name}</h4>
+                        <p className="hospital-address">{hospital.address}</p>
+                        <div className="hospital-details">
+                          <span className="distance">{hospital.distance}</span>
+                          <span className="rating">⭐ {hospital.rating}</span>
+                        </div>
+                        <div className="hospital-services">
+                          <span className="service-badge blood-bank">🩸 Blood Bank</span>
+                          <span className="service-badge emergency">🚨 Emergency</span>
+                        </div>
+                      </div>
+                      <div className="hospital-actions">
+                        <button className="call-btn" onClick={() => window.open(`tel:${hospital.phone}`)}>
+                          📞 Call
+                        </button>
+                        <button className="directions-btn" onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(hospital.address)}`)}>
+                          🗺️ Directions
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="no-hospitals">
+                  <p>No hospitals found near {user?.location || 'your location'}</p>
+                  <p className="no-hospitals-subtitle">Try updating your location or contact support</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Health Tips Popup */}
+      {showHealthTipsPopup && (
+        <div className="health-tips-popup-overlay" onClick={() => setShowHealthTipsPopup(false)}>
+          <div className="health-tips-popup" onClick={e => e.stopPropagation()}>
+            <div className="popup-header health-header">
+              <h3>💊 Health Tips for Blood Donors</h3>
+              <button 
+                className="close-btn" 
+                onClick={() => setShowHealthTipsPopup(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="popup-content health-content">
+              <div className="health-tips-grid">
+                {/* Before Donation */}
+                <div className="health-tip-section">
+                  <h4 className="section-title">🕐 Before Donation</h4>
+                  <div className="tip-list">
+                    <div className="tip-item">
+                      <span className="tip-icon">💧</span>
+                      <div className="tip-content">
+                        <h5>Stay Hydrated</h5>
+                        <p>Drink plenty of water 24 hours before donation</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">😴</span>
+                      <div className="tip-content">
+                        <h5>Get Good Sleep</h5>
+                        <p>Ensure 7-8 hours of sleep the night before</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">🍽️</span>
+                      <div className="tip-content">
+                        <h5>Eat Well</h5>
+                        <p>Have a healthy meal 3-4 hours before donation</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">🚫</span>
+                      <div className="tip-content">
+                        <h5>Avoid Alcohol</h5>
+                        <p>Don't consume alcohol 24 hours before donation</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* During Donation */}
+                <div className="health-tip-section">
+                  <h4 className="section-title">🩸 During Donation</h4>
+                  <div className="tip-list">
+                    <div className="tip-item">
+                      <span className="tip-icon">😌</span>
+                      <div className="tip-content">
+                        <h5>Stay Relaxed</h5>
+                        <p>Take deep breaths and stay calm</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">💪</span>
+                      <div className="tip-content">
+                        <h5>Pump Your Fist</h5>
+                        <p>Gently squeeze and release your fist to help blood flow</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">🗣️</span>
+                      <div className="tip-content">
+                        <h5>Communicate</h5>
+                        <p>Tell staff if you feel dizzy or uncomfortable</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* After Donation */}
+                <div className="health-tip-section">
+                  <h4 className="section-title">🔄 After Donation</h4>
+                  <div className="tip-list">
+                    <div className="tip-item">
+                      <span className="tip-icon">💺</span>
+                      <div className="tip-content">
+                        <h5>Rest for 10-15 Minutes</h5>
+                        <p>Stay seated and relax after donation</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">🥤</span>
+                      <div className="tip-content">
+                        <h5>Drink Extra Fluids</h5>
+                        <p>Consume extra water for the next 24 hours</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">🍎</span>
+                      <div className="tip-content">
+                        <h5>Eat Iron-Rich Foods</h5>
+                        <p>Include spinach, red meat, and beans in your diet</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">🏃</span>
+                      <div className="tip-content">
+                        <h5>Avoid Strenuous Exercise</h5>
+                        <p>Wait 24 hours before heavy physical activity</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* General Health */}
+                <div className="health-tip-section">
+                  <h4 className="section-title">❤️ General Health</h4>
+                  <div className="tip-list">
+                    <div className="tip-item">
+                      <span className="tip-icon">🏥</span>
+                      <div className="tip-content">
+                        <h5>Regular Check-ups</h5>
+                        <p>Get regular health check-ups to ensure eligibility</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">💊</span>
+                      <div className="tip-content">
+                        <h5>Medication Awareness</h5>
+                        <p>Inform staff about any medications you're taking</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-icon">📅</span>
+                      <div className="tip-content">
+                        <h5>Wait Between Donations</h5>
+                        <p>Wait at least 56 days between whole blood donations</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Emergency Contact */}
+              <div className="emergency-contact">
+                <h4>🚨 Emergency Contact</h4>
+                <p>If you experience any unusual symptoms after donation, contact your healthcare provider immediately.</p>
+                <div className="emergency-info">
+                  <span>📞 Blood Bank Hotline: 104</span>
+                  <span>🏥 Emergency: 108</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

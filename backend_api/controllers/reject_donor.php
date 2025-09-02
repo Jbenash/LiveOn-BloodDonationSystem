@@ -34,27 +34,41 @@ try {
     $pdo = $database->connect();
 
     $donor_id = $data['donor_id'];
-    // Get user_id from donors table
-    $sql = "SELECT user_id FROM donors WHERE donor_id = ?";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$donor_id]);
-    $row = $stmt->fetch();
-    $user_id = $row['user_id'] ?? null;
 
-    if (!$user_id) {
-        http_response_code(404);
-        echo json_encode(['success' => false, 'error' => 'Donor not found']);
-        exit();
-    }
+    // Start transaction
+    $pdo->beginTransaction();
 
-    // Update users table status to 'rejected'
-    $sql2 = "UPDATE users SET status = 'rejected' WHERE user_id = ?";
-    $stmt2 = $pdo->prepare($sql2);
-    if ($stmt2->execute([$user_id])) {
+    try {
+        // Get user_id from donor_requests table
+        $sql = "SELECT user_id FROM donor_requests WHERE donor_id = ? AND status = 'pending'";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$donor_id]);
+        $row = $stmt->fetch();
+        $user_id = $row['user_id'] ?? null;
+
+        if (!$user_id) {
+            throw new Exception('Donor request not found or already processed');
+        }
+
+        // Update donor_requests status to 'rejected'
+        $sql2 = "UPDATE donor_requests SET status = 'rejected', updated_at = NOW() WHERE donor_id = ? AND status = 'pending'";
+        $stmt2 = $pdo->prepare($sql2);
+        $stmt2->execute([$donor_id]);
+
+        // Update users table status to 'rejected'
+        $sql3 = "UPDATE users SET status = 'rejected' WHERE user_id = ?";
+        $stmt3 = $pdo->prepare($sql3);
+        $stmt3->execute([$user_id]);
+
+        // Insert notification for donor rejection
+        $notifStmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, ?, NOW())");
+        $notifStmt->execute([$user_id, "Donor registration rejected: $donor_id", 'error', 'unread']);
+
+        $pdo->commit();
         echo json_encode(['success' => true]);
-    } else {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Failed to update user status']);
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        throw $e;
     }
 } catch (PDOException $e) {
     http_response_code(500);

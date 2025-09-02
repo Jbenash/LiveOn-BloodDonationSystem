@@ -1,16 +1,15 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_config.php';
 
-// Allow requests from both development ports
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Content-Type: application/json");
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
+
+// Initialize session manually
+initSession();
+
+// Require hospital role
+requireRole('hospital');
 
 class HospitalDashboard
 {
@@ -106,12 +105,7 @@ class HospitalDashboard
     }
 }
 
-// Authorization check
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'hospital') {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit();
-}
+// Authorization is now handled by requireRole('hospital') above
 
 // DB connection and dashboard handler
 require_once __DIR__ . '/../config/db_connection.php';

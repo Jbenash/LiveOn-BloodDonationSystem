@@ -1,11 +1,15 @@
 <?php
 
+require_once __DIR__ . '/../classes/Exceptions.php';
+require_once __DIR__ . '/../classes/Core/Validator.php';
+require_once __DIR__ . '/../classes/Core/ResponseHandler.php';
+
 abstract class BaseController
 {
     protected $service;
     protected $responseHandler;
 
-    public function __construct($service, ResponseHandler $responseHandler)
+    public function __construct($service, \LiveOn\classes\Core\ResponseHandler $responseHandler)
     {
         $this->service = $service;
         $this->responseHandler = $responseHandler;
@@ -56,8 +60,12 @@ abstract class BaseController
     {
         $this->requireAuth();
 
+        if (!isset($_SESSION['role'])) {
+            throw new ForbiddenException("No role found in session");
+        }
+
         if ($_SESSION['role'] !== $role) {
-            throw new ForbiddenException("Access denied. Required role: $role");
+            throw new ForbiddenException("Access denied. Required role: $role, but user has role: " . $_SESSION['role']);
         }
     }
 
@@ -151,42 +159,3 @@ abstract class BaseController
         }
     }
 }
-
-class ResponseHandler
-{
-    public function sendJson(array $data, int $statusCode = 200): void
-    {
-        http_response_code($statusCode);
-        echo json_encode($data);
-    }
-
-    public function sendError(int $statusCode, string $message, array $errors = []): void
-    {
-        $response = [
-            'success' => false,
-            'message' => $message
-        ];
-
-        if (!empty($errors)) {
-            $response['errors'] = $errors;
-        }
-
-        $this->sendJson($response, $statusCode);
-    }
-
-    public function sendSuccess(array $data = [], string $message = 'Success'): void
-    {
-        $this->sendJson([
-            'success' => true,
-            'message' => $message,
-            'data' => $data
-        ]);
-    }
-}
-
-// Custom Exceptions
-class InvalidRequestException extends Exception {}
-class UnauthorizedException extends Exception {}
-class ForbiddenException extends Exception {}
-class NotFoundException extends Exception {}
-class MethodNotAllowedException extends Exception {}

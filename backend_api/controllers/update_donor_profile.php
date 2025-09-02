@@ -32,9 +32,55 @@ if (!$donor_id || !$name || !$blood_type || !$age || !$location || !$email) {
     exit();
 }
 
-// Handle image upload
+// Validate name to prevent numeric input
+if (!preg_match('/^[a-zA-Z\s]+$/', $name) || is_numeric(str_replace(' ', '', $name))) {
+    echo json_encode(["success" => false, "message" => "Name must contain only letters and spaces, and cannot be purely numeric"]);
+    exit();
+}
+
+// Validate age for blood donation eligibility
+if ($age) {
+    $age = (int) $age;
+    if ($age < 18) {
+        echo json_encode(["success" => false, "message" => "You must be at least 18 years old to donate blood"]);
+        exit();
+    } else if ($age > 65) {
+        echo json_encode(["success" => false, "message" => "You must be 65 years old or younger to donate blood"]);
+        exit();
+    }
+}
+
+// Validate phone number format if provided
+$phone = $_POST['phone'] ?? null;
+if ($phone) {
+    // Check if phone contains only digits
+    if (!preg_match('/^[0-9]+$/', $phone)) {
+        echo json_encode(["success" => false, "message" => "Phone number can only contain numbers"]);
+        exit();
+    }
+
+    // Check if phone has exactly 10 digits (Sri Lankan format)
+    if (strlen($phone) !== 10) {
+        echo json_encode(["success" => false, "message" => "Phone number must be exactly 10 digits (Sri Lankan format)"]);
+        exit();
+    }
+}
+
+// Validate blood type
+$validBloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+if (!in_array($blood_type, $validBloodTypes)) {
+    echo json_encode(["success" => false, "message" => "Invalid blood type"]);
+    exit();
+}
+
+// Handle image upload and removal
 $imagePath = null;
-if (isset($_FILES['profilePicFile']) && $_FILES['profilePicFile']['error'] === UPLOAD_ERR_OK) {
+$removeAvatar = isset($_POST['removeAvatar']) && $_POST['removeAvatar'] === '1';
+
+if ($removeAvatar) {
+    // Set imagePath to null to remove the avatar
+    $imagePath = null;
+} else if (isset($_FILES['profilePicFile']) && $_FILES['profilePicFile']['error'] === UPLOAD_ERR_OK) {
     $uploadDir = __DIR__ . '/../../uploads/donor_images/';
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0777, true);
@@ -57,7 +103,9 @@ try {
 
     // Update donors table (blood_type, city, donor_image)
     $sql2 = "UPDATE donors SET blood_type = :blood_type, city = :city";
-    if ($imagePath) {
+    if ($removeAvatar) {
+        $sql2 .= ", donor_image = NULL";
+    } else if ($imagePath !== null) {
         $sql2 .= ", donor_image = :donor_image";
     }
     $sql2 .= " WHERE donor_id = :donor_id";
@@ -65,7 +113,7 @@ try {
     $stmt2->bindParam(':blood_type', $blood_type);
     $stmt2->bindParam(':city', $location);
     $stmt2->bindParam(':donor_id', $donor_id);
-    if ($imagePath) {
+    if (!$removeAvatar && $imagePath !== null) {
         $stmt2->bindParam(':donor_image', $imagePath);
     }
     $stmt2->execute();
@@ -76,7 +124,12 @@ try {
     $stmt3->bindParam(':donor_id', $donor_id);
     $stmt3->execute();
 
-    echo json_encode(["success" => true, "message" => "Profile updated successfully", "imagePath" => $imagePath]);
+    echo json_encode([
+        "success" => true,
+        "message" => "Profile updated successfully",
+        "imagePath" => $imagePath,
+        "avatarRemoved" => $removeAvatar
+    ]);
 } catch (PDOException $e) {
     echo json_encode(["success" => false, "message" => $e->getMessage()]);
 }

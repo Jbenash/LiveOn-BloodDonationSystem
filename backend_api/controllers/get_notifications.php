@@ -1,27 +1,48 @@
 <?php
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Content-Type: application/json');
+require_once __DIR__ . '/../config/session_config.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
+
+// Initialize session properly
+initSession();
+
+// Check if user is logged in and has admin role
+$currentUser = getCurrentUser();
+if (!$currentUser) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Not logged in. Please log in first.']);
     exit();
 }
 
-require_once __DIR__ . '/../config/db_connection.php';
+if ($currentUser['role'] !== 'admin') {
+    http_response_code(403);
+    echo json_encode(['error' => 'Access denied. Admin role required.']);
+    exit();
+}
+
+require_once '../config/db_connection.php';
 
 try {
     $db = new Database();
     $pdo = $db->connect();
+
+    // Fetch notifications
     $stmt = $pdo->query("SELECT notification_id, user_id, message, type, status, timestamp FROM notifications ORDER BY timestamp DESC LIMIT 50");
     $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    echo json_encode(['success' => true, 'notifications' => $notifications]);
+
+    // Get unread count
+    $unreadStmt = $pdo->query("SELECT COUNT(*) as unread_count FROM notifications WHERE status = 'unread'");
+    $unreadResult = $unreadStmt->fetch(PDO::FETCH_ASSOC);
+    $unreadCount = $unreadResult['unread_count'];
+
+    echo json_encode([
+        'success' => true,
+        'notifications' => $notifications,
+        'unread_count' => $unreadCount
+    ]);
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => 'Failed to fetch notifications', 'details' => $e->getMessage()]);
+    http_response_code(500);
+    echo json_encode(['error' => 'Failed to fetch notifications', 'details' => $e->getMessage()]);
 }

@@ -1,11 +1,56 @@
 /* Root and Animated Background */
-.hospital-dashboard-root {
+.hospital-dashboard-container {
   display: flex;
   min-height: 100vh;
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-  background: #f8fafc;
+  background: #ffffff;
   position: relative;
   overflow-x: hidden;
+}
+
+/* Loading Animation */
+.dashboard-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #ffffff;
+}
+
+.dashboard-loading-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.dashboard-loading-logo {
+  height: 120px;
+  width: auto;
+  margin-bottom: 20px;
+}
+
+.dashboard-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+.dashboard-loading-text {
+  color: #6b7280;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .dashboard-background {
@@ -65,90 +110,116 @@
 }
 
 /* Sidebar */
-.dashboard-sidebar {
+.sidebar {
   width: 240px;
+  min-width: 240px;
   background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-  border-right: 1px solid #334155;
-  padding: 2.5rem 1.2rem 0 1.2rem;
-  /* Remove bottom padding */
+  padding: 0;
+  margin: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  background-clip: border-box;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 100;
+  border-radius: 0 !important;
   justify-content: space-between;
-  z-index: 2;
-  min-height: 100vh;
-  position: relative;
 }
 
 .dashboard-sidebar>div {
   flex-grow: 1;
 }
 
-.dashboard-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1.5rem;
+.logo {
+  font-size: 1.6rem;
   font-weight: bold;
   color: #fff;
-  margin-bottom: 2.5rem;
-  letter-spacing: 0.5px;
+  margin-left: 32px;
+  margin-bottom: 40px;
   cursor: pointer;
+  padding: 18px 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
-.dashboard-logo .logo-svg {
-  height: 48px;
-  filter: brightness(0) invert(1);
+.logo img {
+  height: 120px;
+  width: auto;
+  display: block;
 }
 
-.dashboard-sidebar nav ul {
+.sidebar nav ul {
   list-style: none;
   padding: 0;
   margin: 0;
+  width: 100%;
 }
 
-.dashboard-sidebar nav ul li {
+.sidebar nav ul li {
+  padding: 18px 0 18px 18px;
+  font-size: 1.18rem;
+  color: #cbd5e1;
+  cursor: pointer;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  transition: background 0.2s, color 0.2s;
   display: flex;
   align-items: center;
-  gap: 0.7rem;
-  padding: 0.85rem 1rem;
-  border-radius: 8px;
-  margin-bottom: 0.4rem;
-  font-size: 1.08rem;
-  color: #cbd5e1;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.18s, color 0.18s;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 12px;
 }
 
-.dashboard-sidebar nav ul li.active,
-.dashboard-sidebar nav ul li:hover {
+.sidebar nav ul li .sidebar-label {
+  text-align: left;
+  display: block;
+}
+
+.sidebar nav ul li.active, .sidebar nav ul li:hover {
   background: #3b82f6;
   color: #fff;
+  font-weight: 600;
 }
 
 .logout-btn {
   margin: 0;
-  width: 100%;
-  padding: 14px 0;
-  background: #f87171;
+  width: 90%;
+  margin-left: 5%;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: #fff;
   border: none;
-  border-radius: 0;
-  /* Remove rounded bottom if you want it flush */
+  border-radius: 10px;
   font-weight: 700;
   font-size: 1.08em;
   cursor: pointer;
   letter-spacing: 0.5px;
+  padding: 14px 0;
+  box-shadow: 0 2px 8px rgba(220,38,38,0.13);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.2s;
 }
 
 /* Main Content */
 .dashboard-main {
   flex: 1;
+  margin-left: 240px;
   display: flex;
   flex-direction: column;
   min-width: 0;
   position: relative;
   z-index: 1;
+  overflow: auto;
 }
 
 .dashboard-header.glassy {
@@ -168,13 +239,39 @@
   gap: 0.9rem;
 }
 
-.dashboard-user-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #3b82f6;
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.10);
+/* Flowbite Avatar styling for hospital dashboard */
+.profile-summary-card .flowbite-avatar,
+.profile-summary-card .flowbite-avatar * {
+  border: 2px solid #6b7280 !important;
+  box-shadow: 0 4px 12px rgba(107,114,128,0.15) !important;
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+  border-radius: 50% !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+}
+
+/* Style the placeholder initials - more specific selectors */
+.profile-summary-card .flowbite-avatar .flowbite-avatar-initials,
+.profile-summary-card .flowbite-avatar span,
+.profile-summary-card .flowbite-avatar div[data-testid="flowbite-avatar-initials"] {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 0.9rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  text-align: center !important;
+}
+
+/* Force override for any Flowbite default styles */
+.profile-summary-card .flowbite-avatar * {
+  color: #ffffff !important;
 }
 
 .dashboard-user-name {
@@ -438,6 +535,116 @@
   padding: 1.5rem 1.2rem 1.2rem 1.2rem;
   width: calc(50% - 1.1rem);
   box-sizing: border-box;
+}
+
+@media (max-width: 1100px) {
+  .hospital-dashboard-container {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    align-items: center;
+    padding: 16px 0 0 0;
+    box-shadow: none;
+    border-bottom: 1px solid #e0e7ff;
+    min-height: unset;
+    height: auto;
+  }
+  .logo {
+    margin: 0 24px 0 24px;
+    font-size: 1.2rem;
+  }
+  .sidebar nav ul {
+    display: flex;
+    flex-direction: row;
+    width: auto;
+    margin-left: 24px;
+  }
+  .sidebar nav ul li {
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 0;
+    margin-right: 12px;
+    padding: 10px 18px;
+    font-size: 0.98rem;
+  }
+  .dashboard-main {
+    padding: 24px 12px;
+    flex-direction: column !important;
+    gap: 0 !important;
+  }
+  .dashboard-section {
+    padding: 18px 10px 16px 10px;
+  }
+}
+
+@media (max-width: 700px) {
+  .dashboard-header {
+    min-height: 80px;
+    padding: 1.5rem;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .dashboard-section h2 {
+    font-size: 1.1rem;
+  }
+
+  .dashboard-table th, .dashboard-table td {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+  }
+
+  .dashboard-main {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 500px) {
+  .sidebar {
+    flex-direction: column;
+    height: auto;
+    padding: 12px;
+  }
+
+  .logo {
+    margin-bottom: 16px;
+    font-size: 1.2rem;
+  }
+
+  .sidebar nav ul {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sidebar nav ul li {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+
+  .dashboard-main {
+    padding: 8px;
+  }
+
+  .dashboard-section {
+    padding: 12px;
+  }
+
+  .dashboard-table th, .dashboard-table td {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+    min-height: 80px;
+    padding: 1.5rem;
+  }
 }
 
 @media (max-width: 900px) {
@@ -721,8 +928,8 @@
 }
 
 .profile-summary-card .profile-avatar {
-  width: 70px;
-  height: 70px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #3b82f6;
@@ -748,4 +955,44 @@
   font-size: 1.3rem;
   font-weight: 700;
   margin-bottom: 1.2rem;
+}
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 2rem;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  min-height: 80px;
+  height: auto;
+  position: relative;
+  z-index: 2;
+}
+
+.dashboard-header h1 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.2;
+  background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.025em;
+}
+
+.dashboard-user-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dashboard-user-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
 }

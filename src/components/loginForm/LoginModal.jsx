@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './LoginModal.css';
 import { toast } from 'sonner';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const LoginModal = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -13,7 +14,7 @@ const LoginModal = ({ isOpen, onClose }) => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showRequestSent, setShowRequestSent] = useState(false);
   const [showEmailRequired, setShowEmailRequired] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [showContactAdmin, setShowContactAdmin] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,7 +27,6 @@ const LoginModal = ({ isOpen, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setErrorMessage("");
 
     try {
       const response = await fetch("http://localhost/liveonv2/backend_api/controllers/user_login.php", {
@@ -38,29 +38,64 @@ const LoginModal = ({ isOpen, onClose }) => {
         credentials: "include"
       });
 
-      const data = await response.json();
+      // Get response text first
+      const responseText = await response.text();
+      
+      // Check if response is ok
+      if (!response.ok) {
+        console.error('Login response error:', response.status, responseText);
+        toast.error(`Login failed: ${response.status} ${response.statusText}`);
+        return;
+      }
+
+      // Try to parse JSON response
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error('JSON parse error:', jsonError);
+        console.error('Raw response:', responseText);
+        toast.error('Login failed: Invalid server response');
+        return;
+      }
 
       if (data.success) {
         onClose(); // Close modal on successful login
 
-        if (data.user.role === "hospital") {
-          navigate('/HospitalDashboard');
-        } else if (data.user.role === "mro") {
-          navigate('/MRODashboard');
-        } else if (data.user.role === "admin") {
-          navigate('/AdminDashboard');
-        } else if (data.user.role === "donor") {
-          navigate('/DonorDashboard');
-        }
+        // Add a longer delay to ensure session is fully established and prevent race conditions
+        setTimeout(() => {
+          try {
+            if (data.user.role === "hospital") {
+              navigate('/HospitalDashboard', { replace: true });
+            } else if (data.user.role === "mro") {
+              navigate('/MRODashboard', { replace: true });
+            } else if (data.user.role === "admin") {
+              navigate('/AdminDashboard', { replace: true });
+            } else if (data.user.role === "donor") {
+              navigate('/DonorDashboard', { replace: true });
+            }
+          } catch (navError) {
+            console.log('Navigation error, using window.location:', navError);
+            // Fallback to window.location if navigate fails
+            if (data.user.role === "hospital") {
+              window.location.href = '/HospitalDashboard';
+            } else if (data.user.role === "mro") {
+              window.location.href = '/MRODashboard';
+            } else if (data.user.role === "admin") {
+              window.location.href = '/AdminDashboard';
+            } else if (data.user.role === "donor") {
+              window.location.href = '/DonorDashboard';
+            }
+          }
+        }, 200); // Increased delay to 200ms to ensure session is established
 
       } else {
-        setErrorMessage(data.message || "Login Failed");
+        toast.error(data.message || "Login Failed");
       }
 
     } catch (err) {
       console.error('Login error:', err);
-      setErrorMessage('Login failed. Please try again.');
-      toast.error(err.message || 'Login failed. Please try again.');
+      toast.error('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -103,11 +138,15 @@ const LoginModal = ({ isOpen, onClose }) => {
       if (data.success) {
         setShowRequestSent(true);
       } else {
-        setErrorMessage(data.message || 'Failed to submit password reset request');
+        toast.error(data.message || 'Failed to submit password reset request');
       }
     } catch (e) {
-      setErrorMessage('Network error');
+      toast.error('Network error');
     }
+  };
+
+  const handleContactAdmin = () => {
+    setShowContactAdmin(true);
   };
 
   if (!isOpen) return null;
@@ -119,9 +158,9 @@ const LoginModal = ({ isOpen, onClose }) => {
       onKeyDown={handleKeyDown}
       tabIndex={-1}
     >
-      <div className="login-modal">
+      <div className="login-modal compact">
         <div className="modal-background">
-          {/* Removed modal-grid and modal-particles for a static background */}
+          {/* Static background */}
         </div>
 
         <button className="modal-close-btn" onClick={onClose}>
@@ -129,27 +168,23 @@ const LoginModal = ({ isOpen, onClose }) => {
         </button>
 
         <div className="login-modal-content">
-          <div className="login-header">
-            <div className="header-icon">
+          {/* Compact Header */}
+          <div className="login-header compact">
+            <div className="header-icon compact">
               <span className="icon-symbol">🔐</span>
             </div>
-            <h2 className="login-title">
+            <h2 className="login-title compact">
               <span className="title-line">Welcome</span>
               <span className="title-highlight">Back</span>
             </h2>
-            <p className="login-subtitle">
-              Sign in to access your account and continue saving lives
+            <p className="login-subtitle compact">
+              Sign in to access your account
             </p>
           </div>
 
           <div className="login-container">
             <div className="login-card">
               <form onSubmit={handleSubmit} className="login-form">
-                {errorMessage && (
-                  <div style={{ color: '#dc3545', background: '#fff0f1', border: '1px solid #f5c2c7', borderRadius: 8, padding: '12px 18px', marginBottom: 18, fontWeight: 500, textAlign: 'center' }}>
-                    {errorMessage}
-                  </div>
-                )}
                 <div className="form-group">
                   <label htmlFor="username">Email Address</label>
                   <input
@@ -190,10 +225,14 @@ const LoginModal = ({ isOpen, onClose }) => {
                   disabled={isLoading}
                 >
                   {isLoading ? (
-                    <span className="loading-spinner">
-                      <span className="spinner"></span>
-                      Signing in...
-                    </span>
+                    <LoadingSpinner
+                      size="16"
+                      stroke="2"
+                      speed="1"
+                      color="#ffffff"
+                      text="Signing in..."
+                      className="button"
+                    />
                   ) : (
                     <>
                       <span className="btn-text">Sign In</span>
@@ -203,45 +242,55 @@ const LoginModal = ({ isOpen, onClose }) => {
                 </button>
               </form>
             </div>
-          </div>
 
-          <div className="login-footer">
-            <p>Need help? <span className="link">Contact your administrator</span></p>
+            {/* Compact Footer */}
+            <div className="login-footer compact">
+              <p>Need help? <span className="link" onClick={handleContactAdmin}>Contact admin</span></p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {showForgotPassword && (
-        <ForgotPasswordPopup
-          isOpen={showForgotPassword}
-          email={formData.username}
-          onClose={() => setShowForgotPassword(false)}
-          onSubmit={handleForgotPasswordSubmit}
-        />
-      )}
-      {showRequestSent && (
-        <RequestSentPopup
-          isOpen={showRequestSent}
-          onClose={() => setShowRequestSent(false)}
-        />
-      )}
-      {showEmailRequired && (
-        <EmailRequiredPopup
-          isOpen={showEmailRequired}
-          onClose={() => setShowEmailRequired(false)}
-        />
-      )}
+        {showForgotPassword && (
+          <ForgotPasswordPopup
+            isOpen={showForgotPassword}
+            email={formData.username}
+            onClose={() => setShowForgotPassword(false)}
+            onSubmit={handleForgotPasswordSubmit}
+          />
+        )}
+        {showRequestSent && (
+          <RequestSentPopup
+            isOpen={showRequestSent}
+            onClose={() => setShowRequestSent(false)}
+          />
+        )}
+        {showEmailRequired && (
+          <EmailRequiredPopup
+            isOpen={showEmailRequired}
+            onClose={() => setShowEmailRequired(false)}
+          />
+        )}
+        {showContactAdmin && (
+          <ContactAdminPopup
+            isOpen={showContactAdmin}
+            onClose={() => setShowContactAdmin(false)}
+            userEmail={formData.username}
+          />
+        )}
+      </div>
     </div>
   );
 };
 
-const ForgotPasswordPopup = ({ isOpen, email, onClose, onSubmit }) => {
+const ForgotPasswordPopup = ({isOpen, email, onClose, onSubmit}) => {
   const [newPassword, setNewPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
   if (!isOpen) return null;
+  
   return (
     <div className="login-modal-overlay">
-      <div className="login-modal forgot-password-modal">
+      <div className="login-modal compact">
         <div className="modal-background">
           <div className="modal-grid"></div>
           <div className="modal-particles"></div>
@@ -250,12 +299,12 @@ const ForgotPasswordPopup = ({ isOpen, email, onClose, onSubmit }) => {
           <span>&times;</span>
         </button>
         <div className="login-modal-content">
-          <div className="login-header">
-            <div className="header-icon">
+          <div className="login-header compact">
+            <div className="header-icon compact">
               <span className="icon-symbol">🔑</span>
             </div>
-            <h2 className="login-title">Reset Password</h2>
-            <p className="login-subtitle">Email: <strong>{email}</strong></p>
+            <h2 className="login-title compact">Reset Password</h2>
+            <p className="login-subtitle compact">Email: <strong>{email}</strong></p>
           </div>
 
           <div className="login-container">
@@ -279,10 +328,14 @@ const ForgotPasswordPopup = ({ isOpen, email, onClose, onSubmit }) => {
                 onClick={() => { setIsSubmitting(true); onSubmit(newPassword); }}
               >
                 {isSubmitting ? (
-                  <span className="loading-spinner">
-                    <span className="spinner"></span>
-                    Submitting...
-                  </span>
+                  <LoadingSpinner
+                    size="16"
+                    stroke="2"
+                    speed="1"
+                    color="#ffffff"
+                    text="Submitting..."
+                    className="button"
+                  />
                 ) : (
                   <>
                     <span className="btn-text">Submit</span>
@@ -298,11 +351,12 @@ const ForgotPasswordPopup = ({ isOpen, email, onClose, onSubmit }) => {
   );
 };
 
-const RequestSentPopup = ({ isOpen, onClose }) => {
+const RequestSentPopup = ({isOpen, onClose}) => {
   if (!isOpen) return null;
+  
   return (
     <div className="login-modal-overlay">
-      <div className="login-modal forgot-password-modal">
+      <div className="login-modal compact">
         <div className="modal-background">
           <div className="modal-grid"></div>
           <div className="modal-particles"></div>
@@ -311,21 +365,19 @@ const RequestSentPopup = ({ isOpen, onClose }) => {
           <span>&times;</span>
         </button>
         <div className="login-modal-content">
-          <div className="login-header">
-            <div className="header-icon">
+          <div className="login-header compact">
+            <div className="header-icon compact">
               <span className="icon-symbol">📧</span>
             </div>
-            <h2 className="login-title">Request Sent</h2>
-            <p className="login-subtitle">Your request is sent to the admin.<br />Wait for approval.</p>
+            <h2 className="login-title compact">Request Sent</h2>
+            <p className="login-subtitle compact">Your request is sent to the admin.<br />Wait for approval.</p>
           </div>
 
-          <div className="login-container">
-            <div className="login-card">
-              <button className="login-button" onClick={onClose}>
-                <span className="btn-text">Close</span>
-                <span className="btn-icon">✓</span>
-              </button>
-            </div>
+          <div className="login-form-container compact">
+            <button className="login-button compact" onClick={onClose}>
+              <span className="btn-text">Close</span>
+              <span className="btn-icon">✓</span>
+            </button>
           </div>
         </div>
       </div>
@@ -333,11 +385,12 @@ const RequestSentPopup = ({ isOpen, onClose }) => {
   );
 };
 
-const EmailRequiredPopup = ({ isOpen, onClose }) => {
+const EmailRequiredPopup = ({isOpen, onClose}) => {
   if (!isOpen) return null;
+  
   return (
     <div className="login-modal-overlay">
-      <div className="login-modal forgot-password-modal">
+      <div className="login-modal compact">
         <div className="modal-background">
           <div className="modal-grid"></div>
           <div className="modal-particles"></div>
@@ -346,21 +399,184 @@ const EmailRequiredPopup = ({ isOpen, onClose }) => {
           <span>&times;</span>
         </button>
         <div className="login-modal-content">
-          <div className="login-header">
-            <div className="header-icon">
+          <div className="login-header compact">
+            <div className="header-icon compact">
               <span className="icon-symbol">⚠️</span>
             </div>
-            <h2 className="login-title">Email Required</h2>
-            <p className="login-subtitle">You need to enter your email.</p>
+            <h2 className="login-title compact">Email Required</h2>
+            <p className="login-subtitle compact">You need to enter your email.</p>
           </div>
 
-          <div className="login-container">
-            <div className="login-card">
-              <button className="login-button" onClick={onClose}>
-                <span className="btn-text">Close</span>
-                <span className="btn-icon">✓</span>
-              </button>
+          <div className="login-form-container compact">
+            <button className="login-button compact" onClick={onClose}>
+              <span className="btn-text">Close</span>
+              <span className="btn-icon">✓</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ContactAdminPopup = ({isOpen, onClose, userEmail}) => {
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: userEmail || '',
+    subject: '',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState('');
+
+  const handleContactChange = (e) => {
+    const {name, value} = e.target;
+    setContactForm(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
+
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitStatus('');
+
+    try {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_admin_contact.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: contactForm.name,
+          email: contactForm.email,
+          subject: contactForm.subject,
+          message: contactForm.message,
+          type: 'admin_contact'
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSubmitStatus('Message sent successfully! Admin will contact you soon.');
+        setTimeout(() => {
+          onClose();
+          setContactForm({name: '', email: userEmail || '', subject: '', message: '' });
+          setSubmitStatus('');
+        }, 2000);
+      } else {
+        setSubmitStatus(data.message || 'Failed to send message. Please try again.');
+      }
+    } catch (error) {
+      setSubmitStatus('Network error. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="login-modal-overlay">
+      <div className="login-modal compact">
+        <div className="modal-background">
+          <div className="modal-grid"></div>
+          <div className="modal-particles"></div>
+        </div>
+        <button className="modal-close-btn" onClick={onClose}>
+          <span>&times;</span>
+        </button>
+        <div className="login-modal-content">
+          <div className="login-header compact">
+            <div className="header-icon compact">
+              <span className="icon-symbol">📞</span>
             </div>
+            <h2 className="login-title compact">Contact Admin</h2>
+            <p className="login-subtitle compact">Send a message to the administrator</p>
+          </div>
+
+          <div className="login-form-container compact">
+            <form onSubmit={handleContactSubmit} className="login-form compact">
+              {submitStatus && (
+                <div className={`status-message ${submitStatus.includes('successfully') ? 'success' : 'error'}`}>
+                  {submitStatus}
+                </div>
+              )}
+
+              <div className="form-group compact">
+                <label htmlFor="contactName" className="form-label compact">Name</label>
+                <input
+                  type="text"
+                  id="contactName"
+                  name="name"
+                  value={contactForm.name}
+                  onChange={handleContactChange}
+                  placeholder="Enter your name"
+                  required
+                  className="form-input compact"
+                />
+              </div>
+
+              <div className="form-group compact">
+                <label htmlFor="contactEmail" className="form-label compact">Email</label>
+                <input
+                  type="email"
+                  id="contactEmail"
+                  name="email"
+                  value={contactForm.email}
+                  onChange={handleContactChange}
+                  placeholder="Enter your email"
+                  required
+                  className="form-input compact"
+                />
+              </div>
+
+              <div className="form-group compact">
+                <label htmlFor="contactSubject" className="form-label compact">Subject</label>
+                <input
+                  type="text"
+                  id="contactSubject"
+                  name="subject"
+                  value={contactForm.subject}
+                  onChange={handleContactChange}
+                  placeholder="Enter subject"
+                  required
+                  className="form-input compact"
+                />
+              </div>
+
+              <div className="form-group compact">
+                <label htmlFor="contactMessage" className="form-label compact">Message</label>
+                <textarea
+                  id="contactMessage"
+                  name="message"
+                  value={contactForm.message}
+                  onChange={handleContactChange}
+                  placeholder="Enter your message"
+                  required
+                  className="form-input compact contact-textarea"
+                  rows="4"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="login-button compact"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="loading-spinner">
+                    <span className="spinner"></span>
+                    Sending...
+                  </span>
+                ) : (
+                  <>
+                    <span className="btn-text">Send Message</span>
+                    <span className="btn-icon">📤</span>
+                  </>
+                )}
+              </button>
+            </form>
           </div>
         </div>
       </div>

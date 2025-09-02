@@ -1,37 +1,21 @@
 <?php
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Content-Type: application/json');
+require_once __DIR__ . '/../config/session_config.php';
 
-session_start();
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
 
-// Handle preflight requests
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
+// Initialize session manually
+initSession();
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Require MRO role
+requireRole('mro');
 
-require_once __DIR__ . '/../config/db_connection.php';
+require_once __DIR__ . '/../classes/Core/Database.php';
 
 try {
-    $database = new Database();
-    $pdo = $database->connect();
-
-    // Only allow MROs to access, and get their hospital_id
-    if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'mro') {
-        http_response_code(401);
-        echo json_encode(["error" => "Unauthorized"]);
-        exit();
-    }
+    $database = \LiveOn\classes\Core\Database::getInstance();
+    $pdo = $database->getConnection();
 
     $mro_user_id = $_SESSION['user_id'];
     $mro_hospital_id = null;
@@ -48,19 +32,23 @@ try {
         exit();
     }
 
-    // Now fetch only donor requests for this hospital
-    $sql = "SELECT d.donor_id, u.name AS donor_fullname, u.email AS donor_email, ov.otp_code AS otp_number,
-            d.blood_type AS blood_group, d.preferred_hospital_id,
-            u.status, u.role
-    FROM donors d
-    INNER JOIN users u ON d.user_id = u.user_id
-    LEFT JOIN otp_verification ov ON u.user_id = ov.user_id
-    WHERE u.role = 'donor' AND u.status = 'inactive' AND d.preferred_hospital_id = ?";
+    // Fetch donation requests from the donation_requests table
+    // Only show pending requests for this MRO's hospital
+    $sql = "SELECT dr.request_id, dr.donor_id, dr.blood_type, dr.reason, dr.status, dr.request_date,
+            u.name AS donor_fullname, u.email AS donor_email, u.phone AS donor_phone,
+            h.name AS hospital_name, h.location AS hospital_location
+    FROM donation_requests dr
+    LEFT JOIN donors d ON dr.donor_id = d.donor_id
+    LEFT JOIN users u ON d.user_id = u.user_id
+    LEFT JOIN hospitals h ON dr.hospital_id = h.hospital_id
+    WHERE dr.status = 'pending' AND dr.hospital_id = ?
+    ORDER BY dr.request_date DESC";
+
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$mro_hospital_id]);
-    $donors = $stmt->fetchAll();
+    $donationRequests = $stmt->fetchAll();
 
-    echo json_encode($donors);
+    echo json_encode($donationRequests);
 } catch (PDOException $e) {
     http_response_code(500);
     echo json_encode(["error" => "Database error: " . $e->getMessage()]);

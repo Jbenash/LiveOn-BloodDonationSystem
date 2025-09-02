@@ -1,6 +1,16 @@
 <?php
+// Allow requests from both development ports
+$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if (in_array($origin, $allowedOrigins)) {
+    header("Access-Control-Allow-Origin: $origin");
+}
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header('Content-Type: application/json');
-require_once __DIR__ . '/../config/db_connection.php';
+
+require_once __DIR__ . '/../classes/Core/Database.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
 if (!isset($data['request_id'])) {
@@ -8,8 +18,8 @@ if (!isset($data['request_id'])) {
     exit;
 }
 
-$db = new Database();
-$pdo = $db->connect();
+$db = \LiveOn\classes\Core\Database::getInstance();
+$pdo = $db->getConnection();
 
 // Get user_id from request
 $stmt = $pdo->prepare("SELECT user_id FROM password_reset_requests WHERE request_id = ?");

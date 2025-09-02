@@ -115,7 +115,16 @@ class DonorService
     public function getActiveDonors(): array
     {
         try {
-            return $this->donor->getActiveDonors();
+            // Get donors with active user status
+            $sql = "SELECT d.*, u.name, u.email, u.phone, u.status as user_status 
+                    FROM donors d
+                    JOIN users u ON d.user_id = u.user_id
+                    WHERE u.status = 'active'
+                    ORDER BY d.donor_id DESC";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll();
         } catch (Exception $e) {
             return ['error' => 'Failed to retrieve active donors: ' . $e->getMessage()];
         }
@@ -124,7 +133,7 @@ class DonorService
     public function updateDonorStatus(string $donorId, string $status): array
     {
         try {
-            $success = $this->donor->updateStatus($donorId, $status);
+            $success = $this->donor->updateDonorStatus($donorId, $status);
             if ($success) {
                 return ['success' => true, 'message' => 'Status updated successfully'];
             } else {
@@ -158,7 +167,7 @@ class DonorService
             $this->donor->incrementLivesSaved($donorId);
 
             // Update donor status to 'not available' temporarily
-            $this->donor->updateStatus($donorId, 'not available');
+            $this->donor->updateDonorStatus($donorId, 'not available');
 
             return ['success' => true, 'message' => 'Donation processed successfully'];
         } catch (Exception $e) {
@@ -199,7 +208,7 @@ class DonorService
     public function saveDonation(array $input): array
     {
         // Validate required fields
-        $required_fields = ['donor_id', 'blood_type', 'donation_date', 'volume'];
+        $required_fields = ['donor_id', 'blood_type', 'donation_date', 'units_donated'];
         foreach ($required_fields as $field) {
             if (!isset($input[$field]) || empty($input[$field])) {
                 return ['success' => false, 'error' => "Missing required field: $field"];
@@ -215,7 +224,7 @@ class DonorService
             $stmt->bindParam(':donor_id', $input['donor_id']);
             $stmt->bindParam(':blood_type', $input['blood_type']);
             $stmt->bindParam(':donation_date', $input['donation_date']);
-            $stmt->bindParam(':units_donated', $input['volume']);
+            $stmt->bindParam(':units_donated', $input['units_donated']);
             // Use hospital_id from input if provided, otherwise default to HS002
             $hospital_id = isset($input['hospital_id']) && !empty($input['hospital_id']) ? $input['hospital_id'] : 'HS002';
             $stmt->bindParam(':hospital_id', $hospital_id);
