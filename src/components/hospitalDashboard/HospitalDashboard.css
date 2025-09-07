@@ -49,8 +49,13 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .dashboard-background {
@@ -182,7 +187,8 @@
   display: block;
 }
 
-.sidebar nav ul li.active, .sidebar nav ul li:hover {
+.sidebar nav ul li.active,
+.sidebar nav ul li:hover {
   background: #3b82f6;
   color: #fff;
   font-weight: 600;
@@ -202,7 +208,7 @@
   cursor: pointer;
   letter-spacing: 0.5px;
   padding: 14px 0;
-  box-shadow: 0 2px 8px rgba(220,38,38,0.13);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.13);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -243,7 +249,7 @@
 .profile-summary-card .flowbite-avatar,
 .profile-summary-card .flowbite-avatar * {
   border: 2px solid #6b7280 !important;
-  box-shadow: 0 4px 12px rgba(107,114,128,0.15) !important;
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.15) !important;
   background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
   border-radius: 50% !important;
   width: 40px !important;
@@ -541,6 +547,7 @@
   .hospital-dashboard-container {
     flex-direction: column;
   }
+
   .sidebar {
     width: 100%;
     min-width: 0;
@@ -552,16 +559,19 @@
     min-height: unset;
     height: auto;
   }
+
   .logo {
     margin: 0 24px 0 24px;
     font-size: 1.2rem;
   }
+
   .sidebar nav ul {
     display: flex;
     flex-direction: row;
     width: auto;
     margin-left: 24px;
   }
+
   .sidebar nav ul li {
     border-radius: 8px 8px 0 0;
     margin-bottom: 0;
@@ -569,11 +579,13 @@
     padding: 10px 18px;
     font-size: 0.98rem;
   }
+
   .dashboard-main {
     padding: 24px 12px;
     flex-direction: column !important;
     gap: 0 !important;
   }
+
   .dashboard-section {
     padding: 18px 10px 16px 10px;
   }
@@ -593,7 +605,8 @@
     font-size: 1.1rem;
   }
 
-  .dashboard-table th, .dashboard-table td {
+  .dashboard-table th,
+  .dashboard-table td {
     padding: 8px 12px;
     font-size: 0.9rem;
   }
@@ -633,7 +646,8 @@
     padding: 12px;
   }
 
-  .dashboard-table th, .dashboard-table td {
+  .dashboard-table th,
+  .dashboard-table td {
     padding: 6px 8px;
     font-size: 0.8rem;
   }
@@ -956,6 +970,7 @@
   font-weight: 700;
   margin-bottom: 1.2rem;
 }
+
 .dashboard-header {
   display: flex;
   justify-content: space-between;
@@ -995,4 +1010,15 @@
   font-size: 1.1rem;
   font-weight: 600;
   color: #1e293b;
+}
+
+/* Custom Avatar styling for donor popup */
+.custom-avatar {
+  border-radius: 50% !important;
+  object-fit: cover !important;
+}
+
+.custom-avatar img {
+  border-radius: 50% !important;
+  object-fit: cover !important;
 }

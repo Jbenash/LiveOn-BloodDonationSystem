@@ -53,49 +53,26 @@ try {
 
         $userId = $hospital['user_id'];
 
-        // Delete all blood inventory records for this hospital
-        $stmt = $pdo->prepare("DELETE FROM blood_inventory WHERE hospital_id = ?");
-        $stmt->execute([$hospitalId]);
-
-        // Delete all donations associated with this hospital
-        $stmt = $pdo->prepare("DELETE FROM donations WHERE hospital_id = ?");
-        $stmt->execute([$hospitalId]);
-
-        // Delete all donation requests for this hospital
-        $stmt = $pdo->prepare("DELETE FROM donation_requests WHERE hospital_id = ?");
-        $stmt->execute([$hospitalId]);
-
-        // Delete all emergency requests for this hospital
-        $stmt = $pdo->prepare("DELETE FROM emergency_requests WHERE hospital_id = ?");
-        $stmt->execute([$hospitalId]);
-
-        // Delete all MRO officers associated with this hospital
-        $stmt = $pdo->prepare("DELETE FROM mro_officers WHERE hospital_id = ?");
-        $stmt->execute([$hospitalId]);
-
-        // Update donor preferred hospital if it was this hospital
-        $stmt = $pdo->prepare("UPDATE donors SET preferred_hospital_id = NULL WHERE preferred_hospital_id = ?");
-        $stmt->execute([$hospitalId]);
-
-        // Delete the hospital record
-        $stmt = $pdo->prepare("DELETE FROM hospitals WHERE hospital_id = ?");
-        $stmt->execute([$hospitalId]);
-
-        // If there's an associated user account, update it to inactive
+        // Soft delete: Change associated user status to 'rejected' instead of hard deleting
         if ($userId) {
-            $stmt = $pdo->prepare("UPDATE users SET status = 'inactive' WHERE user_id = ?");
+            $stmt = $pdo->prepare("UPDATE users SET status = 'rejected' WHERE user_id = ?");
             $stmt->execute([$userId]);
 
-            // Create notification for the user about their hospital removal
+            // Create notification for the user about their hospital deactivation
             $notificationStmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, 'unread', NOW())");
-            $message = "Your hospital account has been permanently removed from the system by an administrator. Your user account remains but is now inactive.";
-            $notificationStmt->execute([$userId, $message, 'hospital_removal']);
+            $message = "Your hospital account has been deactivated by an administrator. Contact support if you believe this is an error.";
+            $notificationStmt->execute([$userId, $message, 'warning']);
         }
+
+        // Log the admin action for audit trail
+        $stmt = $pdo->prepare("INSERT INTO admin_logs (admin_id, action, target_table, target_id) VALUES (?, ?, ?, ?)");
+        $actionText = "Hospital status changed to rejected: {$hospital['name']} (User ID: {$userId})";
+        $stmt->execute([$_SESSION['user_id'], $actionText, 'hospitals', $hospitalId]);
 
         // Commit transaction
         $pdo->commit();
 
-        echo json_encode(['success' => true, 'message' => 'Hospital and all related records removed successfully']);
+        echo json_encode(['success' => true, 'message' => "Hospital {$hospital['name']} has been deactivated (user status changed to rejected)"]);
     } catch (Exception $e) {
         $pdo->rollBack();
         throw $e;

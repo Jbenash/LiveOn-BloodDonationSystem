@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Avatar } from 'flowbite-react';
 import './HospitalDashboard.css';
 import logo from '../../assets/logo.svg';
 import userImg from '../../assets/user.png';
@@ -52,7 +53,7 @@ const HospitalDashboard = () => {
 
     // Add event listeners
     window.addEventListener('popstate', handlePopState);
-    
+
     // Push current state to prevent immediate back navigation
     window.history.pushState(null, null, window.location.pathname);
 
@@ -73,14 +74,14 @@ const HospitalDashboard = () => {
     // Add a small delay to ensure session is ready
     const fetchData = () => {
       // Check if we have any session-related cookies
-      const hasSessionCookie = document.cookie.includes('LIVEON_SESSION') || 
-                              document.cookie.includes('PHPSESSID') ||
-                              document.cookie.includes('session');
-      
+      const hasSessionCookie = document.cookie.includes('LIVEON_SESSION') ||
+        document.cookie.includes('PHPSESSID') ||
+        document.cookie.includes('session');
+
       // Don't redirect immediately - let the API call determine if session is valid
       // The session might be valid even if we can't detect the cookie name
-      
-      fetch('http://localhost/liveonv2/backend_api/controllers/hospital_dashboard.php', {
+
+      fetch('http://localhost/Liveonv2/backend_api/controllers/hospital_dashboard.php', {
         credentials: 'include',
         signal: controller.signal
       })
@@ -109,14 +110,14 @@ const HospitalDashboard = () => {
           // Don't set error if we're logging out or component is unmounting
           if (!isLoggingOut && err.name !== 'AbortError') {
             console.error('Error fetching hospital data:', err);
-            
+
             if (err.message === 'SESSION_EXPIRED') {
               // Don't set error state, just redirect immediately
               setLoading(false);
               navigate('/');
               return;
             }
-            
+
             // Only set error for non-session related issues
             setError(err.message || 'Failed to load hospital dashboard');
             toast.error('Failed to load hospital dashboard');
@@ -168,41 +169,41 @@ const HospitalDashboard = () => {
     setIsLoggingOut(true); // Set logout flag to prevent API calls
     setIsLogoutTriggered(true); // Prevent back button handler from triggering
     setError(null); // Clear any error state during logout
-    
+
     // Call logout API first
-    fetch('http://localhost/liveonv2/backend_api/controllers/logout.php', {
+    fetch('http://localhost/Liveonv2/backend_api/controllers/logout.php', {
       method: 'POST',
       credentials: 'include',
     })
-    .then((response) => {
-      // Check if logout was successful
-      if (response.ok) {
-        console.log('Logout successful');
-      } else {
-        console.log('Logout API returned error, but continuing with navigation');
-      }
-    })
-    .catch((error) => {
-      console.log('Logout API error, but continuing with navigation:', error);
-    })
-    .finally(() => {
-      // Add a longer delay to ensure session is properly destroyed and prevent race conditions
-      setTimeout(() => {
-        try {
-          // Clear any remaining state
-          setHospital(null);
-          setError(null);
-          setLoading(false);
-          
-          // Navigate to home page
-          navigate('/', { replace: true });
-        } catch (navError) {
-          console.log('Navigation error, using window.location:', navError);
-          // Fallback to window.location if navigate fails
-          window.location.href = '/';
+      .then((response) => {
+        // Check if logout was successful
+        if (response.ok) {
+          console.log('Logout successful');
+        } else {
+          console.log('Logout API returned error, but continuing with navigation');
         }
-      }, 300); // Increased delay to 300ms to prevent race conditions
-    });
+      })
+      .catch((error) => {
+        console.log('Logout API error, but continuing with navigation:', error);
+      })
+      .finally(() => {
+        // Add a longer delay to ensure session is properly destroyed and prevent race conditions
+        setTimeout(() => {
+          try {
+            // Clear any remaining state
+            setHospital(null);
+            setError(null);
+            setLoading(false);
+
+            // Navigate to home page
+            navigate('/', { replace: true });
+          } catch (navError) {
+            console.log('Navigation error, using window.location:', navError);
+            // Fallback to window.location if navigate fails
+            window.location.href = '/';
+          }
+        }, 300); // Increased delay to 300ms to prevent race conditions
+      });
   };
   const cancelLogout = () => setShowLogoutDialog(false);
 
@@ -212,17 +213,17 @@ const HospitalDashboard = () => {
   };
   const confirmLogo = async () => {
     setShowLogoDialog(false);
-    
+
     // Actually logout the user instead of just navigating
     setIsLoggingOut(true);
-    
+
     try {
       // Call logout API
-      const response = await fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
+      const response = await fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
         method: 'POST',
         credentials: 'include',
       });
-      
+
       console.log('Logout successful from home button');
     } catch (error) {
       console.log('Logout API error from home button:', error);
@@ -234,7 +235,7 @@ const HospitalDashboard = () => {
       setEmergencyRequests([]);
       setError(null);
       setLoading(false);
-      
+
       // Navigate to home page after logout
       setTimeout(() => {
         try {
@@ -274,7 +275,7 @@ const HospitalDashboard = () => {
           setError(null);
           setLoading(true);
           // Re-fetch data
-          fetch('http://localhost/liveonv2/backend_api/controllers/hospital_dashboard.php', {
+          fetch('http://localhost/Liveonv2/backend_api/controllers/hospital_dashboard.php', {
             credentials: 'include'
           })
             .then(res => {
@@ -705,7 +706,7 @@ const HospitalDashboard = () => {
                       }
                       if (window.confirm(`Are you sure you want to send an emergency request for ${emergencyUnits} units of ${emergencyBloodType} blood? This will notify all available donors.`)) {
                         setEmergencyError('');
-                        fetch('http://localhost/liveonv2/backend_api/controllers/emergency_request.php', {
+                        fetch('http://localhost/Liveonv2/backend_api/controllers/emergency_request.php', {
                           method: 'POST',
                           credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
@@ -725,7 +726,7 @@ const HospitalDashboard = () => {
                             relevantDonors.forEach(donor => {
                               if (donor.contact) {
                                 const smsMessage = `Dear ${donor.name}, urgent need for ${emergencyUnits} units of ${emergencyBloodType} blood at ${hospital.name}. Please contact us if you can donate.`;
-                                fetch('http://localhost/liveonv2/backend_api/controllers/send_sms.php', {
+                                fetch('http://localhost/Liveonv2/backend_api/controllers/send_sms.php', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({
@@ -797,7 +798,7 @@ const HospitalDashboard = () => {
                       }
                       if (window.confirm('Are you sure you want to send this donation request? This will notify the selected donor.')) {
                         setDonationError('');
-                        fetch('http://localhost/liveonv2/backend_api/controllers/send_donation_request.php', {
+                        fetch('http://localhost/Liveonv2/backend_api/controllers/send_donation_request.php', {
                           method: 'POST',
                           credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
@@ -815,7 +816,7 @@ const HospitalDashboard = () => {
                             const donor = donors.find(d => d.donor_id === donationRequestDonorId);
                             if (donor && donor.contact) {
                               const smsMessage = `Dear ${donor.name}, you have a new blood donation request from ${hospital.name}. Reason: ${donationReason}`;
-                              fetch('http://localhost/liveonv2/backend_api/controllers/send_sms.php', {
+                              fetch('http://localhost/Liveonv2/backend_api/controllers/send_sms.php', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -868,14 +869,13 @@ const HospitalDashboard = () => {
                 <div className="donor-cards-list">
                   {donorsByBloodType(selectedBloodType).length > 0 ? (
                     donorsByBloodType(selectedBloodType).map((donor, idx) => (
-                      <div className="profile-summary-card" key={idx}>
+                      <div className="profile-summary-card" key={donor.donor_id || idx}>
                         <Avatar
                           img={donor.profilePic || null}
-                          alt={donor.name}
+                          alt={donor.name || 'Donor'}
                           size="lg"
                           rounded
                           placeholderInitials={donor.name ? donor.name.substring(0, 2).toUpperCase() : "DN"}
-                          className="custom-avatar"
                           style={{
                             marginRight: 20,
                             backgroundColor: '#6b7280',
@@ -885,10 +885,10 @@ const HospitalDashboard = () => {
                         />
                         <div className="profile-summary-text">
                           <div><span className="label">Donor ID:</span> {donor.donor_id || '-'}</div>
-                          <div><span className="label">Name:</span> {donor.name}</div>
-                          <div><span className="label">Blood Type:</span> {donor.bloodType}</div>
+                          <div><span className="label">Name:</span> {donor.name || '-'}</div>
+                          <div><span className="label">Blood Type:</span> {donor.bloodType || '-'}</div>
                           <div><span className="label">Age:</span> {donor.age || '-'}</div>
-                          <div><span className="label">Location:</span> {donor.location}</div>
+                          <div><span className="label">Location:</span> {donor.location || '-'}</div>
                           <div><span className="label">Email:</span> {donor.email || '-'}</div>
                           <div><span className="label">Phone:</span> {donor.contact || '-'}</div>
                         </div>

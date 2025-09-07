@@ -1,25 +1,25 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config/session_config.php';
 
-// Dynamic CORS headers
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Content-Type: application/json");
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+// Initialize session manually
+initSession();
+
+// Check if user is logged in before requiring role
+$currentUser = getCurrentUser();
+if (!$currentUser) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Not logged in. Please log in first.']);
     exit();
 }
 
-// Check if user is logged in and is a donor
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'donor') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized - Donor access required']);
-    http_response_code(401);
+// Check if user has donor role
+if ($currentUser['role'] !== 'donor') {
+    http_response_code(403);
+    echo json_encode(['error' => 'Access denied. Donor role required.']);
     exit();
 }
 
@@ -38,7 +38,7 @@ try {
 
     $donorId = $data['donorId'];
     $reason = $data['reason'];
-    $userId = $_SESSION['user_id'];
+    $userId = $currentUser['user_id'];
 
     // Verify the donor exists and belongs to the logged-in user
     $stmt = $pdo->prepare("SELECT d.donor_id, d.user_id, u.name, u.email FROM donors d JOIN users u ON d.user_id = u.user_id WHERE d.donor_id = ? AND d.user_id = ?");
@@ -65,7 +65,11 @@ try {
 
     foreach ($admins as $admin) {
         $message = "Donor {$donor['name']} ({$donor['email']}) has requested to be removed from the system. Reason: {$reason}";
-        $notificationStmt->execute([$admin['user_id'], $message]);
+        $result = $notificationStmt->execute([$admin['user_id'], $message, 'donor_removal']);
+
+        if (!$result) {
+            throw new Exception('Failed to create notification for admin ID: ' . $admin['user_id']);
+        }
     }
 
     echo json_encode(['success' => true, 'message' => 'Removal request sent to administrators successfully']);

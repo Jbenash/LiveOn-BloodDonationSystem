@@ -46,21 +46,26 @@ try {
     $feedbackId = 'FB' . substr(uniqid(), -8);
 
     // Insert admin contact message into feedback table
+    // Use NULL for user_id since this is from an anonymous contact form
     $query = "INSERT INTO feedback (feedback_id, user_id, role, message, approved, created_at) 
               VALUES (?, ?, ?, ?, ?, NOW())";
+
+    $formattedMessage = "ADMIN CONTACT FORM\n";
+    $formattedMessage .= "===================\n\n";
+    $formattedMessage .= "Name: " . $name . "\n";
+    $formattedMessage .= "Email: " . $email . "\n";
+    $formattedMessage .= "Subject: " . $subject . "\n\n";
+    $formattedMessage .= "Message:\n";
+    $formattedMessage .= $message . "\n\n";
+    $formattedMessage .= "Contact Type: " . $type . "\n";
+    $formattedMessage .= "Submitted: " . date('Y-m-d H:i:s');
 
     $stmt = $pdo->prepare($query);
     $stmt->execute([
         $feedbackId,
-        'ADMIN_CONTACT', // Special user_id for admin contact
-        'admin', // Role for admin contact
-        json_encode([
-            'name' => $name,
-            'email' => $email,
-            'subject' => $subject,
-            'message' => $message,
-            'type' => $type
-        ]),
+        null, // NULL user_id for anonymous contact forms
+        'admin', // Role indicates this is for admin attention
+        $formattedMessage,
         0 // Not approved by default
     ]);
 

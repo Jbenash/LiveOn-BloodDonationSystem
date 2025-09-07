@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./MRODashboard.css";
 import { useNavigate } from 'react-router-dom';
 import { FaUserFriends, FaClipboardList, FaUserCheck, FaCheckCircle } from 'react-icons/fa';
@@ -44,12 +44,11 @@ const MRODashboard = () => {
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
   const [rejectDonorId, setRejectDonorId] = useState(null);
   const [verificationDateTime, setVerificationDateTime] = useState('');
-  // Add hospitalId state
   const [hospitalId, setHospitalId] = useState("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showLogoDialog, setShowLogoDialog] = useState(false);
-  const [isLogoutTriggered, setIsLogoutTriggered] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isLogoutTriggered, setIsLogoutTriggered] = useState(false);
 
   // Browser back button handling
   useEffect(() => {
@@ -66,7 +65,7 @@ const MRODashboard = () => {
 
     // Add event listeners
     window.addEventListener('popstate', handlePopState);
-    
+
     // Push current state to prevent immediate back navigation
     window.history.pushState(null, null, window.location.pathname);
 
@@ -91,7 +90,7 @@ const MRODashboard = () => {
 
     setLoading(true);
     setError(null);
-    
+
     const controller = new AbortController();
 
     fetch("http://localhost/Liveonv2/backend_api/controllers/get_donor_requests.php", {
@@ -110,8 +109,12 @@ const MRODashboard = () => {
       })
       .then((data) => {
         if (!isLoggingOut) {
-          setDonorRequests(data);
-          setError(null); // Clear any previous errors
+          if (data.success) {
+            setDonorRequests(data.requests || []);
+            setError(null); // Clear any previous errors
+          } else {
+            throw new Error(data.error || 'Failed to fetch requests');
+          }
           setLoading(false);
         }
       })
@@ -119,14 +122,14 @@ const MRODashboard = () => {
         // Don't set error if we're logging out or component is unmounting
         if (!isLoggingOut && err.name !== 'AbortError') {
           console.error('Error fetching donor requests:', err);
-          
+
           if (err.message === 'SESSION_EXPIRED') {
             // Don't set error state, just redirect immediately
             setLoading(false);
             navigate('/');
             return;
           }
-          
+
           setError(err.message);
           setLoading(false);
           toast.error('Failed to fetch donor requests: ' + err.message);
@@ -138,124 +141,136 @@ const MRODashboard = () => {
       controller.abort();
     };
   }, [isLoggingOut, navigate]);
-  
+
   // Fetch donor registrations
   useEffect(() => {
     if (isLoggingOut) return;
-    
+
+    const controller = new AbortController();
+
     fetch("http://localhost/Liveonv2/backend_api/controllers/get_donor_registrations.php", {
-      credentials: "include"
+      credentials: "include",
+      signal: controller.signal
     })
-    .then((res) => {
-      if (!res.ok) {
-        if (res.status === 401) {
-          throw new Error('SESSION_EXPIRED');
+      .then(async res => {
+        if (!res.ok) {
+          if (res.status === 401) {
+            navigate('/');
+            return;
+          }
+          const errorData = await res.text();
+          console.error('Response data:', errorData);
+          try {
+            const jsonError = JSON.parse(errorData);
+            throw new Error(jsonError.error || `HTTP ${res.status}`);
+          } catch (e) {
+            throw new Error(`HTTP ${res.status}: ${errorData}`);
+          }
         }
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-      return res.json();
-    })
-    .then((data) => {
-      if (!isLoggingOut) {
-        setDonorRegistrations(data);
-        setError(null); // Clear any previous errors
-      }
-    })
-    .catch((err) => {
-      if (!isLoggingOut) {
-        console.error("Error fetching donor registrations:", err);
-        
-        if (err.message === 'SESSION_EXPIRED') {
-          navigate('/');
-          return;
+        return res.json();
+      })
+      .then(data => {
+        if (!isLoggingOut) {
+          if (data && data.success) {
+            setDonorRegistrations(data.registrations || []);
+          } else {
+            console.error('Error response:', data);
+            throw new Error(data?.error || 'Failed to fetch registrations');
+          }
         }
-        
-        toast.error('Failed to fetch donor registrations: ' + err.message);
-      }
-    });
+      })
+      .catch(err => {
+        if (!isLoggingOut && err.name !== 'AbortError') {
+          console.error('Error fetching donor registrations:', err);
+          if (err.stack) console.error(err.stack);
+          toast.error('Failed to fetch donor registrations: ' + err.message);
+        }
+      });
+
+    return () => controller.abort();
   }, [isLoggingOut, navigate]);
 
   // Fetch verification statistics
   useEffect(() => {
     if (isLoggingOut) return;
-    
+
     fetch("http://localhost/Liveonv2/backend_api/controllers/get_verification_stats.php", {
       credentials: "include"
     })
-    .then((res) => {
-      if (!res.ok) {
-        if (res.status === 401) {
-          throw new Error('SESSION_EXPIRED');
+      .then((res) => {
+        if (!res.ok) {
+          if (res.status === 401) {
+            throw new Error('SESSION_EXPIRED');
+          }
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         }
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-      return res.json();
-    })
-    .then((data) => {
-      if (!isLoggingOut) {
-        setVerificationStats(data);
-        setError(null); // Clear any previous errors
-      }
-    })
-    .catch((err) => {
-      if (!isLoggingOut) {
-        console.error("Error fetching verification stats:", err);
-        
-        if (err.message === 'SESSION_EXPIRED') {
-          navigate('/');
-          return;
+        return res.json();
+      })
+      .then((data) => {
+        if (!isLoggingOut) {
+          setVerificationStats(data);
+          setError(null); // Clear any previous errors
         }
-        
-        toast.error('Failed to fetch verification stats: ' + err.message);
-      }
-    });
+      })
+      .catch((err) => {
+        if (!isLoggingOut) {
+          console.error("Error fetching verification stats:", err);
+
+          if (err.message === 'SESSION_EXPIRED') {
+            navigate('/');
+            return;
+          }
+
+          toast.error('Failed to fetch verification stats: ' + err.message);
+        }
+      });
   }, [isLoggingOut, navigate]);
 
   // Fetch donation logs
   useEffect(() => {
     if (isLoggingOut) return;
-    
+
     fetch("http://localhost/Liveonv2/backend_api/controllers/get_donation_logs.php", {
       credentials: "include"
     })
-    .then((res) => {
-      if (!res.ok) {
-        if (res.status === 401) {
-          throw new Error('SESSION_EXPIRED');
+      .then((res) => {
+        if (!res.ok) {
+          if (res.status === 401) {
+            throw new Error('SESSION_EXPIRED');
+          }
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         }
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-      return res.json();
-    })
-    .then((data) => {
-      if (data.success && !isLoggingOut) {
-        setDonationLogs(data.donations);
-        setError(null); // Clear any previous errors
-      } else {
-        console.error("Error fetching donation logs:", data.error);
-      }
-    })
-    .catch((err) => {
-      if (!isLoggingOut) {
-        console.error("Error fetching donation logs:", err);
-        
-        if (err.message === 'SESSION_EXPIRED') {
-          navigate('/');
-          return;
+        return res.json();
+      })
+      .then((data) => {
+        if (data.success && !isLoggingOut) {
+          setDonationLogs(data.donations);
+          setError(null); // Clear any previous errors
+        } else {
+          console.error("Error fetching donation logs:", data.error);
         }
-        
-        toast.error('Failed to fetch donation logs: ' + err.message);
-      }
-    });
+      })
+      .catch((err) => {
+        if (!isLoggingOut) {
+          console.error("Error fetching donation logs:", err);
+
+          if (err.message === 'SESSION_EXPIRED') {
+            navigate('/');
+            return;
+          }
+
+          toast.error('Failed to fetch donation logs: ' + err.message);
+        }
+      });
   }, [isLoggingOut, navigate]);
 
   useEffect(() => {
     // Don't fetch if we're logging out
     if (isLoggingOut) return;
-    
+
     // Fetch hospital name for MRO
-    fetch("http://localhost/Liveonv2/backend_api/controllers/get_mro_hospital.php", { 
-      credentials: 'include' 
+    fetch("http://localhost/Liveonv2/backend_api/controllers/get_mro_hospital.php", {
+      credentials: 'include'
     })
       .then(res => {
         if (!res.ok) {
@@ -281,12 +296,12 @@ const MRODashboard = () => {
       .catch(err => {
         if (!isLoggingOut) {
           console.error("Error fetching hospital name:", err);
-          
+
           if (err.message === 'SESSION_EXPIRED') {
             navigate('/');
             return;
           }
-          
+
           setHospitalNameError("Failed to load hospital name");
           toast.error('Failed to load hospital name: ' + err.message);
           setHospitalNameLoading(false);
@@ -318,7 +333,7 @@ const MRODashboard = () => {
   const handleSubmitDonorDetails = async () => {
     if (!popupDonor) return;
     setSubmitStatus("");
-    
+
     // Validate age for blood donation eligibility
     const age = parseInt(formData.age);
     if (age < 18) {
@@ -328,7 +343,7 @@ const MRODashboard = () => {
       toast.error('Donor must be 65 years old or younger to be medically verified for blood donation');
       return;
     }
-    
+
     // Prepare data for backend
     const donor_id = popupDonor.donor_id;
 
@@ -350,41 +365,69 @@ const MRODashboard = () => {
       const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/save_medical_verification.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload)
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
+
       if (data.success) {
-        setSubmitStatus('Donor details saved successfully!');
-        // Send verification email to donor
-        const emailPayload = {
-          donor_id: popupDonor.donor_id,
-          full_name: popupDonor.fullName || popupDonor.donor_fullname || '',
-          blood_group: popupDonor.blood_group || '',
-          email: popupDonor.email || popupDonor.donor_email || ''
-        };
-        fetch('http://localhost/Liveonv2/backend_api/controllers/send_verification_email.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(emailPayload)
-        })
-        .then(res => res.json())
-        .then(emailRes => {
-          if (emailRes.success) {
-            setSubmitStatus('Donor details saved and email sent!');
-          } else {
-            setSubmitStatus('Donor details saved, but email failed: ' + (emailRes.error || 'Unknown error'));
-          }
-        })
-        .catch(err => {
-          setSubmitStatus('Donor details saved, but email failed: ' + err.message);
-        });
-        setDonorRequests(prev => prev.filter(donor => donor.donor_id !== popupDonor.donor_id));
-        setTimeout(() => {
-          setShowPopup(false);
-          setPopupDonor(null);
-          setFormData({ height: '', weight: '', medicalHistory: '', doctorsNote: '', verificationDate: new Date().toISOString().split('T')[0], bloodGroup: '', age: '' });
-          setSubmitStatus("");
-        }, 1500);
+        setSubmitStatus('Medical verification and PDF created successfully!');
+
+        // Only proceed with email if PDF was created successfully
+        if (data.data && data.data.pdf_path && data.data.pdf_size_bytes > 0) {
+          // Wait a moment for database to fully commit, then send verification email
+          setTimeout(async () => {
+            const emailPayload = {
+              donor_id: popupDonor.donor_id,
+              full_name: popupDonor.fullName || popupDonor.donor_fullname || '',
+              blood_group: formData.bloodGroup || '',
+              email: popupDonor.email || popupDonor.donor_email || ''
+            };
+
+            try {
+              const emailResponse = await fetch('http://localhost/Liveonv2/backend_api/controllers/send_verification_email.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(emailPayload)
+              });
+
+              if (!emailResponse.ok) {
+                throw new Error(`Email API returned ${emailResponse.status}`);
+              }
+
+              const emailRes = await emailResponse.json();
+              if (emailRes.success) {
+                setSubmitStatus('Donor verified and email sent successfully!');
+                toast.success('Donor verified and email sent!');
+
+                // Only remove from list after EVERYTHING is successful
+                setDonorRequests(prev => prev.filter(donor => donor.donor_id !== popupDonor.donor_id));
+                setTimeout(() => {
+                  setShowPopup(false);
+                  setPopupDonor(null);
+                  setFormData({ height: '', weight: '', medicalHistory: '', doctorsNote: '', verificationDate: new Date().toISOString().split('T')[0], bloodGroup: '', age: '' });
+                  setSubmitStatus("");
+                }, 2000);
+
+              } else {
+                setSubmitStatus('PDF created but email failed: ' + (emailRes.error || 'Unknown error'));
+                toast.error('Email sending failed: ' + (emailRes.error || 'Unknown error'));
+              }
+            } catch (err) {
+              setSubmitStatus('PDF created but email failed: ' + err.message);
+              toast.error('Email sending failed: ' + err.message);
+            }
+          }, 1500); // 1.5 second delay
+        } else {
+          setSubmitStatus('Error: PDF was not created properly');
+          toast.error('PDF creation failed');
+        }
       } else {
         setSubmitStatus(data.error || 'Failed to save donor details.');
       }
@@ -399,9 +442,9 @@ const MRODashboard = () => {
     // Set the timestamp when popup opens (with milliseconds)
     const now = new Date();
     setDonationTimestamp(now.toISOString()); // ISO string with ms
-    setDonateForm({ 
-      bloodType: donor.blood_group || '', 
-      volume: '' 
+    setDonateForm({
+      bloodType: donor.blood_group || '',
+      volume: ''
     });
 
   };
@@ -419,7 +462,7 @@ const MRODashboard = () => {
 
     // Always use the timestamp from popup open
     const donationDateTime = donationTimestamp;
-    
+
     // Prepare data for backend
     const payload = {
       donor_id: donatePopupDonor.donor_id,
@@ -428,11 +471,12 @@ const MRODashboard = () => {
       units_donated: donateForm.volume,
       hospital_id: hospitalId // <-- include hospital_id
     };
-    
+
     try {
       const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/save_donation.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload)
       });
       const data = await response.json();
@@ -441,6 +485,7 @@ const MRODashboard = () => {
         await fetch('http://localhost/Liveonv2/backend_api/controllers/update_donor_status.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ donor_id: donatePopupDonor.donor_id, status: 'not available' })
         });
 
@@ -479,15 +524,14 @@ const MRODashboard = () => {
   };
 
   // Filter donorRequests based on search term, role, and status
-  const filteredDonorRequests = donorRequests.filter(donor => {
+  const filteredDonorRequests = Array.isArray(donorRequests) ? donorRequests.filter(donor => {
     const term = searchTerm.toLowerCase();
     return (
-      (donor.donor_id && donor.donor_id.toLowerCase().includes(term)) ||
+      (donor.donor_id && donor.donor_id.toString().toLowerCase().includes(term)) ||
       (donor.donor_fullname && donor.donor_fullname.toLowerCase().includes(term)) ||
-      (donor.donor_email && donor.donor_email.toLowerCase().includes(term)) ||
-      (donor.otp_number && donor.otp_number.toLowerCase().includes(term))
+      (donor.donor_email && donor.donor_email.toLowerCase().includes(term))
     );
-  }).filter(donor => donor.status === 'inactive');
+  }) : [];
 
   // Filter donorRegistrations based on donor_id, full_name, email, or blood_group
   const filteredDonorRegistrations = donorRegistrations.filter(donor => {
@@ -525,7 +569,7 @@ const MRODashboard = () => {
           {verificationStats.verificationData.map((item, index) => {
             const height = maxCount > 0 ? (item.count / maxCount) * 150 : 0;
             const color = colors[index % colors.length];
-            
+
             return (
               <div key={item.date} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
                 <div
@@ -548,18 +592,18 @@ const MRODashboard = () => {
                     e.target.style.boxShadow = 'none';
                   }}
                 />
-                <div style={{ 
-                  fontSize: '0.75rem', 
-                  color: '#6b7280', 
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: '#6b7280',
                   marginTop: '8px',
                   transform: 'rotate(-45deg)',
                   whiteSpace: 'nowrap'
                 }}>
                   {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </div>
-                <div style={{ 
-                  fontSize: '0.8rem', 
-                  fontWeight: 'bold', 
+                <div style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 'bold',
                   color: '#2d3a8c',
                   marginTop: '4px'
                 }}>
@@ -593,14 +637,14 @@ const MRODashboard = () => {
     setShowLogoutDialog(false);
     setIsLoggingOut(true); // Set logout flag to prevent API calls
     setIsLogoutTriggered(true); // Prevent back button handler from triggering
-    
+
     try {
       // Call logout API
       const response = await fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
         method: 'POST',
         credentials: 'include',
       });
-      
+
       console.log('Logout successful');
     } catch (error) {
       console.log('Logout API error:', error);
@@ -614,7 +658,7 @@ const MRODashboard = () => {
       setHospitalId("");
       setError(null);
       setLoading(false);
-      
+
       // Use window.location.href directly to avoid React Router issues
       setTimeout(() => {
         window.location.href = '/';
@@ -629,17 +673,17 @@ const MRODashboard = () => {
   };
   const confirmLogo = async () => {
     setShowLogoDialog(false);
-    
+
     // Actually logout the user instead of just navigating
     setIsLoggingOut(true);
-    
+
     try {
       // Call logout API
       const response = await fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
         method: 'POST',
         credentials: 'include',
       });
-      
+
       console.log('Logout successful from home button');
     } catch (error) {
       console.log('Logout API error from home button:', error);
@@ -653,7 +697,7 @@ const MRODashboard = () => {
       setHospitalId("");
       setError(null);
       setLoading(false);
-      
+
       // Use window.location.href directly to avoid React Router issues
       setTimeout(() => {
         window.location.href = '/';
@@ -697,7 +741,7 @@ const MRODashboard = () => {
   if (loading && donorRequests.length === 0) {
     return (
       <div className="mro-dashboard-root">
-        <LoadingSpinner 
+        <LoadingSpinner
           size="60"
           stroke="4"
           speed="1"
@@ -713,7 +757,7 @@ const MRODashboard = () => {
   if (isLoggingOut) {
     return (
       <div className="mro-dashboard-root">
-        <LoadingSpinner 
+        <LoadingSpinner
           size="60"
           stroke="4"
           speed="1"
@@ -728,7 +772,7 @@ const MRODashboard = () => {
   // Show error display if there's an error
   if (error) {
     return (
-      <ErrorDisplay 
+      <ErrorDisplay
         error={error}
         onRetry={() => {
           setError(null);
@@ -806,8 +850,8 @@ const MRODashboard = () => {
           {/* Section Tabs */}
           <div style={{ display: 'flex', gap: 16, marginBottom: 32 }}>
             {/* Removed section tabs navigation bar */}
-                </div>
-                
+          </div>
+
           {activeSection === "Overview" && (
             <section className="dashboard-section" style={{ background: 'transparent', boxShadow: 'none', padding: 0 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '28px', marginBottom: '36px' }}>
@@ -826,7 +870,7 @@ const MRODashboard = () => {
                     <div style={{ marginBottom: 16 }}>{card.icon}</div>
                     <div style={{ fontSize: '2.2rem', fontWeight: 800, marginBottom: 8 }}>{card.value}</div>
                     <div style={{ fontSize: '1.08rem', fontWeight: 600 }}>{card.label}</div>
-                </div>
+                  </div>
                 ))}
               </div>
               {/* Verification Chart */}
@@ -836,7 +880,7 @@ const MRODashboard = () => {
               <div style={{ background: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 2px 8px rgba(30,41,59,0.04)' }}>
                 <h3 style={{ color: '#2563eb', margin: '0 0 18px 0', fontWeight: 700 }}>Quick Actions</h3>
                 <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap' }}>
-                  <button 
+                  <button
                     style={{
                       background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
                       color: '#fff',
@@ -853,7 +897,7 @@ const MRODashboard = () => {
                   >
                     Review Pending Requests
                   </button>
-                  <button 
+                  <button
                     style={{
                       background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                       color: '#fff',
@@ -870,7 +914,7 @@ const MRODashboard = () => {
                   >
                     View Active Donors
                   </button>
-                  <button 
+                  <button
                     style={{
                       background: 'linear-gradient(135deg, #f59e42 0%, #fbbf24 100%)',
                       color: '#fff',
@@ -950,20 +994,24 @@ const MRODashboard = () => {
                 <table className="dashboard-table">
                   <thead>
                     <tr>
-                      <th>DONOR ID</th>
+                      <th>REQUEST ID</th>
                       <th>FULL NAME</th>
                       <th>EMAIL</th>
-                      <th>OTP NUMBER</th>
+                      <th>ADDRESS</th>
+                      <th>CITY</th>
+                      <th>REQUEST DATE</th>
                       <th>ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredDonorRequests.map((donor, idx) => (
-                      <tr key={`${donor.donor_id}_${idx}`}>
-                        <td>{donor.donor_id}</td>
+                      <tr key={`${donor.request_id}_${idx}`}>
+                        <td>{donor.request_id}</td>
                         <td>{donor.donor_fullname}</td>
                         <td>{donor.donor_email}</td>
-                        <td>{donor.otp_number}</td>
+                        <td>{donor.address}</td>
+                        <td>{donor.city}</td>
+                        <td>{new Date(donor.created_at).toLocaleDateString()}</td>
                         <td>
                           <button className="btn-cancel" onClick={() => handleReject(donor.donor_id)}>Reject</button>
                           <button className="btn-verify" onClick={() => handleOpenPopup({
@@ -1034,19 +1082,19 @@ const MRODashboard = () => {
               {donorRegistrations.length === 0 ? (
                 <p>No registered donors found.</p>
               ) : (
-              <table className="dashboard-table">
-                <thead>
-                  <tr>
-                    <th>DONOR ID</th>
-                    <th>FULL NAME</th>
-                    <th>EMAIL</th>
-                    <th>BLOOD GROUP</th>
+                <table className="dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>DONOR ID</th>
+                      <th>FULL NAME</th>
+                      <th>EMAIL</th>
+                      <th>BLOOD GROUP</th>
                       <th>STATUS</th>
                       <th>REGISTERED ON</th>
-                    <th>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
+                      <th>ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {filteredDonorRegistrations.map((donor, idx) => (
                       <tr key={`${donor.donor_id}_${idx}`}>
                         <td>{donor.donor_id}</td>
@@ -1070,7 +1118,7 @@ const MRODashboard = () => {
                         </td>
                         <td>{donor.verification_date ? new Date(donor.verification_date).toLocaleDateString() : '-'}</td>
                         <td>
-                          <button 
+                          <button
                             style={{
                               background: donor.status === 'available' ? '#22c55e' : '#d1d5db',
                               color: donor.status === 'available' ? '#fff' : '#6b7280',
@@ -1092,8 +1140,8 @@ const MRODashboard = () => {
                         </td>
                       </tr>
                     ))}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
               )}
             </section>
           )}
@@ -1150,18 +1198,18 @@ const MRODashboard = () => {
               {donationLogs.length === 0 ? (
                 <p>No donation logs found.</p>
               ) : (
-              <table className="dashboard-table">
-                <thead>
-                  <tr>
-                    <th>DONATION ID</th>
-                    <th>DONOR ID</th>
-                    <th>FULL NAME</th>
-                    <th>BLOOD TYPE</th>
-                    <th>VOLUME (ml)</th>
-                    <th>DONATION DATE</th>
-                  </tr>
-                </thead>
-                <tbody>
+                <table className="dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>DONATION ID</th>
+                      <th>DONOR ID</th>
+                      <th>FULL NAME</th>
+                      <th>BLOOD TYPE</th>
+                      <th>VOLUME (ml)</th>
+                      <th>DONATION DATE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {sortedDonationLogs.map((log, idx) => (
                       <tr key={`${log.donation_id}_${idx}`}>
                         <td>{log.donation_id}</td>
@@ -1172,8 +1220,8 @@ const MRODashboard = () => {
                         <td>{log.donation_date}</td>
                       </tr>
                     ))}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
               )}
             </section>
           )}
@@ -1256,7 +1304,7 @@ const MRODashboard = () => {
                   </label>
                   <label>
                     Donation Date & Time:
-                    <input type="text" value={donationTimestamp ? new Date(donationTimestamp).toLocaleString('en-GB', { hour12: false }) : ''} readOnly style={{backgroundColor: '#f3f4f6'}} />
+                    <input type="text" value={donationTimestamp ? new Date(donationTimestamp).toLocaleString('en-GB', { hour12: false }) : ''} readOnly style={{ backgroundColor: '#f3f4f6' }} />
                   </label>
                   <label>
                     Units:

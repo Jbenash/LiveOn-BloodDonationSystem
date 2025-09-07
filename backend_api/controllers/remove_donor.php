@@ -1,33 +1,26 @@
 <?php
-session_start();
-
-// Dynamic CORS headers
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Content-Type: application/json");
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit();
+// Prevent multiple includes
+if (!defined('SESSION_CONFIG_LOADED')) {
+    require_once __DIR__ . '/../config/session_config.php';
 }
 
-// Check if user is logged in and is an admin
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized - Admin access required']);
-    http_response_code(401);
-    exit();
-}
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
 
-require_once __DIR__ . '/../config/db_connection.php';
+// Initialize session manually
+initSession();
+
+// Require admin role
+requireRole('admin');
+
+require_once __DIR__ . '/../classes/Core/Database.php';
+
+use \LiveOn\classes\Core\Database;
 
 try {
-    $db = new Database();
-    $pdo = $db->connect();
+    $database = Database::getInstance();
+    $pdo = $database->connect();
 
     $data = json_decode(file_get_contents("php://input"), true);
 
@@ -52,55 +45,27 @@ try {
             throw new Exception('Donor not found');
         }
 
-        // Delete all donation records for this donor
-        $stmt = $pdo->prepare("DELETE FROM donations WHERE donor_id = ?");
+        // Soft delete: Change donor status to 'not available' and user status to 'rejected'
+        $stmt = $pdo->prepare("UPDATE donors SET status = 'not available' WHERE donor_id = ?");
         $stmt->execute([$donorId]);
 
-        // Delete medical verification records for this donor
-        $stmt = $pdo->prepare("DELETE FROM medical_verifications WHERE donor_id = ?");
-        $stmt->execute([$donorId]);
-
-        // Delete donation requests for this donor
-        $stmt = $pdo->prepare("DELETE FROM donation_requests WHERE donor_id = ?");
-        $stmt->execute([$donorId]);
-
-        // Delete rewards for this donor
-        $stmt = $pdo->prepare("DELETE FROM rewards WHERE donor_id = ?");
-        $stmt->execute([$donorId]);
-
-        // Delete feedback for this donor (by user_id)
-        $stmt = $pdo->prepare("DELETE FROM feedback WHERE user_id = ? AND role = 'donor'");
+        $stmt = $pdo->prepare("UPDATE users SET status = 'rejected' WHERE user_id = ?");
         $stmt->execute([$userId]);
 
-        // Delete notifications for this donor (by user_id)
-        $stmt = $pdo->prepare("DELETE FROM notifications WHERE user_id = ?");
-        $stmt->execute([$userId]);
+        // Add notification to the user about account deactivation
+        $stmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, 'unread', NOW())");
+        $notificationMessage = "Your donor account has been deactivated by an administrator. Contact support if you believe this is an error.";
+        $stmt->execute([$userId, $notificationMessage, 'warning']);
 
-        // Delete OTP verification records for this donor (by user_id)
-        $stmt = $pdo->prepare("DELETE FROM otp_verification WHERE user_id = ?");
-        $stmt->execute([$userId]);
-
-        // Delete password reset requests for this donor (by user_id)
-        $stmt = $pdo->prepare("DELETE FROM password_reset_requests WHERE user_id = ?");
-        $stmt->execute([$userId]);
-
-        // Finally, delete the donor record
-        $stmt = $pdo->prepare("DELETE FROM donors WHERE donor_id = ?");
-        $stmt->execute([$donorId]);
-
-        // Update user status to inactive (keep user record but mark as inactive)
-        $stmt = $pdo->prepare("UPDATE users SET status = 'inactive' WHERE user_id = ?");
-        $stmt->execute([$userId]);
-
-        // Create notification for the user about their removal (if they ever log back in)
-        $notificationStmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, 'unread', NOW())");
-        $message = "Your donor account has been permanently removed from the system by an administrator. Your user account remains but is now inactive.";
-        $notificationStmt->execute([$userId, $message, 'account_removal']);
+        // Log the admin action for audit trail
+        $stmt = $pdo->prepare("INSERT INTO admin_logs (admin_id, action, target_table, target_id) VALUES (?, ?, ?, ?)");
+        $actionText = "Donor status changed to rejected: {$donor['name']} ({$donor['email']})";
+        $stmt->execute([$_SESSION['user_id'], $actionText, 'donors', $donorId]);
 
         // Commit transaction
         $pdo->commit();
 
-        echo json_encode(['success' => true, 'message' => 'Donor and all related records removed successfully']);
+        echo json_encode(['success' => true, 'message' => "Donor {$donor['name']} has been deactivated (status changed to rejected)"]);
     } catch (Exception $e) {
         $pdo->rollBack();
         throw $e;

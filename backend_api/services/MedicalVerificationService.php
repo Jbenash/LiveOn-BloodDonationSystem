@@ -1,8 +1,8 @@
 <?php
 
 require_once __DIR__ . '/BaseService.php';
-require_once __DIR__ . '/../classes/MedicalVerification.php';
-require_once __DIR__ . '/../classes/Validator.php';
+require_once __DIR__ . '/../classes/Models/MedicalVerification.php';
+require_once __DIR__ . '/../classes/Core/Validator.php';
 
 class MedicalVerificationService extends BaseService
 {

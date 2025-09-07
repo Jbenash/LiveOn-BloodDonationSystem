@@ -26,6 +26,7 @@ const DonorDashboard = () => {
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [removeReason, setRemoveReason] = useState('');
   const [error, setError] = useState(null);
+  const [errorType, setErrorType] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showHospitalPopup, setShowHospitalPopup] = useState(false);
   const [hospitals, setHospitals] = useState([]);
@@ -55,7 +56,7 @@ const DonorDashboard = () => {
 
     // Add event listeners
     window.addEventListener('popstate', handlePopState);
-    
+
     // Push current state to prevent immediate back navigation
     window.history.pushState(null, null, window.location.pathname);
 
@@ -76,14 +77,14 @@ const DonorDashboard = () => {
     // Add a small delay to ensure session is ready
     const fetchData = () => {
       // Check if we have any session-related cookies
-      const hasSessionCookie = document.cookie.includes('LIVEON_SESSION') || 
-                              document.cookie.includes('PHPSESSID') ||
-                              document.cookie.includes('session');
-      
+      const hasSessionCookie = document.cookie.includes('LIVEON_SESSION') ||
+        document.cookie.includes('PHPSESSID') ||
+        document.cookie.includes('session');
+
       // Don't redirect immediately - let the API call determine if session is valid
       // The session might be valid even if we can't detect the cookie name
-      
-      fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
+
+      fetch('http://localhost/Liveonv2/backend_api/controllers/donor_dashboard.php', {
         credentials: 'include',
         signal: controller.signal
       })
@@ -99,24 +100,34 @@ const DonorDashboard = () => {
         })
         .then(data => {
           if (data.error) {
+            // Handle different types of errors
+            if (data.status === 'pending_approval') {
+              // Special handling for pending approval
+              setError(data.error);
+              setErrorType('pending_approval');
+            } else {
+              setError(data.error);
+              setErrorType('general');
+            }
             throw new Error(data.error);
           } else {
             setUser(data);
             setError(null); // Clear any previous errors
+            setErrorType(null);
           }
         })
         .catch(err => {
           // Don't set error if we're logging out or component is unmounting
           if (!isLoggingOut && err.name !== 'AbortError') {
             console.error('Error fetching donor data:', err);
-            
+
             if (err.message === 'SESSION_EXPIRED') {
               // Don't set error state, just redirect immediately
               setLoading(false);
               navigate('/');
               return;
             }
-            
+
             // Only set error for non-session related issues
             setError(err.message || 'Failed to load donor data');
             toast.error('Failed to load donor data');
@@ -141,7 +152,7 @@ const DonorDashboard = () => {
 
   useEffect(() => {
     if (activeSection === 'donations' && user?.donorId) {
-      fetch(`http://localhost/liveonv2/backend_api/controllers/get_donor_donations.php?donor_id=${user.donorId}`, {
+      fetch(`http://localhost/Liveonv2/backend_api/controllers/get_donor_donations.php?donor_id=${user.donorId}`, {
         credentials: 'include'
       })
         .then(res => res.json())
@@ -154,22 +165,17 @@ const DonorDashboard = () => {
   }, [activeSection, user]);
 
   useEffect(() => {
-    // Use lastDonation if available, otherwise use registrationDate
+    // Use nextEligible date from API response if available
     let baseDate = null;
-    if (user?.lastDonation && user.lastDonation !== 'N/A') {
-      baseDate = new Date(user.lastDonation);
-    } else if (user?.registrationDate) {
-      baseDate = new Date(user.registrationDate);
+
+    if (user?.nextEligible && user.nextEligible !== 'N/A' && user.nextEligible !== 'First Donation') {
+      baseDate = new Date(user.nextEligible);
     }
 
     if (baseDate) {
-      // Add 6 months
-      const nextEligibleDate = new Date(baseDate);
-      nextEligibleDate.setMonth(nextEligibleDate.getMonth() + 6);
-
       function updateCountdown() {
         const now = new Date();
-        const diff = nextEligibleDate - now;
+        const diff = baseDate - now;
         if (diff <= 0) {
           setCountdown('Eligible now!');
           if (countdownInterval.current) clearInterval(countdownInterval.current);
@@ -191,7 +197,7 @@ const DonorDashboard = () => {
       setCountdown('N/A');
       if (countdownInterval.current) clearInterval(countdownInterval.current);
     }
-  }, [user?.lastDonation, user?.registrationDate]);
+  }, [user?.nextEligible]);
 
   // Use custom dialog for logout
   const handleLogout = (e) => {
@@ -214,41 +220,41 @@ const DonorDashboard = () => {
     setIsLoggingOut(true); // Set logout flag to prevent API calls
     setIsLogoutTriggered(true); // Prevent back button handler from triggering
     setError(null); // Clear any error state during logout
-    
+
     // Call logout API first
-    fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
+    fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
       method: 'POST',
       credentials: 'include'
     })
-    .then((response) => {
-      // Check if logout was successful
-      if (response.ok) {
-        console.log('Logout successful');
-      } else {
-        console.log('Logout API returned error, but continuing with navigation');
-      }
-    })
-    .catch((error) => {
-      console.log('Logout API error, but continuing with navigation:', error);
-    })
-    .finally(() => {
-      // Add a longer delay to ensure session is properly destroyed and prevent race conditions
-      setTimeout(() => {
-        try {
-          // Clear any remaining state
-          setUser(null);
-          setError(null);
-          setLoading(false);
-          
-          // Navigate to home page
-          navigate('/', { replace: true });
-        } catch (navError) {
-          console.log('Navigation error, using window.location:', navError);
-          // Fallback to window.location if navigate fails
-          window.location.href = '/';
+      .then((response) => {
+        // Check if logout was successful
+        if (response.ok) {
+          console.log('Logout successful');
+        } else {
+          console.log('Logout API returned error, but continuing with navigation');
         }
-      }, 300); // Increased delay to 300ms to prevent race conditions
-    });
+      })
+      .catch((error) => {
+        console.log('Logout API error, but continuing with navigation:', error);
+      })
+      .finally(() => {
+        // Add a longer delay to ensure session is properly destroyed and prevent race conditions
+        setTimeout(() => {
+          try {
+            // Clear any remaining state
+            setUser(null);
+            setError(null);
+            setLoading(false);
+
+            // Navigate to home page
+            navigate('/', { replace: true });
+          } catch (navError) {
+            console.log('Navigation error, using window.location:', navError);
+            // Fallback to window.location if navigate fails
+            window.location.href = '/';
+          }
+        }, 300); // Increased delay to 300ms to prevent race conditions
+      });
   };
   const cancelLogout = () => setShowLogoutDialog(false);
 
@@ -258,17 +264,17 @@ const DonorDashboard = () => {
   };
   const confirmLogo = async () => {
     setShowLogoDialog(false);
-    
+
     // Actually logout the user instead of just navigating
     setIsLoggingOut(true);
-    
+
     try {
       // Call logout API
-      const response = await fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
+      const response = await fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
         method: 'POST',
         credentials: 'include',
       });
-      
+
       console.log('Logout successful from home button');
     } catch (error) {
       console.log('Logout API error from home button:', error);
@@ -277,7 +283,7 @@ const DonorDashboard = () => {
       setUser(null);
       setError(null);
       setLoading(false);
-      
+
       // Navigate to home page after logout
       setTimeout(() => {
         try {
@@ -297,8 +303,7 @@ const DonorDashboard = () => {
     const formData = new FormData();
     formData.append('donorId', editForm.donorId);
     formData.append('name', editForm.name);
-    formData.append('bloodType', editForm.bloodType);
-    formData.append('age', editForm.age);
+    // Note: bloodType and age cannot be changed for safety and verification reasons
     formData.append('location', editForm.location);
     formData.append('email', editForm.email);
     if (editForm.profilePicFile) {
@@ -308,7 +313,7 @@ const DonorDashboard = () => {
       formData.append('removeAvatar', '1');
     }
     try {
-      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/update_donor_profile.php', {
+      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/update_donor_profile.php', {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -316,16 +321,15 @@ const DonorDashboard = () => {
       const data = await res.json();
       if (data.success) {
         // Update user state with new profile data
-        setUser(u => ({ 
-          ...u, 
-          name: editForm.name, 
-          bloodType: editForm.bloodType, 
-          age: editForm.age, 
-          location: editForm.location, 
-          email: editForm.email, 
-          profilePic: (editForm.removeAvatar || data.avatarRemoved) ? null : (data.imagePath ? `http://localhost/liveonv2/${data.imagePath}` : u.profilePic) 
+        setUser(u => ({
+          ...u,
+          name: editForm.name,
+          // bloodType and age: keep existing values as they cannot be changed
+          location: editForm.location,
+          email: editForm.email,
+          profilePic: (editForm.removeAvatar || data.avatarRemoved) ? null : (data.imagePath ? `http://localhost/Liveonv2/${data.imagePath}` : u.profilePic)
         }));
-        
+
         // Reset edit form to clear any cached data
         setEditForm({});
         setShowEditProfile(false);
@@ -353,7 +357,7 @@ const DonorDashboard = () => {
     }
 
     try {
-      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/request_donor_removal.php', {
+      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/request_donor_removal.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -387,16 +391,16 @@ const DonorDashboard = () => {
   const fetchHospitals = async (location) => {
     setLoadingHospitals(true);
     try {
-      const response = await fetch(`http://localhost/liveonv2/backend_api/controllers/get_hospitals.php?location=${encodeURIComponent(location)}`, {
+      const response = await fetch(`http://localhost/Liveonv2/backend_api/controllers/get_hospitals.php?location=${encodeURIComponent(location)}`, {
         credentials: 'include'
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setHospitals(data.hospitals);
       } else {
@@ -436,6 +440,105 @@ const DonorDashboard = () => {
 
   // Don't show error if we're logging out or if it's a session expiration
   if (error && !isLoggingOut) {
+    // Special handling for pending approval
+    if (errorType === 'pending_approval') {
+      return (
+        <div className="donor-dashboard-root">
+          <div className="donor-dashboard-container">
+            <div className="dashboard-header">
+              <div className="header-nav">
+                <img
+                  src="/src/assets/logo.svg"
+                  alt="LiveOn Logo"
+                  className="header-logo"
+                  onClick={() => setShowLogoDialog(true)}
+                />
+                <h1>Donor Dashboard</h1>
+                <div className="header-actions">
+                  <button
+                    className="logout-btn"
+                    onClick={() => setShowLogoutDialog(true)}
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="pending-approval-container" style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '2rem',
+              textAlign: 'center',
+              minHeight: '60vh'
+            }}>
+              <div style={{
+                backgroundColor: '#fef3c7',
+                border: '1px solid #f59e0b',
+                borderRadius: '8px',
+                padding: '2rem',
+                maxWidth: '500px',
+                width: '100%'
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏳</div>
+                <h2 style={{ color: '#92400e', marginBottom: '1rem' }}>Registration Pending</h2>
+                <p style={{ color: '#78350f', lineHeight: '1.5' }}>
+                  {error}
+                </p>
+                <p style={{ color: '#78350f', fontSize: '0.9rem', marginTop: '1rem' }}>
+                  You will receive an email notification once your profile is approved and you can access all dashboard features.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Logout Dialog */}
+          {showLogoutDialog && (
+            <div className="popup-overlay">
+              <div className="popup-content">
+                <h3>Confirm Logout</h3>
+                <p>Are you sure you want to logout?</p>
+                <div className="popup-actions">
+                  <button
+                    className="btn-secondary"
+                    onClick={() => setShowLogoutDialog(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn-primary"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Logo Dialog */}
+          {showLogoDialog && (
+            <div className="popup-overlay">
+              <div className="popup-content">
+                <img src="/src/assets/logo.svg" alt="LiveOn Logo" style={{ width: '100px', marginBottom: '1rem' }} />
+                <h3>LiveOn Blood Donation System</h3>
+                <p>Connecting donors with those in need.</p>
+                <button
+                  className="btn-primary"
+                  onClick={() => setShowLogoDialog(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // General error display
     return (
       <ErrorDisplay
         error={error}
@@ -443,7 +546,7 @@ const DonorDashboard = () => {
           setError(null);
           setLoading(true);
           // Re-fetch data
-          fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
+          fetch('http://localhost/Liveonv2/backend_api/controllers/donor_dashboard.php', {
             credentials: 'include'
           })
             .then(res => {
@@ -640,7 +743,20 @@ const DonorDashboard = () => {
                 color: '#ffffff',
                 border: '2px solid #6b7280'
               }}
-              onClick={() => setShowEditProfile(true)}
+              onClick={() => {
+                // Initialize form with current user data
+                setEditForm({
+                  donorId: user?.donorId || '',
+                  name: user?.name || '',
+                  bloodType: user?.bloodType || '',
+                  age: user?.age || '',
+                  location: user?.location || '',
+                  email: user?.email || '',
+                  profilePic: user?.profilePic || '',
+                  removeAvatar: false
+                });
+                setShowEditProfile(true);
+              }}
             />
             <span className="dashboard-user-name">{user.name || 'Donor'}</span>
           </div>
@@ -650,7 +766,7 @@ const DonorDashboard = () => {
             <div className="dashboard-stats-grid">
               {/* Enhanced Profile Section */}
               <div className="profile-section-container">
-                
+
                 {/* Main Profile Card */}
                 <div className="profile-main-card">
                   <div className="profile-header">
@@ -667,11 +783,13 @@ const DonorDashboard = () => {
                       <p className="profile-id">Donor ID: {user.donorId}</p>
                       <div className="status-indicator">
                         <span className="status-dot"></span>
-                        <span className="status-text">Available for Donation</span>
+                        <span className="status-text">
+                          {user.donorStatus === 'available' ? 'Available for Donation' : 'Not Available for Donation'}
+                        </span>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="profile-details">
                     <div className="detail-item">
                       <span className="detail-label">Blood Type</span>
@@ -685,21 +803,21 @@ const DonorDashboard = () => {
                       <span className="detail-label">Location</span>
                       <span className="detail-value">{user.location}</span>
                     </div>
-                                         <div className="detail-item email-item">
-                       <span className="detail-label">Email</span>
-                       <span className="detail-value">{user.email}</span>
-                     </div>
+                    <div className="detail-item email-item">
+                      <span className="detail-label">Email</span>
+                      <span className="detail-value">{user.email}</span>
+                    </div>
                   </div>
-                  
+
                   <button className="edit-profile-btn" onClick={() => {
                     setEditForm({
-                      donorId: user.donorId,
-                      name: user.name,
-                      bloodType: user.bloodType,
-                      age: user.age,
-                      location: user.location,
-                      email: user.email,
-                      profilePic: user.profilePic,
+                      donorId: user?.donorId || '',
+                      name: user?.name || '',
+                      bloodType: user?.bloodType || '',
+                      age: user?.age || '',
+                      location: user?.location || '',
+                      email: user?.email || '',
+                      profilePic: user?.profilePic || '',
                       removeAvatar: false
                     });
                     setShowEditProfile(true);
@@ -740,8 +858,10 @@ const DonorDashboard = () => {
                       <div className="eligibility-status">
                         {countdown && countdown !== 'N/A' && countdown !== 'Eligible now!' ? (
                           <span className="status-waiting">Wait {countdown}</span>
-                        ) : (
+                        ) : countdown === 'Eligible now!' && user.donorStatus === 'available' ? (
                           <span className="status-eligible">Eligible Now!</span>
+                        ) : (
+                          <span className="status-waiting">Not Available</span>
                         )}
                       </div>
                     </div>
@@ -763,10 +883,10 @@ const DonorDashboard = () => {
                 {/* Smart Recommendations */}
                 <div className="recommendations-section">
                   <h3 className="section-title">Smart Recommendations</h3>
-                  
+
                   <div className="recommendations-grid">
                     {/* Donation Reminder */}
-                    {countdown === 'Eligible now!' && (
+                    {countdown === 'Eligible now!' && user.donorStatus === 'available' && (
                       <div className="recommendation-card reminder-card">
                         <div className="rec-icon">🔔</div>
                         <div className="rec-content">
@@ -777,15 +897,15 @@ const DonorDashboard = () => {
                       </div>
                     )}
 
-                                    {/* Hospital Suggestion */}
-                <div className="recommendation-card hospital-card">
-                  <div className="rec-icon">🏥</div>
-                  <div className="rec-content">
-                    <h4>Nearby Hospitals</h4>
-                    <p>Try these hospitals near {user.location} for your next donation.</p>
-                  </div>
-                  <button className="rec-action-btn" onClick={handleHospitalPopupOpen}>View Hospitals</button>
-                </div>
+                    {/* Hospital Suggestion */}
+                    <div className="recommendation-card hospital-card">
+                      <div className="rec-icon">🏥</div>
+                      <div className="rec-content">
+                        <h4>Nearby Hospitals</h4>
+                        <p>Try these hospitals near {user.location} for your next donation.</p>
+                      </div>
+                      <button className="rec-action-btn" onClick={handleHospitalPopupOpen}>View Hospitals</button>
+                    </div>
 
                     {/* Health Tips */}
                     <div className="recommendation-card health-card">
@@ -818,8 +938,8 @@ const DonorDashboard = () => {
                       />
                       <div className="profile-summary-status">
                         <div className="status-badge">
-                          <span className="status-dot-active"></span>
-                          <span>Active Donor</span>
+                          <span className={user.donorStatus === 'available' ? 'status-dot-active' : 'status-dot-inactive'}></span>
+                          <span>{user.donorStatus === 'available' ? 'Active Donor' : 'Not Available'}</span>
                         </div>
                       </div>
                     </div>
@@ -832,7 +952,7 @@ const DonorDashboard = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="profile-summary-details">
                     <div className="detail-row">
                       <div className="detail-item-summary">
@@ -850,7 +970,7 @@ const DonorDashboard = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="profile-summary-stats">
                       <div className="stat-item">
                         <span className="stat-number">{user.totalDonations || 0}</span>
@@ -865,33 +985,6 @@ const DonorDashboard = () => {
                         <span className="stat-label">Points</span>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="profile-summary-actions">
-                    <button className="edit-profile-summary-btn" onClick={(e) => {
-                      e.stopPropagation();
-                      setEditForm({
-                        donorId: user.donorId,
-                        name: user.name,
-                        bloodType: user.bloodType,
-                        age: user.age,
-                        location: user.location,
-                        email: user.email,
-                        profilePic: user.profilePic,
-                        removeAvatar: false
-                      });
-                      setShowEditProfile(true);
-                    }}>
-                      <span className="btn-icon">✏️</span>
-                      Edit Profile
-                    </button>
-                    <button className="view-history-btn" onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveSection('donations');
-                    }}>
-                      <span className="btn-icon">📋</span>
-                      View History
-                    </button>
                   </div>
                 </div>
               </div>
@@ -962,7 +1055,7 @@ const DonorDashboard = () => {
                       </div>
                     </div>
                   );
-                })() : countdown === 'Eligible now!' && (
+                })() : countdown === 'Eligible now!' && user.donorStatus === 'available' ? (
                   <div style={{
                     background: '#16a34a',
                     color: '#fff',
@@ -978,6 +1071,23 @@ const DonorDashboard = () => {
                     display: 'inline-block'
                   }}>
                     Eligible now!
+                  </div>
+                ) : (
+                  <div style={{
+                    background: '#ef4444',
+                    color: '#fff',
+                    padding: '10px 24px',
+                    borderRadius: 12,
+                    fontWeight: 700,
+                    fontSize: '1.15rem',
+                    boxShadow: '0 2px 8px rgba(239,68,68,0.13)',
+                    letterSpacing: 1,
+                    minWidth: 180,
+                    textAlign: 'center',
+                    margin: '0 auto',
+                    display: 'inline-block'
+                  }}>
+                    Not Available
                   </div>
                 )}
               </div>
@@ -1096,7 +1206,13 @@ const DonorDashboard = () => {
                           </g>
                         </svg>
                       </span>
-                      <div className="stat-value stat-blue">{user.nextEligible}</div>
+                      <div className="stat-value stat-blue">{
+                        user.nextEligible ?
+                          (new Date(user.nextEligible).toString() !== 'Invalid Date'
+                            ? new Date(user.nextEligible).toLocaleDateString()
+                            : user.nextEligible)
+                          : 'N/A'
+                      }</div>
                       <div className="stat-label">Next Eligible</div>
                     </div>
                     <div className="donation-stat">
@@ -1209,7 +1325,7 @@ const DonorDashboard = () => {
                   <h3>📝 Submit Feedback</h3>
                   <p>Tell us about your experience with our blood donation platform</p>
                 </div>
-                
+
                 <form
                   className="feedback-form"
                   onSubmit={async e => {
@@ -1217,18 +1333,18 @@ const DonorDashboard = () => {
                     const feedback = e.target.elements.feedback.value.trim();
                     const feedbackType = e.target.elements.feedbackType.value;
                     const rating = e.target.elements.rating.value;
-                    
+
                     if (!feedback) {
                       toast.error('Please enter your feedback.');
                       return;
                     }
-                    
+
                     try {
-                      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_feedback.php', {
+                      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/submit_feedback.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                          donorId: user.donorId, 
+                        body: JSON.stringify({
+                          donorId: user.donorId,
                           feedback,
                           feedbackType,
                           rating
@@ -1298,17 +1414,17 @@ const DonorDashboard = () => {
                   {/* Feedback Text */}
                   <div className="form-group">
                     <label className="form-label">Your Feedback</label>
-                                         <textarea
-                       name="feedback"
-                       className="feedback-textarea"
-                       rows={6}
-                       placeholder="Share your thoughts, suggestions, or experiences with our blood donation platform..."
-                       required
-                       onChange={(e) => {
-                         const charCount = e.target.value.length;
-                         e.target.parentNode.querySelector('.char-count').textContent = charCount;
-                       }}
-                     />
+                    <textarea
+                      name="feedback"
+                      className="feedback-textarea"
+                      rows={6}
+                      placeholder="Share your thoughts, suggestions, or experiences with our blood donation platform..."
+                      required
+                      onChange={(e) => {
+                        const charCount = e.target.value.length;
+                        e.target.parentNode.querySelector('.char-count').textContent = charCount;
+                      }}
+                    />
                     <div className="textarea-counter">
                       <span className="char-count">0</span> / 500 characters
                     </div>
@@ -1419,11 +1535,11 @@ const DonorDashboard = () => {
                         type="button"
                         className="remove-avatar-btn"
                         onClick={() => {
-                          setEditForm(f => ({ 
-                            ...f, 
-                            profilePic: null, 
+                          setEditForm(f => ({
+                            ...f,
+                            profilePic: null,
                             profilePicFile: null,
-                            removeAvatar: true 
+                            removeAvatar: true
                           }));
                           // Immediately update the user state for instant UI feedback
                           setUser(u => ({ ...u, profilePic: null }));
@@ -1443,7 +1559,7 @@ const DonorDashboard = () => {
                   <label>Donor ID</label>
                   <input
                     type="text"
-                    value={editForm.donorId}
+                    value={editForm.donorId || ''}
                     readOnly
                   />
                 </div>
@@ -1453,7 +1569,7 @@ const DonorDashboard = () => {
                   <label>Full Name</label>
                   <input
                     type="text"
-                    value={editForm.name}
+                    value={editForm.name || ''}
                     onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="Enter your full name"
                   />
@@ -1464,33 +1580,51 @@ const DonorDashboard = () => {
                   <label>Age</label>
                   <input
                     type="number"
-                    value={editForm.age}
-                    onChange={e => setEditForm(f => ({ ...f, age: e.target.value }))}
-                    placeholder="Enter your age"
+                    value={editForm.age || ''}
+                    readOnly
+                    disabled
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: 8,
+                      border: '1.5px solid #e2e8f0',
+                      fontSize: '14px',
+                      backgroundColor: '#f1f5f9',
+                      color: '#64748b',
+                      cursor: 'not-allowed'
+                    }}
+                    placeholder="Age cannot be changed"
                     min="18"
                     max="65"
                   />
+                  <small style={{ color: '#64748b', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                    Age cannot be modified for verification purposes
+                  </small>
                 </div>
 
                 {/* Blood Type */}
                 <div className="form-field">
                   <label>Blood Type</label>
-                  <select
-                    value={editForm.bloodType}
-                    onChange={e => setEditForm(f => ({ ...f, bloodType: e.target.value }))}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '14px', backgroundColor: '#ffffff' }}
-                    required
-                  >
-                    <option value="">Select Blood Type</option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </select>
+                  <input
+                    type="text"
+                    value={editForm.bloodType || ''}
+                    readOnly
+                    disabled
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: 8,
+                      border: '1.5px solid #e2e8f0',
+                      fontSize: '14px',
+                      backgroundColor: '#f1f5f9',
+                      color: '#64748b',
+                      cursor: 'not-allowed'
+                    }}
+                    placeholder="Blood type cannot be changed"
+                  />
+                  <small style={{ color: '#64748b', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                    Blood type cannot be modified for safety reasons
+                  </small>
                 </div>
 
                 {/* Location */}
@@ -1498,7 +1632,7 @@ const DonorDashboard = () => {
                   <label>Location</label>
                   <input
                     type="text"
-                    value={editForm.location}
+                    value={editForm.location || ''}
                     onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))}
                     placeholder="Enter your location"
                   />
@@ -1509,7 +1643,7 @@ const DonorDashboard = () => {
                   <label>Email Address</label>
                   <input
                     type="email"
-                    value={editForm.email}
+                    value={editForm.email || ''}
                     readOnly
                   />
                 </div>
@@ -1549,8 +1683,8 @@ const DonorDashboard = () => {
           <div className="hospital-popup" onClick={e => e.stopPropagation()}>
             <div className="popup-header">
               <h3>🏥 Nearby Hospitals</h3>
-              <button 
-                className="close-btn" 
+              <button
+                className="close-btn"
                 onClick={() => setShowHospitalPopup(false)}
               >
                 ✕
@@ -1607,19 +1741,19 @@ const DonorDashboard = () => {
           <div className="health-tips-popup" onClick={e => e.stopPropagation()}>
             <div className="popup-header health-header">
               <h3>💊 Health Tips for Blood Donors</h3>
-              <button 
-                className="close-btn" 
+              <button
+                className="close-btn"
                 onClick={() => setShowHealthTipsPopup(false)}
               >
                 ✕
               </button>
             </div>
             <div className="popup-content health-content">
-              <div className="health-tips-grid">
-                {/* Before Donation */}
-                <div className="health-tip-section">
-                  <h4 className="section-title">🕐 Before Donation</h4>
+              <div className="health-tips-single-card">
+                <div className="all-tips-section">
                   <div className="tip-list">
+                    {/* Before Donation Tips */}
+                    <h4 className="section-title">🕐 Before Donation</h4>
                     <div className="tip-item">
                       <span className="tip-icon">💧</span>
                       <div className="tip-content">
@@ -1648,13 +1782,9 @@ const DonorDashboard = () => {
                         <p>Don't consume alcohol 24 hours before donation</p>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* During Donation */}
-                <div className="health-tip-section">
-                  <h4 className="section-title">🩸 During Donation</h4>
-                  <div className="tip-list">
+                    {/* During Donation Tips */}
+                    <h4 className="section-title">🩸 During Donation</h4>
                     <div className="tip-item">
                       <span className="tip-icon">😌</span>
                       <div className="tip-content">
@@ -1676,13 +1806,9 @@ const DonorDashboard = () => {
                         <p>Tell staff if you feel dizzy or uncomfortable</p>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* After Donation */}
-                <div className="health-tip-section">
-                  <h4 className="section-title">🔄 After Donation</h4>
-                  <div className="tip-list">
+                    {/* After Donation Tips */}
+                    <h4 className="section-title">🔄 After Donation</h4>
                     <div className="tip-item">
                       <span className="tip-icon">💺</span>
                       <div className="tip-content">
@@ -1711,13 +1837,9 @@ const DonorDashboard = () => {
                         <p>Wait 24 hours before heavy physical activity</p>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* General Health */}
-                <div className="health-tip-section">
-                  <h4 className="section-title">❤️ General Health</h4>
-                  <div className="tip-list">
+                    {/* General Health Tips */}
+                    <h4 className="section-title">❤️ General Health</h4>
                     <div className="tip-item">
                       <span className="tip-icon">🏥</span>
                       <div className="tip-content">

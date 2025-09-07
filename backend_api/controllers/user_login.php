@@ -66,7 +66,8 @@ if ($user && isset($user['blocked']) && $user['blocked'] === true) {
 
 // Check for pending user
 if ($user && isset($user['pending']) && $user['pending'] === true) {
-    echo json_encode(["success" => false, "message" => "Your registration is pending approval."]);
+    $message = $user['message'] ?? "Your registration is pending approval.";
+    echo json_encode(["success" => false, "message" => $message]);
     exit();
 }
 

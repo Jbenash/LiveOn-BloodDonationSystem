@@ -81,7 +81,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     if (isOpen) {
       document.body.classList.add('modal-open');
       // Fetch hospitals when modal opens
-      fetch('http://localhost/liveonv2/backend_api/controllers/get_hospitals.php', {
+      fetch('http://localhost/Liveonv2/backend_api/controllers/get_hospitals.php', {
         credentials: 'include'
       })
         .then(res => res.json())
@@ -111,7 +111,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
   const handleNameChange = (e) => {
     const { value } = e.target;
     setFormData(prev => ({ ...prev, fullName: value }));
-    
+
     // Real-time validation for name with toast notifications
     if (value.trim()) {
       // Check if name contains only letters and spaces
@@ -129,23 +129,23 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
   const handleDateOfBirthChange = (e) => {
     const { value } = e.target;
     setFormData(prev => ({ ...prev, dob: value }));
-    
+
     // Real-time validation for date of birth
     if (value) {
       const birthDate = new Date(value);
       const currentDate = new Date();
-      
+
       // Check if date is not in the future
       if (birthDate > currentDate) {
         toast.error('Date of birth cannot be in the future');
         return;
       }
-      
+
       // Calculate age
       const age = currentDate.getFullYear() - birthDate.getFullYear();
       const monthDiff = currentDate.getMonth() - birthDate.getMonth();
       const actualAge = monthDiff < 0 || (monthDiff === 0 && currentDate.getDate() < birthDate.getDate()) ? age - 1 : age;
-      
+
       // Check age eligibility
       if (actualAge < 18) {
         toast.error('You must be at least 18 years old to donate blood');
@@ -157,10 +157,10 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
 
   const handlePhoneChange = (e) => {
     const { value } = e.target;
-    
+
     // Only allow digits
     const phoneRegex = /^[0-9]*$/;
-    
+
     if (phoneRegex.test(value)) {
       setFormData(prev => ({ ...prev, phone: value }));
     } else {
@@ -171,7 +171,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
 
   const validateStep1 = () => {
     const errs = {};
-    
+
     // Full name validation
     if (!formData.fullName.trim()) {
       errs.fullName = 'Full name is required';
@@ -190,10 +190,10 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
         errs.fullName = 'Name must be at least 2 characters long';
       }
     }
-    
+
     if (!formData.email.trim()) errs.email = 'Email is required';
     else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(formData.email)) errs.email = 'Invalid email';
-    
+
     // Date of birth validation
     if (!formData.dob) {
       errs.dob = 'Date of birth is required';
@@ -203,26 +203,26 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
       const currentDate = new Date();
       const age = currentDate.getFullYear() - birthDate.getFullYear();
       const monthDiff = currentDate.getMonth() - birthDate.getMonth();
-      
+
       // Adjust age if birthday hasn't occurred this year
       const actualAge = monthDiff < 0 || (monthDiff === 0 && currentDate.getDate() < birthDate.getDate()) ? age - 1 : age;
-      
+
       // Check if age is within donation eligibility range (18 to 65)
       if (actualAge < 18) {
         errs.dob = 'You must be at least 18 years old to donate blood';
       } else if (actualAge > 65) {
         errs.dob = 'You must be 65 years old or younger to donate blood';
       }
-      
+
       // Check if date is not in the future
       if (birthDate > currentDate) {
         errs.dob = 'Date of birth cannot be in the future';
       }
     }
-    
+
     if (!formData.address.trim()) errs.address = 'Address is required';
     if (!formData.district) errs.district = 'District is required';
-    
+
     // Phone number validation
     if (!formData.phone.trim()) {
       errs.phone = 'Phone number is required';
@@ -236,7 +236,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
         errs.phone = 'Phone number must be exactly 10 digits (Sri Lankan format)';
       }
     }
-    
+
     if (!formData.password) errs.password = 'Password is required';
     else if (formData.password.length < 6) errs.password = 'Password must be at least 6 characters';
     if (formData.confirmPassword !== formData.password) errs.confirmPassword = 'Passwords do not match';
@@ -247,7 +247,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
   const handleSubmitStep1 = async (e) => {
     e.preventDefault();
     const errs = validateStep1();
-    
+
     if (Object.keys(errs).length === 0) {
       setIsSubmitting(true);
       try {
@@ -262,7 +262,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
           hospitalId: formData.hospitalId,
         };
 
-        const response = await fetch('http://localhost/liveonv2/backend_api/controllers/register_donor.php', {
+        const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/register_donor.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestData),
@@ -309,7 +309,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     }
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/verify_otp.php', {
+      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/verify_otp.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -525,9 +525,9 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       {formData.password && (
                         <div className="password-strength-container">
                           <div className="password-strength-bar">
-                            <div 
+                            <div
                               className="password-strength-fill"
-                              style={{ 
+                              style={{
                                 width: `${passwordStrength.score}%`,
                                 backgroundColor: passwordStrength.color
                               }}
@@ -561,10 +561,10 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
-                      <LoadingSpinner 
-                        size="16" 
-                        stroke="2" 
-                        color="#ffffff" 
+                      <LoadingSpinner
+                        size="16"
+                        stroke="2"
+                        color="#ffffff"
                         text="Processing..."
                         className="button"
                       />
@@ -610,10 +610,10 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                       disabled={isSubmitting}
                     >
                       {isSubmitting ? (
-                        <LoadingSpinner 
-                          size="16" 
-                          stroke="2" 
-                          color="#ffffff" 
+                        <LoadingSpinner
+                          size="16"
+                          stroke="2"
+                          color="#ffffff"
                           text="Verifying..."
                           className="button"
                         />

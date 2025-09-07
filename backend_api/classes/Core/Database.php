@@ -48,6 +48,16 @@ class Database
 
     public function getConnection()
     {
+        try {
+            if ($this->conn === null || !$this->conn) {
+                $this->connect();
+            }
+            // Test connection
+            $this->conn->query('SELECT 1');
+            return $this->conn;
+        } catch (PDOException $e) {
+            throw new PDOException("Connection test failed: " . $e->getMessage());
+        }
         return $this->connect();
     }
 

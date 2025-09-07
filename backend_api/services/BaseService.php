@@ -1,6 +1,9 @@
 <?php
 
-require_once __DIR__ . '/../classes/Exceptions.php';
+require_once __DIR__ . '/../classes/Core/Exceptions.php';
+
+use LiveOn\Exceptions\DatabaseException;
+use LiveOn\Exceptions\ValidationException;
 
 abstract class BaseService
 {

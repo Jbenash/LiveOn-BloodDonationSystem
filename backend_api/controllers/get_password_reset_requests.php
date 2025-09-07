@@ -1,14 +1,18 @@
 <?php
-// Allow requests from both development ports
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
+// Prevent multiple includes
+if (!defined('SESSION_CONFIG_LOADED')) {
+    require_once __DIR__ . '/../config/session_config.php';
 }
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header('Content-Type: application/json');
+
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
+
+// Initialize session properly
+initSession();
+
+// Require admin role
+requireRole('admin');
 
 require_once __DIR__ . '/../classes/Core/Database.php';
 

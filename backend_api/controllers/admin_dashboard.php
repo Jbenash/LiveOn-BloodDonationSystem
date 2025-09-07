@@ -20,7 +20,7 @@ try {
         __DIR__ . '/AdminController.php',
         __DIR__ . '/../classes/Core/ResponseHandler.php',
         __DIR__ . '/../classes/Core/Database.php',
-        __DIR__ . '/../classes/Exceptions.php',
+        __DIR__ . '/../classes/Core/Exceptions.php',
         __DIR__ . '/../classes/Core/Validator.php'
     ];
 

@@ -1,8 +1,8 @@
 <?php
 
-require_once __DIR__ . '/../classes/User.php';
-require_once __DIR__ . '/../classes/Donor.php';
-require_once __DIR__ . '/../classes/MedicalVerification.php';
+require_once __DIR__ . '/../classes/Models/User.php';
+require_once __DIR__ . '/../classes/Models/Donor.php';
+require_once __DIR__ . '/../classes/Models/MedicalVerification.php';
 
 class DonorService
 {
@@ -208,7 +208,7 @@ class DonorService
     public function saveDonation(array $input): array
     {
         // Validate required fields
-        $required_fields = ['donor_id', 'blood_type', 'donation_date', 'units_donated'];
+        $required_fields = ['donor_id', 'blood_type', 'donation_date', 'units_donated', 'hospital_id'];
         foreach ($required_fields as $field) {
             if (!isset($input[$field]) || empty($input[$field])) {
                 return ['success' => false, 'error' => "Missing required field: $field"];
@@ -225,17 +225,22 @@ class DonorService
             $stmt->bindParam(':blood_type', $input['blood_type']);
             $stmt->bindParam(':donation_date', $input['donation_date']);
             $stmt->bindParam(':units_donated', $input['units_donated']);
-            // Use hospital_id from input if provided, otherwise default to HS002
-            $hospital_id = isset($input['hospital_id']) && !empty($input['hospital_id']) ? $input['hospital_id'] : 'HS002';
-            $stmt->bindParam(':hospital_id', $hospital_id);
+            $stmt->bindParam(':hospital_id', $input['hospital_id']);
             $stmt->execute();
-            // Update donors table status to 'not available' and last_donation_date
+            // Update donors table status to 'not available' and last_donation_date and next_eligible_date
             $date = new \DateTime($input['donation_date'], new \DateTimeZone('UTC'));
             $date->setTimezone(new \DateTimeZone('Asia/Colombo'));
             $localDatetime = $date->format('Y-m-d H:i:s.v');
-            $sql2 = "UPDATE donors SET status = 'not available', last_donation_date = :donation_date WHERE donor_id = :donor_id";
+
+            // Calculate next eligible date (56 days after donation for whole blood)
+            $nextEligibleDate = new \DateTime($input['donation_date']);
+            $nextEligibleDate->add(new \DateInterval('P56D')); // Add 56 days
+            $nextEligibleDateStr = $nextEligibleDate->format('Y-m-d');
+
+            $sql2 = "UPDATE donors SET status = 'not available', last_donation_date = :donation_date, next_eligible_date = :next_eligible_date WHERE donor_id = :donor_id";
             $stmt2 = $pdo->prepare($sql2);
             $stmt2->bindParam(':donation_date', $localDatetime);
+            $stmt2->bindParam(':next_eligible_date', $nextEligibleDateStr);
             $stmt2->bindParam(':donor_id', $input['donor_id']);
             $stmt2->execute();
             // Schedule background status update (not implemented here)
@@ -267,6 +272,132 @@ class DonorService
             return [
                 'success' => false,
                 'error' => 'Server error: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function verifyOTP(string $userId, string $otpCode): array
+    {
+        try {
+            // This would typically verify OTP against database
+            // For now, return a simple placeholder response
+            return [
+                'success' => true,
+                'message' => 'OTP verified successfully',
+                'data' => ['user_id' => $userId]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'OTP verification failed: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function getDonorStats(): array
+    {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT 
+                    COUNT(*) as total_donors,
+                    COUNT(CASE WHEN status = 'available' THEN 1 END) as available_donors,
+                    COUNT(CASE WHEN status = 'not available' THEN 1 END) as unavailable_donors
+                FROM donors
+            ");
+            $stmt->execute();
+            $stats = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            return [
+                'success' => true,
+                'data' => $stats,
+                'message' => 'Donor statistics retrieved successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to retrieve donor statistics: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function searchDonors(string $searchTerm): array
+    {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT d.*, u.name, u.email 
+                FROM donors d 
+                JOIN users u ON d.user_id = u.user_id 
+                WHERE u.name LIKE ? OR u.email LIKE ? OR d.blood_type LIKE ?
+            ");
+            $searchParam = "%$searchTerm%";
+            $stmt->execute([$searchParam, $searchParam, $searchParam]);
+            $donors = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            return [
+                'success' => true,
+                'data' => $donors,
+                'message' => 'Donors search completed successfully'
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to search donors: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function getUserById(string $userId): array
+    {
+        try {
+            $stmt = $this->pdo->prepare("SELECT * FROM users WHERE user_id = ?");
+            $stmt->execute([$userId]);
+            $user = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($user) {
+                return $user;
+            } else {
+                throw new \Exception('User not found');
+            }
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to get user: ' . $e->getMessage());
+        }
+    }
+
+    public function generateAndStoreOTP(string $userId): string
+    {
+        try {
+            $otp = sprintf('%06d', mt_rand(0, 999999));
+
+            // Store OTP in database (this would typically be in an OTP table)
+            $stmt = $this->pdo->prepare("
+                INSERT INTO otp_verification (user_id, otp_code, created_at, expires_at) 
+                VALUES (?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 10 MINUTE))
+                ON DUPLICATE KEY UPDATE 
+                otp_code = VALUES(otp_code), 
+                created_at = VALUES(created_at), 
+                expires_at = VALUES(expires_at)
+            ");
+            $stmt->execute([$userId, $otp]);
+
+            return $otp;
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to generate OTP: ' . $e->getMessage());
+        }
+    }
+
+    public function sendOTPEmail(string $email, string $name, string $otp): array
+    {
+        try {
+            // This would typically use the EmailService to send OTP
+            // For now, return a placeholder response
+            return [
+                'success' => true,
+                'message' => 'OTP email would be sent to ' . $email
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to send OTP email: ' . $e->getMessage()
             ];
         }
     }

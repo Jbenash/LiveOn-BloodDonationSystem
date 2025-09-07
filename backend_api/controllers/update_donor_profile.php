@@ -22,12 +22,10 @@ $conn = $db->connect();
 
 $donor_id = $_POST['donorId'] ?? null;
 $name = $_POST['name'] ?? null;
-$blood_type = $_POST['bloodType'] ?? null;
-$age = $_POST['age'] ?? null;
 $location = $_POST['location'] ?? null;
 $email = $_POST['email'] ?? null;
 
-if (!$donor_id || !$name || !$blood_type || !$age || !$location || !$email) {
+if (!$donor_id || !$name || !$location || !$email) {
     echo json_encode(["success" => false, "message" => "Missing required fields"]);
     exit();
 }
@@ -38,17 +36,7 @@ if (!preg_match('/^[a-zA-Z\s]+$/', $name) || is_numeric(str_replace(' ', '', $na
     exit();
 }
 
-// Validate age for blood donation eligibility
-if ($age) {
-    $age = (int) $age;
-    if ($age < 18) {
-        echo json_encode(["success" => false, "message" => "You must be at least 18 years old to donate blood"]);
-        exit();
-    } else if ($age > 65) {
-        echo json_encode(["success" => false, "message" => "You must be 65 years old or younger to donate blood"]);
-        exit();
-    }
-}
+// Note: Age and Blood type cannot be changed for safety and verification reasons
 
 // Validate phone number format if provided
 $phone = $_POST['phone'] ?? null;
@@ -66,12 +54,7 @@ if ($phone) {
     }
 }
 
-// Validate blood type
-$validBloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-if (!in_array($blood_type, $validBloodTypes)) {
-    echo json_encode(["success" => false, "message" => "Invalid blood type"]);
-    exit();
-}
+// Note: Blood type cannot be changed for safety reasons
 
 // Handle image upload and removal
 $imagePath = null;
@@ -101,8 +84,8 @@ try {
     $stmt1->bindParam(':donor_id', $donor_id);
     $stmt1->execute();
 
-    // Update donors table (blood_type, city, donor_image)
-    $sql2 = "UPDATE donors SET blood_type = :blood_type, city = :city";
+    // Update donors table (city, donor_image only - blood type cannot be changed)
+    $sql2 = "UPDATE donors SET city = :city";
     if ($removeAvatar) {
         $sql2 .= ", donor_image = NULL";
     } else if ($imagePath !== null) {
@@ -110,19 +93,12 @@ try {
     }
     $sql2 .= " WHERE donor_id = :donor_id";
     $stmt2 = $conn->prepare($sql2);
-    $stmt2->bindParam(':blood_type', $blood_type);
     $stmt2->bindParam(':city', $location);
     $stmt2->bindParam(':donor_id', $donor_id);
     if (!$removeAvatar && $imagePath !== null) {
         $stmt2->bindParam(':donor_image', $imagePath);
     }
     $stmt2->execute();
-
-    // Optionally update age in medical_verifications
-    $stmt3 = $conn->prepare("UPDATE medical_verifications SET age = :age WHERE donor_id = :donor_id ORDER BY verification_date DESC LIMIT 1");
-    $stmt3->bindParam(':age', $age);
-    $stmt3->bindParam(':donor_id', $donor_id);
-    $stmt3->execute();
 
     echo json_encode([
         "success" => true,

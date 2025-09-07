@@ -47,7 +47,22 @@ class DonorDashboard
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($user) {
-                echo json_encode(['error' => 'Donor profile not found. Please contact administrator.']);
+                // Check if they have a pending request
+                $stmt = $this->pdo->prepare("SELECT status FROM donor_requests WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
+                $stmt->execute([$this->donorId]);
+                $request = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($request && $request['status'] === 'pending') {
+                    echo json_encode([
+                        'error' => 'Your donor registration is pending medical verification by our MRO team. You will be notified once your profile is approved.',
+                        'status' => 'pending_approval'
+                    ]);
+                } else {
+                    echo json_encode([
+                        'error' => 'Donor profile not found. Please contact administrator.',
+                        'status' => 'profile_missing'
+                    ]);
+                }
             } else {
                 echo json_encode(['error' => 'Donor not found']);
             }
@@ -61,7 +76,16 @@ class DonorDashboard
         $totalDonations = $stats['total'];
 
         $lastDonation = !empty($donor['last_donation_date']) ? $donor['last_donation_date'] : 'N/A';
-        $nextEligible = $lastDonation !== 'N/A' ? date('Y-m-d', strtotime($lastDonation . ' +6 months')) : 'First Donation';
+
+        // Use next_eligible_date from database if available, otherwise calculate based on 56 days
+        if (!empty($donor['next_eligible_date'])) {
+            $nextEligible = $donor['next_eligible_date'];
+        } else if ($lastDonation !== 'N/A') {
+            // Calculate based on 56 days (8 weeks) for whole blood donation
+            $nextEligible = date('Y-m-d', strtotime($lastDonation . ' +56 days'));
+        } else {
+            $nextEligible = 'First Donation';
+        }
         $livesSaved = $totalDonations * 3; // Calculate lives saved as 3 times total donations
         $points = $totalDonations * 100;
         $rank = $totalDonations > 10 ? 'Gold Donor' : ($totalDonations >= 5 ? 'Silver Donor' : 'Bronze Donor');
@@ -92,7 +116,8 @@ class DonorDashboard
             'livesSaved' => $livesSaved,
             'points' => $points,
             'rank' => $rank,
-            'registrationDate' => $registrationDate
+            'registrationDate' => $registrationDate,
+            'donorStatus' => $donor['status'] // Add donor status (available/not available)
         ];
 
         echo json_encode($response);

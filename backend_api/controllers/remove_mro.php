@@ -53,29 +53,26 @@ try {
 
         $userId = $mro['user_id'];
 
-        // Update medical verifications to set mro_id to NULL (due to ON DELETE SET NULL constraint)
-        $stmt = $pdo->prepare("UPDATE medical_verifications SET mro_id = NULL WHERE mro_id = ?");
-        $stmt->execute([$mroId]);
-
-        // Delete the MRO officer record
-        $stmt = $pdo->prepare("DELETE FROM mro_officers WHERE mro_id = ?");
-        $stmt->execute([$mroId]);
-
-        // If there's an associated user account, update it to inactive
+        // Soft delete: Change associated user status to 'rejected' instead of hard deleting
         if ($userId) {
-            $stmt = $pdo->prepare("UPDATE users SET status = 'inactive' WHERE user_id = ?");
+            $stmt = $pdo->prepare("UPDATE users SET status = 'rejected' WHERE user_id = ?");
             $stmt->execute([$userId]);
 
-            // Create notification for the user about their MRO removal
+            // Create notification for the user about their MRO deactivation
             $notificationStmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, 'unread', NOW())");
-            $message = "Your MRO officer account has been permanently removed from the system by an administrator. Your user account remains but is now inactive.";
-            $notificationStmt->execute([$userId, $message, 'mro_removal']);
+            $message = "Your MRO officer account has been deactivated by an administrator. Contact support if you believe this is an error.";
+            $notificationStmt->execute([$userId, $message, 'warning']);
         }
+
+        // Log the admin action for audit trail
+        $stmt = $pdo->prepare("INSERT INTO admin_logs (admin_id, action, target_table, target_id) VALUES (?, ?, ?, ?)");
+        $actionText = "MRO officer status changed to rejected: {$mroId} (User ID: {$userId})";
+        $stmt->execute([$_SESSION['user_id'], $actionText, 'mro_officers', $mroId]);
 
         // Commit transaction
         $pdo->commit();
 
-        echo json_encode(['success' => true, 'message' => 'MRO officer and all related records removed successfully']);
+        echo json_encode(['success' => true, 'message' => "MRO officer {$mroId} has been deactivated (user status changed to rejected)"]);
     } catch (Exception $e) {
         $pdo->rollBack();
         throw $e;

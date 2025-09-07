@@ -4,8 +4,7 @@ namespace LiveOn\classes\Core;
 
 use Exception;
 use PDOException;
-use LiveOnException;
-use ValidationException;
+use LiveOn\Exceptions\ValidationException;
 
 class ResponseHandler
 {
@@ -73,9 +72,7 @@ class ResponseHandler
 
     public function handleException(Exception $e): void
     {
-        if ($e instanceof LiveOnException) {
-            $this->sendError($e->getCode(), $e->getMessage(), $e->getContext());
-        } elseif ($e instanceof ValidationException) {
+        if ($e instanceof ValidationException) {
             $this->sendValidationError($e->getErrors());
         } elseif ($e instanceof PDOException) {
             $this->sendInternalError('Database operation failed');

@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 include __DIR__ . '/../config/db_connection.php';
 
 class Mailer
@@ -83,9 +83,11 @@ class DonorRegistration
     }
     public function storePendingDonorData($userId, $donorId, $dob, $address, $city, $preferredHospitalId)
     {
+        // Generate unique request ID
+        $requestId = 'DR' . uniqid();
         // Store donor data as pending instead of inserting into donors table
-        $stmt = $this->pdo->prepare("INSERT INTO donor_requests (user_id, donor_id, dob, address, city, preferred_hospital_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())");
-        $stmt->execute([$userId, $donorId, $dob, $address, $city, $preferredHospitalId]);
+        $stmt = $this->pdo->prepare("INSERT INTO donor_requests (request_id, user_id, donor_id, dob, address, city, preferred_hospital_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NOW())");
+        $stmt->execute([$requestId, $userId, $donorId, $dob, $address, $city, $preferredHospitalId]);
     }
 }
 

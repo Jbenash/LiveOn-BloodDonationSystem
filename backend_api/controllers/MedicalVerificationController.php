@@ -1,10 +1,13 @@
 <?php
 
 require_once __DIR__ . '/BaseController.php';
-require_once __DIR__ . '/../classes/ResponseHandler.php';
+require_once __DIR__ . '/../classes/Core/ResponseHandler.php';
 require_once __DIR__ . '/../classes/Core/Database.php';
-require_once __DIR__ . '/../classes/Validator.php';
+require_once __DIR__ . '/../classes/Core/Validator.php';
 require_once __DIR__ . '/../services/MedicalVerificationService.php';
+
+use LiveOn\classes\Core\ResponseHandler;
+use LiveOn\classes\Core\Database;
 
 class MedicalVerificationController extends BaseController
 {
@@ -12,7 +15,7 @@ class MedicalVerificationController extends BaseController
 
     public function __construct()
     {
-        $database = \LiveOn\classes\Core\Database::getInstance();
+        $database = Database::getInstance();
         $pdo = $database->connect();
         $validator = new Validator();
         $medicalVerificationService = new MedicalVerificationService($pdo, $validator);
