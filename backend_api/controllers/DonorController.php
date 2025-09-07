@@ -14,7 +14,7 @@ class DonorController extends BaseController
     {
         $database = \LiveOn\classes\Core\Database::getInstance();
         $pdo = $database->connect();
-        $validator = new \LiveOn\classes\Core\Validator();
+        $validator = new Validator();
         $donorService = new DonorService($pdo, $validator);
         $responseHandler = new \LiveOn\classes\Core\ResponseHandler();
         parent::__construct($donorService, $responseHandler);
@@ -98,7 +98,7 @@ class DonorController extends BaseController
                 return;
             }
 
-            $result = $this->donorService->getDonorProfile($donorId);
+            $result = $this->donorService->getDonorById($donorId);
 
             if ($result['success']) {
                 $this->responseHandler->sendSuccess($result['data'], $result['message']);

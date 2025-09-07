@@ -1,6 +1,9 @@
 <?php
 
-require_once __DIR__ . '/BaseModel.php';
+require_once __DIR__ . '/../Core/BaseModel.php';
+require_once __DIR__ . '/../Core/Exceptions.php';
+
+use LiveOn\Exceptions\DatabaseException;
 
 class Donor extends BaseModel
 {

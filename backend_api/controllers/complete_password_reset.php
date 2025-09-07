@@ -1,35 +1,48 @@
 <?php
-// Allow requests from both development ports
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
+// Prevent multiple includes
+if (!defined('SESSION_CONFIG_LOADED')) {
+    require_once __DIR__ . '/../config/session_config.php';
 }
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header('Content-Type: application/json');
+
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
+
+// Initialize session properly
+initSession();
+
+// Require admin role
+requireRole('admin');
 
 require_once __DIR__ . '/../classes/Core/Database.php';
+require_once __DIR__ . '/../services/EmailService.php';
+require_once __DIR__ . '/../classes/Core/Validator.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
+
 if (!isset($data['request_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Missing data']);
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'Missing request_id']);
     exit;
 }
 
 $db = \LiveOn\classes\Core\Database::getInstance();
 $pdo = $db->getConnection();
 
-// Get user_id from request
-$stmt = $pdo->prepare("SELECT user_id FROM password_reset_requests WHERE request_id = ?");
+// Get user details from request
+$stmt = $pdo->prepare("
+    SELECT prr.user_id, u.name, u.email 
+    FROM password_reset_requests prr 
+    INNER JOIN users u ON prr.user_id = u.user_id 
+    WHERE prr.request_id = ?
+");
 $stmt->execute([$data['request_id']]);
-$row = $stmt->fetch(PDO::FETCH_ASSOC);
-if (!$row) {
+$userInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$userInfo) {
     echo json_encode(['success' => false, 'message' => 'Request not found']);
     exit;
 }
-$user_id = $row['user_id'];
 
 if (isset($data['reject']) && $data['reject']) {
     // Mark request as rejected
@@ -43,11 +56,41 @@ if (!isset($data['new_password'])) {
     exit;
 }
 
-// Update user password
-$hash = password_hash($data['new_password'], PASSWORD_BCRYPT);
-$pdo->prepare("UPDATE users SET password_hash = ? WHERE user_id = ?")->execute([$hash, $user_id]);
+try {
+    // Start transaction
+    $pdo->beginTransaction();
 
-// Mark request as completed
-$pdo->prepare("UPDATE password_reset_requests SET status = 'completed', completed_at = NOW() WHERE request_id = ?")->execute([$data['request_id']]);
+    // Update user password
+    $hash = password_hash($data['new_password'], PASSWORD_BCRYPT);
+    $pdo->prepare("UPDATE users SET password_hash = ? WHERE user_id = ?")->execute([$hash, $userInfo['user_id']]);
 
-echo json_encode(['success' => true, 'message' => 'Password updated']);
+    // Mark request as completed
+    $pdo->prepare("UPDATE password_reset_requests SET status = 'completed', completed_at = NOW() WHERE request_id = ?")->execute([$data['request_id']]);
+
+    // Commit the transaction
+    $pdo->commit();
+
+    // Send email confirmation to user
+    try {
+        $validator = new Validator();
+        $emailService = new EmailService($pdo, $validator);
+        $emailResult = $emailService->sendPasswordChangeConfirmation($userInfo['email'], $userInfo['name']);
+
+        if (!$emailResult['success']) {
+            error_log("Failed to send password change confirmation email: " . $emailResult['message']);
+            // Don't fail the whole operation if email fails
+        }
+    } catch (Exception $emailError) {
+        error_log("Email service error: " . $emailError->getMessage());
+        // Don't fail the whole operation if email fails
+    }
+
+    echo json_encode([
+        'success' => true,
+        'message' => 'Password updated and confirmation email sent to user'
+    ]);
+} catch (Exception $e) {
+    // Rollback on error
+    $pdo->rollback();
+    echo json_encode(['success' => false, 'message' => 'Failed to update password: ' . $e->getMessage()]);
+}

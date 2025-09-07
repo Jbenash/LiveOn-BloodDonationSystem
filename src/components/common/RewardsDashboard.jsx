@@ -7,7 +7,7 @@ const RewardsDashboard = ({ donorId }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-  
+
     if (donorId) {
       fetchRewardsData();
     } else {
@@ -19,9 +19,9 @@ const RewardsDashboard = ({ donorId }) => {
   const fetchRewardsData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost/liveonv2/backend_api/controllers/get_donor_rewards.php?donor_id=${donorId}`);
+      const response = await fetch(`http://localhost/Liveonv2/backend_api/controllers/get_donor_rewards.php?donor_id=${donorId}`);
       const data = await response.json();
-      
+
       if (data.success) {
         setRewardsData(data.data);
       } else {
@@ -56,10 +56,10 @@ const RewardsDashboard = ({ donorId }) => {
     return <div className="rewards-error">No rewards data available</div>;
   }
 
-  const { 
-    current_tier, 
-    next_tier, 
-    progress_to_next_tier, 
+  const {
+    current_tier,
+    next_tier,
+    progress_to_next_tier,
     donation_count,
     rewards_data,
     achievements = [],
@@ -97,7 +97,7 @@ const RewardsDashboard = ({ donorId }) => {
             </div>
           </div>
         </div>
-        
+
         {next_tier && (
           <div className="progress-section">
             <div className="progress-info">
@@ -105,8 +105,8 @@ const RewardsDashboard = ({ donorId }) => {
               <span>{progress_to_next_tier}%</span>
             </div>
             <div className="progress-bar">
-              <div 
-                className="progress-fill" 
+              <div
+                className="progress-fill"
                 style={{ width: `${progress_to_next_tier}%` }}
               ></div>
             </div>
@@ -157,7 +157,7 @@ const RewardsDashboard = ({ donorId }) => {
                 )}
                 <span className="points-required">{reward.points_required} points</span>
               </div>
-              <button 
+              <button
                 className="redeem-btn"
                 disabled={(rewards_data?.current_points || 0) < reward.points_required}
               >

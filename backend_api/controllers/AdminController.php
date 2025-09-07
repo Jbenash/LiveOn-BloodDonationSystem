@@ -136,7 +136,7 @@ class AdminController extends BaseController
     {
         try {
             $stmt = $this->pdo->query("
-                SELECT d.donor_id, u.name, u.email, u.phone, d.blood_type, d.status, d.last_donation_date, d.city,
+                SELECT d.donor_id, d.user_id, u.name, u.email, u.phone, d.blood_type, d.status, d.last_donation_date, d.city,
                        COALESCE(donation_counts.total_donations, 0) as total_donations,
                        COALESCE(donation_counts.total_donations, 0) * 3 as lives_saved
                 FROM donors d 

@@ -18,7 +18,7 @@ function configureSession()
     ini_set('session.cookie_secure', 0); // Set to 1 in production with HTTPS
     ini_set('session.cookie_samesite', 'Lax'); // Changed from 'None' to 'Lax' for better compatibility
     ini_set('session.cookie_lifetime', 0); // Session cookie
-    ini_set('session.gc_maxlifetime', 3600); // 1 hour session timeout
+    ini_set('session.gc_maxlifetime', 7200); // 2 hour session timeout (increased from 1 hour)
     ini_set('session.use_strict_mode', 1);
     ini_set('session.use_only_cookies', 1);
     ini_set('session.cookie_path', '/');

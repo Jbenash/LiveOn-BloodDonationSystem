@@ -1,26 +1,8 @@
 <?php
-require_once __DIR__ . '/../config/session_config.php';
+require_once __DIR__ . '/../helpers/mro_auth.php';
 
-// Set CORS headers and handle preflight
-setCorsHeaders();
-handlePreflight();
-
-// Initialize session properly
-initSession();
-
-// Check if user is logged in and has MRO role
-$currentUser = getCurrentUser();
-if (!$currentUser) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Not logged in. Please log in first.']);
-    exit();
-}
-
-if ($currentUser['role'] !== 'mro') {
-    http_response_code(403);
-    echo json_encode(['error' => 'Access denied. MRO role required.']);
-    exit();
-}
+// Check MRO authentication (includes CORS, session init, and auth check)
+$currentUser = checkMROSession();
 
 class DonationLogsHandler
 {
@@ -48,7 +30,7 @@ class DonationLogsHandler
                     FROM donations d
                     INNER JOIN donors dn ON d.donor_id = dn.donor_id
                     INNER JOIN users u ON dn.user_id = u.user_id
-                    WHERE dn.preferred_hospital_id = :hospital_id
+                    WHERE d.hospital_id = :hospital_id
                     ORDER BY d.donation_date DESC";
 
             $stmt = $this->pdo->prepare($sql);

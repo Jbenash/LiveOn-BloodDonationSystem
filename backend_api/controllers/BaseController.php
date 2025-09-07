@@ -1,8 +1,16 @@
 <?php
 
-require_once __DIR__ . '/../classes/Exceptions.php';
+require_once __DIR__ . '/../classes/Core/Exceptions.php';
 require_once __DIR__ . '/../classes/Core/Validator.php';
 require_once __DIR__ . '/../classes/Core/ResponseHandler.php';
+
+use LiveOn\Exceptions\DatabaseException;
+use LiveOn\Exceptions\ValidationException;
+use LiveOn\Exceptions\NotFoundException;
+use LiveOn\Exceptions\UnauthorizedException;
+use LiveOn\Exceptions\ForbiddenException;
+use LiveOn\Exceptions\InvalidRequestException;
+use LiveOn\Exceptions\MethodNotAllowedException;
 
 abstract class BaseController
 {

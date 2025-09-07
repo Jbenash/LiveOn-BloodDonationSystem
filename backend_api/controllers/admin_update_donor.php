@@ -1,35 +1,31 @@
 <?php
-session_start();
-
-// Dynamic CORS headers
-$allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins)) {
-    header("Access-Control-Allow-Origin: $origin");
-}
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Content-Type: application/json");
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit();
+// Prevent multiple includes
+if (!defined('SESSION_CONFIG_LOADED')) {
+    require_once __DIR__ . '/../config/session_config.php';
 }
 
-// Check if user is logged in and is an admin
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized - Admin access required']);
-    http_response_code(401);
-    exit();
-}
+// Set CORS headers and handle preflight
+setCorsHeaders();
+handlePreflight();
 
-require_once __DIR__ . '/../config/db_connection.php';
+// Initialize session manually
+initSession();
+
+// Require admin role
+requireRole('admin');
+
+require_once __DIR__ . '/../classes/Core/Database.php';
+
+use \LiveOn\classes\Core\Database;
 
 try {
-    $db = new Database();
-    $pdo = $db->connect();
+    $database = Database::getInstance();
+    $pdo = $database->connect();
 
     $data = json_decode(file_get_contents("php://input"), true);
+
+    // Add logging for debugging
+    error_log('admin_update_donor.php: Received data: ' . json_encode($data));
 
     if (!$data || !isset($data['donorId'])) {
         echo json_encode(['success' => false, 'message' => 'Missing donor ID']);
@@ -44,9 +40,21 @@ try {
     $city = $data['city'] ?? null;
     $status = $data['status'] ?? null;
 
+    // Add logging for individual fields
+    error_log('admin_update_donor.php: Blood type received: ' . ($bloodType ?? 'NULL'));
+
     // Validate required fields
     if (!$name || !$email || !$phone || !$bloodType || !$city || !$status) {
-        echo json_encode(['success' => false, 'message' => 'All fields are required']);
+        $missing = [];
+        if (!$name) $missing[] = 'name';
+        if (!$email) $missing[] = 'email';
+        if (!$phone) $missing[] = 'phone';
+        if (!$bloodType) $missing[] = 'blood_type';
+        if (!$city) $missing[] = 'city';
+        if (!$status) $missing[] = 'status';
+
+        error_log('admin_update_donor.php: Missing fields: ' . implode(', ', $missing));
+        echo json_encode(['success' => false, 'message' => 'Missing required fields: ' . implode(', ', $missing)]);
         exit();
     }
 

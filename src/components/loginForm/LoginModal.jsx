@@ -29,7 +29,7 @@ const LoginModal = ({ isOpen, onClose }) => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost/liveonv2/backend_api/controllers/user_login.php", {
+      const response = await fetch("http://localhost/Liveonv2/backend_api/controllers/user_login.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -40,7 +40,7 @@ const LoginModal = ({ isOpen, onClose }) => {
 
       // Get response text first
       const responseText = await response.text();
-      
+
       // Check if response is ok
       if (!response.ok) {
         console.error('Login response error:', response.status, responseText);
@@ -129,7 +129,7 @@ const LoginModal = ({ isOpen, onClose }) => {
       return;
     }
     try {
-      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_password_reset_request.php', {
+      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/submit_password_reset_request.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.username, requested_password: newPassword })
@@ -282,12 +282,12 @@ const LoginModal = ({ isOpen, onClose }) => {
   );
 };
 
-const ForgotPasswordPopup = ({isOpen, email, onClose, onSubmit}) => {
+const ForgotPasswordPopup = ({ isOpen, email, onClose, onSubmit }) => {
   const [newPassword, setNewPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   if (!isOpen) return null;
-  
+
   return (
     <div className="login-modal-overlay">
       <div className="login-modal compact">
@@ -351,9 +351,9 @@ const ForgotPasswordPopup = ({isOpen, email, onClose, onSubmit}) => {
   );
 };
 
-const RequestSentPopup = ({isOpen, onClose}) => {
+const RequestSentPopup = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
-  
+
   return (
     <div className="login-modal-overlay">
       <div className="login-modal compact">
@@ -385,9 +385,9 @@ const RequestSentPopup = ({isOpen, onClose}) => {
   );
 };
 
-const EmailRequiredPopup = ({isOpen, onClose}) => {
+const EmailRequiredPopup = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
-  
+
   return (
     <div className="login-modal-overlay">
       <div className="login-modal compact">
@@ -419,7 +419,7 @@ const EmailRequiredPopup = ({isOpen, onClose}) => {
   );
 };
 
-const ContactAdminPopup = ({isOpen, onClose, userEmail}) => {
+const ContactAdminPopup = ({ isOpen, onClose, userEmail }) => {
   const [contactForm, setContactForm] = useState({
     name: '',
     email: userEmail || '',
@@ -430,7 +430,7 @@ const ContactAdminPopup = ({isOpen, onClose, userEmail}) => {
   const [submitStatus, setSubmitStatus] = useState('');
 
   const handleContactChange = (e) => {
-    const {name, value} = e.target;
+    const { name, value } = e.target;
     setContactForm(prevState => ({
       ...prevState,
       [name]: value
@@ -443,9 +443,9 @@ const ContactAdminPopup = ({isOpen, onClose, userEmail}) => {
     setSubmitStatus('');
 
     try {
-      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_admin_contact.php', {
+      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/submit_admin_contact.php', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: contactForm.name,
           email: contactForm.email,
@@ -461,7 +461,7 @@ const ContactAdminPopup = ({isOpen, onClose, userEmail}) => {
         setSubmitStatus('Message sent successfully! Admin will contact you soon.');
         setTimeout(() => {
           onClose();
-          setContactForm({name: '', email: userEmail || '', subject: '', message: '' });
+          setContactForm({ name: '', email: userEmail || '', subject: '', message: '' });
           setSubmitStatus('');
         }, 2000);
       } else {

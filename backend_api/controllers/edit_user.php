@@ -1,5 +1,8 @@
 <?php
+require_once __DIR__ . '/../config/session_config.php';
+configureSession();
 session_start();
+
 header('Content-Type: application/json');
 // Dynamic CORS headers
 $allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
@@ -15,9 +18,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+// Add more detailed session debugging
+if (!isset($_SESSION['user_id'])) {
+    error_log('edit_user.php: No user_id in session');
     http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized access']);
+    echo json_encode(['error' => 'No active session', 'debug' => 'user_id not set']);
+    exit;
+}
+
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    error_log('edit_user.php: User role is not admin. Role: ' . ($_SESSION['role'] ?? 'not set'));
+    http_response_code(401);
+    echo json_encode(['error' => 'Admin access required', 'debug' => 'role check failed']);
     exit;
 }
 

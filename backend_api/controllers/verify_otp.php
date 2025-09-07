@@ -36,11 +36,21 @@ class OTPVerifier
         $stmt->execute([$userId]);
         $row = $stmt->fetch();
         if ($row && $row['otp_code'] === $enteredOtp && strtotime($row['expires_at']) > time()) {
-            $updateStmt = $this->pdo->prepare(
-                "UPDATE otp_verification SET verified = 1, verified_at = NOW() WHERE user_id = ? AND otp_code = ?"
-            );
-            $updateStmt->execute([$userId, $enteredOtp]);
-            return ["success" => true];
+            // Start transaction
+            $this->pdo->beginTransaction();
+            try {
+                // Mark OTP as verified
+                $updateStmt = $this->pdo->prepare(
+                    "UPDATE otp_verification SET verified = 1, verified_at = NOW() WHERE user_id = ? AND otp_code = ?"
+                );
+                $updateStmt->execute([$userId, $enteredOtp]);
+
+                $this->pdo->commit();
+                return ["success" => true, "message" => "Email verified successfully. Your registration is now pending medical verification by our MRO team."];
+            } catch (Exception $e) {
+                $this->pdo->rollBack();
+                return ["success" => false, "message" => "Verification failed: " . $e->getMessage()];
+            }
         } else {
             return ["success" => false, "message" => "Invalid or expired OTP"];
         }

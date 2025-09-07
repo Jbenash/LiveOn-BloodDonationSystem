@@ -3,6 +3,7 @@
 namespace LiveOn\Exceptions;
 
 class DatabaseException extends \Exception {}
+class UserException extends \Exception {}
 class ValidationException extends \Exception
 {
     private array $errors;
@@ -22,3 +23,4 @@ class NotFoundException extends \Exception {}
 class UnauthorizedException extends \Exception {}
 class ForbiddenException extends \Exception {}
 class InvalidRequestException extends \Exception {}
+class MethodNotAllowedException extends \Exception {}

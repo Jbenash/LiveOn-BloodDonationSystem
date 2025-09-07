@@ -1,0 +1,22 @@
+[2025-09-08 00:20:03] Starting donor reminder task (PowerShell)
+[2025-09-08 00:20:03] ERROR: PHP not found at: C:\xampp\php\php.exe
+[2025-09-08 00:20:03] Stack trace: at <ScriptBlock>, D:\Xampp\htdocs\Liveonv2\backend_api\cron\donor_reminder_task.ps1: line 28
+at <ScriptBlock>, <No file>: line 2
+[2025-09-08 00:20:34] Starting donor reminder task (PowerShell)
+[2025-09-08 00:20:34] Executing PHP script: D:\Xampp\htdocs\Liveonv2\backend_api\cron\donor_reminder_cron.php
+[2025-09-08 00:20:34] PHP: [2025-09-07 20:50:34] Starting donor reminder cron job
+[2025-09-08 00:20:34] PHP: [2025-09-07 20:50:34] Not the scheduled time for reminders. Current: 20:50:34, Scheduled: 09:00:00. Exiting.
+[2025-09-08 00:20:34] Donor reminder task completed successfully
+[2025-09-08 00:20:34] Task execution finished
+[2025-09-08 00:43:09] Starting donor reminder task (PowerShell)
+[2025-09-08 00:43:09] Executing PHP script: D:\Xampp\htdocs\Liveonv2\backend_api\cron\donor_reminder_cron.php
+[2025-09-08 00:43:09] PHP: [2025-09-07 21:13:09] Starting donor reminder cron job
+[2025-09-08 00:43:09] PHP: [2025-09-07 21:13:09] Not the scheduled time for reminders. Current: 21:13:09, Scheduled: 09:00:00. Exiting.
+[2025-09-08 00:43:09] Donor reminder task completed successfully
+[2025-09-08 00:43:09] Task execution finished
+[2025-09-08 01:13:39] Starting donor reminder task (PowerShell)
+[2025-09-08 01:13:39] Executing PHP script: D:\Xampp\htdocs\Liveonv2\backend_api\cron\donor_reminder_cron.php
+[2025-09-08 01:13:39] PHP: [2025-09-07 21:43:39] Starting donor reminder cron job
+[2025-09-08 01:13:39] PHP: [2025-09-07 21:43:39] Not the scheduled time for reminders. Current: 21:43:39, Scheduled: 09:00:00. Exiting.
+[2025-09-08 01:13:39] Donor reminder task completed successfully
+[2025-09-08 01:13:39] Task execution finished

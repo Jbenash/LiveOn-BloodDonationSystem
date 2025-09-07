@@ -58,7 +58,7 @@ try {
     }
 
     // Update feedback approval status
-    $approved = ($action === 'approve') ? 1 : 0;
+    $approved = ($action === 'approve') ? 1 : -1; // -1 for rejected, 1 for approved
     $stmt = $pdo->prepare("UPDATE feedback SET approved = ? WHERE feedback_id = ?");
     $stmt->execute([$approved, $feedbackId]);
 

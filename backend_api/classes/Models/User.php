@@ -2,6 +2,8 @@
 
 require_once __DIR__ . '/../Core/Exceptions.php';
 
+use LiveOn\Exceptions\UserException;
+
 class User
 {
     private $conn;
@@ -39,6 +41,17 @@ class User
                         'phone' => $user['phone'],
                         'status' => $user['status']
                     ];
+                } else if ($user['status'] === 'inactive') {
+                    // Check if they have verified OTP but are waiting for MRO verification
+                    $otpStmt = $this->conn->prepare("SELECT verified FROM otp_verification WHERE user_id = ? AND verified = 1 LIMIT 1");
+                    $otpStmt->execute([$user['user_id']]);
+                    $hasVerifiedOTP = $otpStmt->fetch();
+
+                    if ($hasVerifiedOTP) {
+                        return ['pending' => true, 'status' => $user['status'], 'message' => 'Your email is verified. Your registration is pending medical verification by our MRO team.'];
+                    } else {
+                        return ['pending' => true, 'status' => $user['status'], 'message' => 'Please verify your email first. Check your inbox for the OTP code.'];
+                    }
                 } else {
                     return ['pending' => true, 'status' => $user['status']];
                 }

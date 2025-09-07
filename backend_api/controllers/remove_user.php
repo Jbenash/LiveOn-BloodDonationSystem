@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../config/session_config.php';
+configureSession();
 session_start();
 
 // Dynamic CORS headers
@@ -16,9 +18,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// Check if user is logged in and is an admin
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized - Admin access required']);
+// Add more detailed session debugging
+if (!isset($_SESSION['user_id'])) {
+    error_log('remove_user.php: No user_id in session');
+    echo json_encode(['success' => false, 'message' => 'No active session', 'debug' => 'user_id not set']);
+    http_response_code(401);
+    exit();
+}
+
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    error_log('remove_user.php: User role is not admin. Role: ' . ($_SESSION['role'] ?? 'not set'));
+    echo json_encode(['success' => false, 'message' => 'Admin access required', 'debug' => 'role check failed']);
     http_response_code(401);
     exit();
 }
@@ -56,63 +66,33 @@ try {
             throw new Exception('Cannot remove your own account');
         }
 
-        // Delete all donation records for this user (if they are a donor)
-        $stmt = $pdo->prepare("DELETE d FROM donations d JOIN donors dr ON d.donor_id = dr.donor_id WHERE dr.user_id = ?");
+        // Prevent removing other admin users
+        if ($user['role'] === 'admin') {
+            throw new Exception('Cannot remove admin users');
+        }
+
+        // Soft delete: Change user status to 'rejected' instead of hard deleting
+        $stmt = $pdo->prepare("UPDATE users SET status = 'rejected' WHERE user_id = ?");
         $stmt->execute([$userId]);
 
-        // Delete medical verification records for this user (if they are a donor)
-        $stmt = $pdo->prepare("DELETE mv FROM medical_verifications mv JOIN donors dr ON mv.donor_id = dr.donor_id WHERE dr.user_id = ?");
-        $stmt->execute([$userId]);
+        // Add a notification to the user about account deactivation
+        $stmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, 'unread', NOW())");
+        $notificationMessage = "Your account has been deactivated by an administrator. Contact support if you believe this is an error.";
+        $stmt->execute([$userId, $notificationMessage, 'warning']);
 
-        // Delete donation requests for this user (if they are a donor)
-        $stmt = $pdo->prepare("DELETE dr FROM donation_requests dr JOIN donors d ON dr.donor_id = d.donor_id WHERE d.user_id = ?");
-        $stmt->execute([$userId]);
-
-        // Delete rewards for this user (if they are a donor)
-        $stmt = $pdo->prepare("DELETE r FROM rewards r JOIN donors dr ON r.donor_id = dr.donor_id WHERE dr.user_id = ?");
-        $stmt->execute([$userId]);
-
-        // Delete donor records for this user
-        $stmt = $pdo->prepare("DELETE FROM donors WHERE user_id = ?");
-        $stmt->execute([$userId]);
-
-        // Delete hospital records for this user (if they are a hospital)
-        $stmt = $pdo->prepare("DELETE FROM hospitals WHERE user_id = ?");
-        $stmt->execute([$userId]);
-
-        // Delete MRO records for this user (if they are an MRO)
-        $stmt = $pdo->prepare("DELETE FROM mro_officers WHERE user_id = ?");
-        $stmt->execute([$userId]);
-
-        // Delete feedback for this user
-        $stmt = $pdo->prepare("DELETE FROM feedback WHERE user_id = ?");
-        $stmt->execute([$userId]);
-
-        // Delete notifications for this user
-        $stmt = $pdo->prepare("DELETE FROM notifications WHERE user_id = ?");
-        $stmt->execute([$userId]);
-
-        // Delete OTP verification records for this user
-        $stmt = $pdo->prepare("DELETE FROM otp_verification WHERE user_id = ?");
-        $stmt->execute([$userId]);
-
-        // Delete password reset requests for this user
-        $stmt = $pdo->prepare("DELETE FROM password_reset_requests WHERE user_id = ?");
-        $stmt->execute([$userId]);
-
-        // Update user status to inactive (keep user record but mark as inactive)
-        $stmt = $pdo->prepare("UPDATE users SET status = 'inactive' WHERE user_id = ?");
-        $stmt->execute([$userId]);
-
-        // Create notification for the user about their removal (if they ever log back in)
-        $notificationStmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, 'unread', NOW())");
-        $message = "Your account has been permanently removed from the system by an administrator. Your user account remains but is now inactive.";
-        $notificationStmt->execute([$userId, $message, 'account_removal']);
+        // Log the admin action for audit trail
+        $stmt = $pdo->prepare("INSERT INTO admin_logs (admin_id, action, target_table, target_id) VALUES (?, ?, ?, ?)");
+        $actionText = "User status changed to rejected: {$user['name']} ({$user['email']})";
+        $stmt->execute([$_SESSION['user_id'], $actionText, 'users', $userId]);
 
         // Commit transaction
         $pdo->commit();
 
-        echo json_encode(['success' => true, 'message' => 'User and all related records removed successfully']);
+        echo json_encode([
+            'success' => true,
+            'message' => "User {$user['name']} has been deactivated (status changed to rejected)",
+            'action' => 'status_changed'
+        ]);
     } catch (Exception $e) {
         $pdo->rollBack();
         throw $e;
