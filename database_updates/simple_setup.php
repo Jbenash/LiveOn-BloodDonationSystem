@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Simple database setup script for reminder system
  */
@@ -7,12 +8,12 @@ require_once __DIR__ . '/../backend_api/config/db_connection.php';
 
 try {
     echo "Connecting to database...\n";
-    
+
     $database = new Database();
     $pdo = $database->connect();
-    
+
     echo "Creating donor_reminders table...\n";
-    
+
     // Create donor_reminders table
     $sql1 = "CREATE TABLE IF NOT EXISTS `donor_reminders` (
       `reminder_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -31,12 +32,12 @@ try {
       KEY `idx_next_reminder_date` (`next_reminder_date`),
       KEY `idx_reminder_type_status` (`reminder_type`, `status`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
-    
+
     $pdo->exec($sql1);
     echo "✅ donor_reminders table created\n";
-    
+
     echo "Creating reminder_settings table...\n";
-    
+
     // Create reminder_settings table
     $sql2 = "CREATE TABLE IF NOT EXISTS `reminder_settings` (
       `setting_id` int(11) NOT NULL AUTO_INCREMENT,
@@ -48,12 +49,12 @@ try {
       PRIMARY KEY (`setting_id`),
       KEY `fk_reminder_settings_user` (`updated_by`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
-    
+
     $pdo->exec($sql2);
     echo "✅ reminder_settings table created\n";
-    
+
     echo "Adding foreign key constraints...\n";
-    
+
     // Check if foreign key constraints exist before adding them
     try {
         $pdo->exec("ALTER TABLE `donor_reminders` ADD CONSTRAINT `fk_donor_reminders_donor` FOREIGN KEY (`donor_id`) REFERENCES `donors` (`donor_id`) ON DELETE CASCADE");
@@ -65,7 +66,7 @@ try {
             echo "⚠️  Could not add foreign key constraint for donor_id: " . $e->getMessage() . "\n";
         }
     }
-    
+
     try {
         $pdo->exec("ALTER TABLE `donor_reminders` ADD CONSTRAINT `fk_donor_reminders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE");
         echo "✅ Added foreign key constraint for user_id\n";
@@ -76,7 +77,7 @@ try {
             echo "⚠️  Could not add foreign key constraint for user_id: " . $e->getMessage() . "\n";
         }
     }
-    
+
     try {
         $pdo->exec("ALTER TABLE `reminder_settings` ADD CONSTRAINT `fk_reminder_settings_user` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL");
         echo "✅ Added foreign key constraint for updated_by\n";
@@ -87,9 +88,9 @@ try {
             echo "⚠️  Could not add foreign key constraint for updated_by: " . $e->getMessage() . "\n";
         }
     }
-    
+
     echo "Inserting default settings...\n";
-    
+
     // Insert default settings
     $defaultSettings = [
         ['reminder_interval_months', '6', 'Number of months between reminders'],
@@ -98,19 +99,17 @@ try {
         ['reminder_time', '09:00:00', 'Time of day to send reminders (24-hour format)'],
         ['reminder_sender_id', 'LiveOnBD', 'SMS sender ID for reminders']
     ];
-    
+
     $stmt = $pdo->prepare("INSERT IGNORE INTO `reminder_settings` (`setting_name`, `setting_value`, `description`) VALUES (?, ?, ?)");
-    
+
     foreach ($defaultSettings as $setting) {
         $stmt->execute($setting);
         echo "✅ Inserted setting: {$setting[0]}\n";
     }
-    
+
     echo "\n🎉 Database setup completed successfully!\n";
     echo "You can now use the donor reminder functionality.\n";
-    
 } catch (Exception $e) {
     echo "❌ Error: " . $e->getMessage() . "\n";
     exit(1);
 }
-?>

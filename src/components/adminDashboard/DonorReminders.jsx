@@ -77,7 +77,7 @@ const DonorReminders = () => {
     if (key === 'reminder_interval_months') {
       return;
     }
-    
+
     setSettings(prev => ({
       ...prev,
       [key]: value
@@ -92,7 +92,7 @@ const DonorReminders = () => {
         ...settings,
         reminder_interval_months: '6'
       };
-      
+
       const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/donor_reminders.php?action=settings', {
         method: 'PUT',
         headers: {
@@ -101,7 +101,7 @@ const DonorReminders = () => {
         credentials: 'include',
         body: JSON.stringify({ settings: settingsToSave })
       });
-      
+
       const data = await response.json();
       if (data.success) {
         toast.success('Settings saved successfully');
@@ -130,7 +130,7 @@ const DonorReminders = () => {
         },
         credentials: 'include'
       });
-      
+
       const data = await response.json();
       if (data.success) {
         toast.success(data.message);
@@ -155,7 +155,7 @@ const DonorReminders = () => {
         credentials: 'include',
         body: JSON.stringify({ donor_id: donorId })
       });
-      
+
       const data = await response.json();
       if (data.success) {
         toast.success(data.message);
@@ -188,7 +188,7 @@ const DonorReminders = () => {
   };
 
   return (
-    <div style={{ 
+    <div style={{
       marginTop: '20px',
       width: '100%',
       maxWidth: '100%',
@@ -197,7 +197,7 @@ const DonorReminders = () => {
     }}>
       {/* Statistics Section */}
       {stats && (
-        <div style={{ 
+        <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
           gap: '16px',
@@ -269,7 +269,7 @@ const DonorReminders = () => {
         <h3 style={{ marginBottom: '20px', color: '#2d3748', fontSize: '16px', fontWeight: '600' }}>
           ⚙️ Reminder Settings
         </h3>
-        <div style={{ 
+        <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
           gap: '16px',
@@ -280,10 +280,10 @@ const DonorReminders = () => {
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '500', color: '#374151' }}>
               Enable Reminders
             </label>
-            <select 
+            <select
               value={settings.reminder_enabled}
               onChange={(e) => handleSettingsChange('reminder_enabled', e.target.value)}
-              style={{ 
+              style={{
                 width: '100%',
                 maxWidth: '100%',
                 padding: '8px 12px',
@@ -297,7 +297,7 @@ const DonorReminders = () => {
               <option value="0">Disabled</option>
             </select>
           </div>
-          
+
           <div style={{ minWidth: 0 }}>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '500', color: '#374151' }}>
               Interval (Months)
@@ -309,7 +309,7 @@ const DonorReminders = () => {
               value="6"
               readOnly
               disabled
-              style={{ 
+              style={{
                 width: '100%',
                 maxWidth: '100%',
                 padding: '8px 12px',
@@ -326,7 +326,7 @@ const DonorReminders = () => {
               Fixed at 6 months for blood donation safety
             </small>
           </div>
-          
+
           <div style={{ minWidth: 0 }}>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '500', color: '#374151' }}>
               SMS Sender ID
@@ -337,7 +337,7 @@ const DonorReminders = () => {
               value={settings.reminder_sender_id}
               onChange={(e) => handleSettingsChange('reminder_sender_id', e.target.value)}
               placeholder="LiveOnBD"
-              style={{ 
+              style={{
                 width: '100%',
                 maxWidth: '100%',
                 padding: '8px 12px',
@@ -349,7 +349,7 @@ const DonorReminders = () => {
             />
           </div>
         </div>
-        
+
         <div style={{ marginBottom: '20px', width: '100%' }}>
           <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: '500', color: '#374151' }}>
             Message Template
@@ -359,7 +359,7 @@ const DonorReminders = () => {
             value={settings.reminder_message_template}
             onChange={(e) => handleSettingsChange('reminder_message_template', e.target.value)}
             placeholder="Use {donor_name} for personalization"
-            style={{ 
+            style={{
               width: '100%',
               maxWidth: '100%',
               padding: '12px',
@@ -374,8 +374,8 @@ const DonorReminders = () => {
             Use {'{donor_name}'} to personalize messages with donor names
           </small>
         </div>
-        
-        <button 
+
+        <button
           className="dashboard-btn primary"
           onClick={saveSettings}
           disabled={settingsLoading}
@@ -393,10 +393,10 @@ const DonorReminders = () => {
         width: '100%',
         boxSizing: 'border-box'
       }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           padding: '20px',
           borderBottom: '1px solid #e2e8f0'
         }}>
@@ -404,14 +404,14 @@ const DonorReminders = () => {
             📋 Donors Needing Reminders ({donorsNeedingReminders.length})
           </h3>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button 
+            <button
               className="dashboard-btn secondary"
               onClick={() => loadDonorsNeedingReminders()}
               style={{ padding: '8px 16px', fontSize: '12px' }}
             >
               🔄 Refresh
             </button>
-            <button 
+            <button
               className="dashboard-btn primary"
               onClick={sendAllReminders}
               disabled={loading || donorsNeedingReminders.length === 0}
@@ -462,8 +462,8 @@ const DonorReminders = () => {
                     <td style={{ padding: '8px', fontSize: '12px' }}>{donor.phone}</td>
                     <td style={{ padding: '8px', fontSize: '12px' }}>{donor.email}</td>
                     <td style={{ padding: '8px', fontSize: '12px' }}>
-                      {donor.last_reminder === '2000-01-01' ? 
-                        <span style={{ color: '#6b7280' }}>Never</span> : 
+                      {donor.last_reminder === '2000-01-01' ?
+                        <span style={{ color: '#6b7280' }}>Never</span> :
                         new Date(donor.last_reminder).toLocaleDateString()
                       }
                     </td>

@@ -2291,7 +2291,7 @@ const AdminDashboard = () => {
               zIndex: 2,
               marginBottom: '18px'
             }}>Donor Management</h2>
-            
+
             {/* Tab Navigation */}
             <div style={{
               display: 'flex',
@@ -2299,14 +2299,14 @@ const AdminDashboard = () => {
               position: 'relative',
               zIndex: 2
             }}>
-              <button 
-                className={`hospital-tab-btn${donorTab === 'donors' ? ' active' : ''}`} 
+              <button
+                className={`hospital-tab-btn${donorTab === 'donors' ? ' active' : ''}`}
                 onClick={() => setDonorTab('donors')}
               >
                 🩸 All Donors ({allDonors.length})
               </button>
-              <button 
-                className={`hospital-tab-btn${donorTab === 'reminders' ? ' active' : ''}`} 
+              <button
+                className={`hospital-tab-btn${donorTab === 'reminders' ? ' active' : ''}`}
                 onClick={() => setDonorTab('reminders')}
               >
                 📱 SMS Reminders
@@ -2327,7 +2327,7 @@ const AdminDashboard = () => {
               });
               // Get unique blood types for filter dropdown
               const uniqueBloodTypes = Array.from(new Set(allDonors.map(d => d.blood_type).filter(Boolean)));
-              
+
               return (
                 <>
                   <div style={{
