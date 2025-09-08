@@ -31,7 +31,7 @@ try {
 
     $input = json_decode(file_get_contents('php://input'), true);
     error_log("Email Input Data: " . json_encode($input));
-    
+
     if (!$input) {
         error_log("Invalid JSON input");
         http_response_code(400);
@@ -74,20 +74,20 @@ try {
     }
 
     $donor_id = $input['donor_id'];
-    
+
     // First check if donor exists in donors table
     $sql = "SELECT donor_card FROM donors WHERE donor_id = ?";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$donor_id]);
     $row = $stmt->fetch();
-    
+
     if (!$row) {
         error_log('Donor not found in donors table for donor_id: ' . $donor_id);
         http_response_code(404);
         echo json_encode(['success' => false, 'error' => 'Donor not found. Make sure medical verification is completed first.']);
         exit();
     }
-    
+
     $donor_card_path = $row['donor_card'] ?? null;
 
     if (!$donor_card_path || !file_exists($donor_card_path)) {

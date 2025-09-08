@@ -39,13 +39,13 @@ try {
     // Validate required fields
     $requiredFields = ['donor_id', 'mro_id', 'height_cm', 'weight_kg', 'verification_date', 'blood_group', 'age', 'full_name'];
     $missingFields = [];
-    
+
     foreach ($requiredFields as $field) {
         if (!isset($data[$field]) || empty($data[$field])) {
             $missingFields[] = $field;
         }
     }
-    
+
     if (!empty($missingFields)) {
         error_log("Missing required fields: " . implode(', ', $missingFields));
         http_response_code(400);
@@ -135,9 +135,9 @@ try {
             $options->set('defaultFont', 'Arial');
             $options->set('isRemoteEnabled', false);
             $options->set('isPhpEnabled', false);
-            
+
             $dompdf = new \Dompdf\Dompdf($options);
-            
+
             $html = '<!DOCTYPE html>
         <html>
         <head>
@@ -181,10 +181,10 @@ try {
 
             error_log("Loading HTML into Dompdf");
             $dompdf->loadHtml($html);
-            
+
             error_log("Setting paper size");
             $dompdf->setPaper('A4', 'portrait');
-            
+
             error_log("Rendering PDF");
             $dompdf->render();
 
@@ -213,11 +213,11 @@ try {
             error_log("Saving PDF to: $filepath");
             // Save PDF to file
             $pdfOutput = $dompdf->output();
-            
+
             if (empty($pdfOutput)) {
                 throw new Exception("PDF output is empty");
             }
-            
+
             $pdfBytes = file_put_contents($filepath, $pdfOutput);
 
             if ($pdfBytes === false || $pdfBytes === 0) {
@@ -270,11 +270,10 @@ try {
                     "full_path" => $filepath
                 ]
             ]);
-
         } catch (Exception $pdfError) {
             error_log("PDF generation failed: " . $pdfError->getMessage());
             error_log("PDF Error trace: " . $pdfError->getTraceAsString());
-            
+
             // More specific error message based on the error type
             $errorMessage = "PDF generation failed";
             if (strpos($pdfError->getMessage(), 'permission') !== false || strpos($pdfError->getMessage(), 'writable') !== false) {
@@ -284,10 +283,9 @@ try {
             } elseif (strpos($pdfError->getMessage(), 'DomPDF') !== false) {
                 $errorMessage = "PDF generation failed: DomPDF library error";
             }
-            
+
             throw new Exception($errorMessage . ": " . $pdfError->getMessage());
         }
-        
     } catch (Exception $e) {
         // Rollback transaction on error
         if ($pdo->inTransaction()) {
@@ -296,7 +294,6 @@ try {
         }
         throw $e;
     }
-    
 } catch (PDOException $e) {
     error_log("Database error: " . $e->getMessage());
     error_log("Database error trace: " . $e->getTraceAsString());
@@ -316,4 +313,3 @@ try {
 }
 
 error_log("=== Medical Verification Debug End ===");
-?>

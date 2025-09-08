@@ -4,7 +4,7 @@ require_once __DIR__ . '/../backend_api/config/db_connection.php';
 try {
     $database = new Database();
     $pdo = $database->connect();
-    
+
     // Create a new admin user with known credentials
     $adminEmail = 'test@admin.com';
     $adminPassword = password_hash('admin123', PASSWORD_DEFAULT);
@@ -15,7 +15,7 @@ try {
     // Check if this email already exists
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE email = ?");
     $stmt->execute([$adminEmail]);
-    
+
     if ($stmt->fetchColumn() > 0) {
         echo "Admin user with email 'test@admin.com' already exists.\n";
         echo "Use these credentials:\n";
@@ -34,4 +34,3 @@ try {
 } catch (Exception $e) {
     echo "Error: " . $e->getMessage() . "\n";
 }
-?>

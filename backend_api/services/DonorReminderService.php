@@ -4,10 +4,12 @@ namespace LiveOn\Services;
 
 require_once __DIR__ . '/../config/db_connection.php';
 
-class DonorReminderService {
+class DonorReminderService
+{
     private $pdo;
-    
-    public function __construct() {
+
+    public function __construct()
+    {
         try {
             $database = new \Database();
             $this->pdo = $database->connect();
@@ -16,11 +18,12 @@ class DonorReminderService {
             throw $e;
         }
     }
-    
+
     /**
      * Get reminder settings from database
      */
-    public function getReminderSettings() {
+    public function getReminderSettings()
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT setting_name, setting_value 
@@ -38,19 +41,20 @@ class DonorReminderService {
             return [];
         }
     }
-    
+
     /**
      * Get donors who need reminders
      */
-    public function getDonorsNeedingReminders() {
+    public function getDonorsNeedingReminders()
+    {
         try {
             $settings = $this->getReminderSettings();
             if (!isset($settings['reminder_enabled']) || $settings['reminder_enabled'] != '1') {
                 return [];
             }
-            
+
             $intervalMonths = $settings['reminder_interval_months'] ?? 6;
-            
+
             $stmt = $this->pdo->prepare("
                 SELECT DISTINCT 
                     d.donor_id,
@@ -89,32 +93,33 @@ class DonorReminderService {
             return [];
         }
     }
-    
+
     /**
      * Send SMS reminder to a donor
      */
-    public function sendSMSReminder($donorData) {
+    public function sendSMSReminder($donorData)
+    {
         try {
             $settings = $this->getReminderSettings();
             $messageTemplate = $settings['reminder_message_template'] ?? 'Hello {donor_name}! It\'s time for your regular reminder from LiveOn blood donation system. Thank you for being a hero!';
             $senderId = $settings['reminder_sender_id'] ?? 'TextLKDemo';
-            
+
             // Personalize message
             $message = str_replace('{donor_name}', $donorData['name'], $messageTemplate);
-            
+
             // Prepare SMS data
             $smsData = [
                 'phone' => $donorData['phone'],
                 'message' => $message
             ];
-            
+
             // Send SMS using existing SMS functionality
             $smsResult = $this->sendSMS($smsData['phone'], $smsData['message'], $senderId);
-            
+
             // Calculate next reminder date
             $intervalMonths = $settings['reminder_interval_months'] ?? 6;
             $nextReminderDate = date('Y-m-d', strtotime("+{$intervalMonths} months"));
-            
+
             // Log reminder in database
             $this->logReminder(
                 $donorData['donor_id'],
@@ -126,30 +131,30 @@ class DonorReminderService {
                 $smsResult['success'] ? 'sent' : 'failed',
                 $smsResult['response']
             );
-            
+
             return $smsResult;
-            
         } catch (\Exception $e) {
             error_log("DonorReminderService: Failed to send SMS reminder - " . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
-    
+
     /**
      * Send SMS using text.lk API
      */
-    public function sendSMS($phone, $message, $senderId = 'TextLKDemo') {
+    public function sendSMS($phone, $message, $senderId = 'TextLKDemo')
+    {
         try {
             // API credentials (should be moved to config file)
             $apiToken = '1112|t7WOaGcSTUjADQn7xz9EzKd8flS5qiIGXPNSHA7d251317e8';
-            
+
             $payload = [
                 'recipient' => $phone,
                 'sender_id' => $senderId,
                 'type' => 'plain',
                 'message' => $message,
             ];
-            
+
             $ch = curl_init('https://app.text.lk/api/v3/sms/send');
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_POST, true);
@@ -159,31 +164,31 @@ class DonorReminderService {
                 'Accept: application/json',
             ]);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-            
+
             $response = curl_exec($ch);
             $error = curl_error($ch);
             curl_close($ch);
-            
+
             if ($error) {
                 return ['success' => false, 'error' => $error, 'response' => null];
             }
-            
+
             $responseData = json_decode($response, true);
             return [
                 'success' => true,
                 'response' => $response,
                 'data' => $responseData
             ];
-            
         } catch (\Exception $e) {
             return ['success' => false, 'error' => $e->getMessage(), 'response' => null];
         }
     }
-    
+
     /**
      * Log reminder to database
      */
-    private function logReminder($donorId, $userId, $reminderType, $messageContent, $phoneNumber, $nextReminderDate, $status, $smsResponse) {
+    private function logReminder($donorId, $userId, $reminderType, $messageContent, $phoneNumber, $nextReminderDate, $status, $smsResponse)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 INSERT INTO donor_reminders 
@@ -206,11 +211,12 @@ class DonorReminderService {
             return false;
         }
     }
-    
+
     /**
      * Process all pending reminders
      */
-    public function processAllReminders() {
+    public function processAllReminders()
+    {
         try {
             $donors = $this->getDonorsNeedingReminders();
             $results = [
@@ -219,11 +225,11 @@ class DonorReminderService {
                 'failed' => 0,
                 'errors' => []
             ];
-            
+
             foreach ($donors as $donor) {
                 $results['total_processed']++;
                 $result = $this->sendSMSReminder($donor);
-                
+
                 if ($result['success']) {
                     $results['successful']++;
                     error_log("DonorReminderService: Sent reminder to {$donor['name']} ({$donor['phone']})");
@@ -233,7 +239,7 @@ class DonorReminderService {
                     error_log("DonorReminderService: Failed to send reminder to {$donor['name']} ({$donor['phone']}) - " . ($result['error'] ?? 'Unknown error'));
                 }
             }
-            
+
             return $results;
         } catch (\Exception $e) {
             error_log("DonorReminderService: Failed to process reminders - " . $e->getMessage());
@@ -245,11 +251,12 @@ class DonorReminderService {
             ];
         }
     }
-    
+
     /**
      * Get reminder statistics
      */
-    public function getReminderStats($days = 30) {
+    public function getReminderStats($days = 30)
+    {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT 
@@ -267,14 +274,15 @@ class DonorReminderService {
             return null;
         }
     }
-    
+
     /**
      * Update reminder settings
      */
-    public function updateReminderSettings($settings, $updatedBy) {
+    public function updateReminderSettings($settings, $updatedBy)
+    {
         try {
             $this->pdo->beginTransaction();
-            
+
             foreach ($settings as $settingName => $settingValue) {
                 $stmt = $this->pdo->prepare("
                     INSERT INTO reminder_settings (setting_name, setting_value, updated_by)
@@ -286,7 +294,7 @@ class DonorReminderService {
                 ");
                 $stmt->execute([$settingName, $settingValue, $updatedBy]);
             }
-            
+
             $this->pdo->commit();
             return true;
         } catch (\Exception $e) {

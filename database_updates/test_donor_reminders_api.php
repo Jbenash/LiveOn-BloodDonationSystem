@@ -40,4 +40,3 @@ echo "Response: $response\n\n";
 curl_close($ch);
 
 echo "Test completed.\n";
-?>

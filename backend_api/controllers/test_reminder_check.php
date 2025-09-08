@@ -8,18 +8,18 @@ require_once __DIR__ . '/../config/db_connection.php';
 try {
     $db = new Database();
     $pdo = $db->connect();
-    
+
     echo "=== Manual Reminder Trigger Test ===\n";
     echo "Time: " . date('Y-m-d H:i:s') . "\n\n";
-    
+
     // Get current interval setting
     $stmt = $pdo->prepare("SELECT setting_value FROM reminder_settings WHERE setting_name = 'reminder_interval_months'");
     $stmt->execute();
     $intervalSetting = $stmt->fetch(PDO::FETCH_ASSOC);
     $intervalMonths = $intervalSetting['setting_value'] ?? 6;
-    
+
     echo "Current interval: {$intervalMonths} months\n\n";
-    
+
     // Get donors needing reminders
     $stmt = $pdo->prepare("
         SELECT DISTINCT 
@@ -55,20 +55,20 @@ try {
     ");
     $stmt->execute([$intervalMonths, $intervalMonths]);
     $donors = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     echo "Found " . count($donors) . " donors needing reminders:\n\n";
-    
+
     foreach ($donors as $donor) {
         echo "Donor: {$donor['name']} ({$donor['phone']})\n";
         echo "Last reminder: {$donor['last_reminder']}\n";
         echo "Next due: {$donor['next_reminder_due']}\n";
         echo "Current time: " . date('Y-m-d H:i:s') . "\n";
-        
+
         // Check if really due
         $lastReminder = strtotime($donor['last_reminder']);
         $nextDue = strtotime($donor['next_reminder_due']);
         $now = time();
-        
+
         if ($lastReminder === false || $lastReminder < strtotime('2001-01-01')) {
             echo "Status: First time - eligible for reminder\n";
         } else if ($now >= $nextDue) {
@@ -78,10 +78,8 @@ try {
         }
         echo "---\n";
     }
-    
+
     echo "\n=== Test completed ===\n";
-    
 } catch (Exception $e) {
     echo "Error: " . $e->getMessage() . "\n";
 }
-?>

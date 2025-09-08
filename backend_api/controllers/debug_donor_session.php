@@ -43,4 +43,3 @@ echo json_encode([
     'debug' => $debug_info,
     'can_access_donor_reminders' => isset($_SESSION['user_id']) && $_SESSION['role'] === 'admin'
 ]);
-?>

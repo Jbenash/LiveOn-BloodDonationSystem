@@ -37,7 +37,7 @@ try {
     $reminderService = new DonorReminderService();
     $method = $_SERVER['REQUEST_METHOD'];
     $action = $_GET['action'] ?? '';
-    
+
     switch ($method) {
         case 'GET':
             handleGetRequest($reminderService, $action);
@@ -55,47 +55,49 @@ try {
     echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
 }
 
-function handleGetRequest($reminderService, $action) {
+function handleGetRequest($reminderService, $action)
+{
     switch ($action) {
         case 'settings':
             $settings = $reminderService->getReminderSettings();
             echo json_encode(['success' => true, 'data' => $settings]);
             break;
-            
+
         case 'donors_needing_reminders':
             $donors = $reminderService->getDonorsNeedingReminders();
             echo json_encode(['success' => true, 'data' => $donors]);
             break;
-            
+
         case 'stats':
             $days = $_GET['days'] ?? 30;
             $stats = $reminderService->getReminderStats($days);
             echo json_encode(['success' => true, 'data' => $stats]);
             break;
-            
+
         default:
             throw new Exception('Invalid action for GET request');
     }
 }
 
-function handlePostRequest($reminderService, $action) {
+function handlePostRequest($reminderService, $action)
+{
     $input = json_decode(file_get_contents('php://input'), true);
-    
+
     switch ($action) {
         case 'send_reminders':
             $results = $reminderService->processAllReminders();
             echo json_encode([
-                'success' => true, 
+                'success' => true,
                 'message' => "Processed {$results['total_processed']} reminders. {$results['successful']} sent successfully, {$results['failed']} failed.",
                 'data' => $results
             ]);
             break;
-            
+
         case 'send_single_reminder':
             if (!isset($input['donor_id'])) {
                 throw new Exception('Donor ID is required');
             }
-            
+
             // Get donor data
             $database = new Database();
             $pdo = $database->connect();
@@ -107,17 +109,17 @@ function handlePostRequest($reminderService, $action) {
             ");
             $stmt->execute([$input['donor_id']]);
             $donor = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if (!$donor) {
                 throw new Exception('Donor not found');
             }
-            
+
             if (!$donor['phone']) {
                 throw new Exception('Donor does not have a phone number');
             }
-            
+
             $result = $reminderService->sendSMSReminder($donor);
-            
+
             if ($result['success']) {
                 echo json_encode([
                     'success' => true,
@@ -130,23 +132,24 @@ function handlePostRequest($reminderService, $action) {
                 ]);
             }
             break;
-            
+
         default:
             throw new Exception('Invalid action for POST request');
     }
 }
 
-function handlePutRequest($reminderService, $action) {
+function handlePutRequest($reminderService, $action)
+{
     $input = json_decode(file_get_contents('php://input'), true);
-    
+
     switch ($action) {
         case 'settings':
             if (!isset($input['settings'])) {
                 throw new Exception('Settings data is required');
             }
-            
+
             $success = $reminderService->updateReminderSettings($input['settings'], $_SESSION['user_id']);
-            
+
             if ($success) {
                 echo json_encode([
                     'success' => true,
@@ -159,9 +162,8 @@ function handlePutRequest($reminderService, $action) {
                 ]);
             }
             break;
-            
+
         default:
             throw new Exception('Invalid action for PUT request');
     }
 }
-?>

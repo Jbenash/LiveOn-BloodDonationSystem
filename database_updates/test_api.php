@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Test the donor reminder API
  */
@@ -70,4 +71,3 @@ if ($httpCode == 200) {
 }
 
 curl_close($ch);
-?>
