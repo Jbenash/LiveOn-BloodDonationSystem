@@ -1,9 +1,3 @@
-# Enable CORS for all requests
-Header always set Access-Control-Allow-Origin "http://localhost:5173"
-Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
-Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
-Header always set Access-Control-Allow-Credentials "true"
-
 # Handle preflight OPTIONS requests
 RewriteEngine On
 RewriteCond %{REQUEST_METHOD} OPTIONS
