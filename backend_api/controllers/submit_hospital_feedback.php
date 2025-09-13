@@ -1,18 +1,15 @@
 <?php
-require_once '../config/db_connection.php';
-require_once '../config/session_config.php';
+// Use the exact same session configuration as user_login.php to ensure compatibility
+require_once __DIR__ . '/../config/session_config.php';
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: http://localhost:5173');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Access-Control-Allow-Credentials: true');
+// Set CORS headers and handle preflight (same as login)
+setCorsHeaders();
+handlePreflight();
 
-// Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+// Initialize session the same way as login
+initSession();
+
+require_once __DIR__ . '/../config/db_connection.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -23,11 +20,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Check if user is logged in and is a hospital
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'hospital') {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized access. Please login as a hospital user.']);
     exit;
 }
 
 try {
+    // Create database connection
+    $db = new Database();
+    $pdo = $db->connect();
+    
     $input = json_decode(file_get_contents('php://input'), true);
     
     if (!isset($input['message']) || empty(trim($input['message']))) {
@@ -61,12 +62,16 @@ try {
     $result = $stmt->execute([$feedback_id, $user_id, $message]);
     
     if ($result) {
-        // Log the submission
-        $log_stmt = $pdo->prepare("
-            INSERT INTO admin_logs (admin_id, action, target_table, target_id, timestamp) 
-            VALUES (?, ?, 'feedback', ?, NOW())
-        ");
-        $log_stmt->execute([null, 'Hospital feedback submitted', $feedback_id]);
+        // Log the submission (skip if admin_logs table doesn't exist)
+        try {
+            $log_stmt = $pdo->prepare("
+                INSERT INTO admin_logs (admin_id, action, target_table, target_id, timestamp) 
+                VALUES (?, ?, 'feedback', ?, NOW())
+            ");
+            $log_stmt->execute([null, 'Hospital feedback submitted', $feedback_id]);
+        } catch (PDOException $log_error) {
+            // Continue even if logging fails
+        }
         
         echo json_encode([
             'success' => true, 

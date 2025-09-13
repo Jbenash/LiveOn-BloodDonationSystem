@@ -238,7 +238,18 @@ const HospitalDashboard = () => {
         }),
       });
 
-      const data = await response.json();
+      // Get response text first to handle potential HTML errors
+      const responseText = await response.text();
+      
+      // Try to parse as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', responseText);
+        toast.error('Server error: Invalid response format');
+        return;
+      }
 
       if (data.success) {
         setFeedbackMessage('');
