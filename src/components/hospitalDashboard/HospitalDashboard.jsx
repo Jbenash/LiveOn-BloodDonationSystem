@@ -32,6 +32,11 @@ const HospitalDashboard = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Feedback state
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [showFeedbackSuccess, setShowFeedbackSuccess] = useState(false);
+
   // Custom dialog state
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [showLogoDialog, setShowLogoDialog] = useState(false);
@@ -206,6 +211,54 @@ const HospitalDashboard = () => {
       });
   };
   const cancelLogout = () => setShowLogoutDialog(false);
+
+  // Handle feedback submission
+  const handleFeedbackSubmit = async () => {
+    if (!feedbackMessage.trim()) {
+      toast.error('Please enter your feedback message');
+      return;
+    }
+
+    if (feedbackMessage.trim().length < 10) {
+      toast.error('Feedback message must be at least 10 characters long');
+      return;
+    }
+
+    setFeedbackSubmitting(true);
+
+    try {
+      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/submit_hospital_feedback.php', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: feedbackMessage.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setFeedbackMessage('');
+        setShowFeedbackSuccess(true);
+        toast.success('Feedback submitted successfully! It will be reviewed by our admin team.');
+        
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+          setShowFeedbackSuccess(false);
+        }, 3000);
+      } else {
+        toast.error(data.message || 'Failed to submit feedback');
+      }
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast.error('Failed to submit feedback. Please try again.');
+    } finally {
+      setFeedbackSubmitting(false);
+    }
+  };
 
   // Use custom dialog for logo click
   const handleLogoClick = () => {
@@ -386,6 +439,9 @@ const HospitalDashboard = () => {
               </li>
               <li className={activeSection === 'Requests' ? 'active' : ''} onClick={() => setActiveSection('Requests')}>
                 <span className="sidebar-label">Requests</span>
+              </li>
+              <li className={activeSection === 'Feedback' ? 'active' : ''} onClick={() => setActiveSection('Feedback')}>
+                <span className="sidebar-label">Feedback</span>
               </li>
             </ul>
           </nav>
@@ -660,6 +716,99 @@ const HospitalDashboard = () => {
               )}
             </section>
           )}
+
+          {activeSection === 'Feedback' && (
+            <section className="dashboard-section">
+              <h2>Submit Feedback</h2>
+              <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
+                Share your experience and suggestions to help us improve our platform.
+              </p>
+              
+              {showFeedbackSuccess && (
+                <div style={{ 
+                  backgroundColor: '#10b981', 
+                  color: 'white', 
+                  padding: '1rem', 
+                  borderRadius: '8px', 
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <span>✅</span>
+                  <span>Feedback submitted successfully! Thank you for your input.</span>
+                </div>
+              )}
+
+              <div className="feedback-form">
+                <label htmlFor="feedbackMessage" style={{ 
+                  display: 'block', 
+                  marginBottom: '0.5rem', 
+                  color: '#374151',
+                  fontWeight: '500'
+                }}>
+                  Your Feedback Message
+                </label>
+                <textarea
+                  id="feedbackMessage"
+                  value={feedbackMessage}
+                  onChange={(e) => setFeedbackMessage(e.target.value)}
+                  placeholder="Please share your feedback, suggestions, or any issues you've encountered..."
+                  rows={6}
+                  style={{
+                    width: '100%',
+                    padding: '1rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    marginBottom: '0.5rem'
+                  }}
+                  disabled={feedbackSubmitting}
+                />
+                <div style={{ 
+                  fontSize: '0.875rem', 
+                  color: '#6b7280', 
+                  marginBottom: '1rem' 
+                }}>
+                  {feedbackMessage.length}/1000 characters (minimum 10 characters)
+                </div>
+                
+                <button
+                  onClick={handleFeedbackSubmit}
+                  disabled={feedbackSubmitting || feedbackMessage.trim().length < 10}
+                  className="dashboard-btn primary"
+                  style={{
+                    opacity: feedbackSubmitting || feedbackMessage.trim().length < 10 ? 0.6 : 1,
+                    cursor: feedbackSubmitting || feedbackMessage.trim().length < 10 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {feedbackSubmitting ? 'Submitting...' : 'Submit Feedback'}
+                </button>
+              </div>
+
+              <div style={{ 
+                marginTop: '2rem', 
+                padding: '1rem', 
+                backgroundColor: '#f9fafb', 
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: '#374151' }}>📝 Note</h3>
+                <p style={{ 
+                  margin: 0, 
+                  color: '#6b7280', 
+                  fontSize: '0.875rem',
+                  lineHeight: '1.5'
+                }}>
+                  Your feedback will be reviewed by our admin team. Approved feedback may be displayed 
+                  publicly to help other users understand the quality of our platform.
+                </p>
+              </div>
+            </section>
+          )}
+          
           {/* Popups/Modals (reuse existing logic) */}
           {showEmergencyPopup && (
             <div className="popup-overlay">
