@@ -1615,11 +1615,11 @@ const AdminDashboard = () => {
     if (!feedbackToAction || !feedbackActionType) return;
 
     try {
-      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/approve_feedback.php', {
+      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/manage_admin_feedback.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          feedbackId: feedbackToAction.feedback_id,
+          feedback_id: feedbackToAction.feedback_id,
           action: feedbackActionType
         }),
         credentials: 'include'
@@ -1628,7 +1628,15 @@ const AdminDashboard = () => {
       const data = await res.json();
       if (data.success) {
         toast.success(data.message);
-        // Refresh feedback data
+        // Update the feedback in the local state immediately for better UX
+        setAllFeedback(prevFeedback => 
+          prevFeedback.map(fb => 
+            fb.feedback_id === feedbackToAction.feedback_id 
+              ? { ...fb, approved: feedbackActionType === 'approve' ? 1 : -1 }
+              : fb
+          )
+        );
+        // Also refresh all admin data to ensure consistency
         fetchAdminData();
       } else {
         toast.error(data.message || 'Failed to ' + feedbackActionType + ' feedback');

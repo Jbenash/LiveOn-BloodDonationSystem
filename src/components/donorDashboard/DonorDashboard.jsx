@@ -32,6 +32,10 @@ const DonorDashboard = () => {
   const [hospitals, setHospitals] = useState([]);
   const [loadingHospitals, setLoadingHospitals] = useState(false);
   const [showHealthTipsPopup, setShowHealthTipsPopup] = useState(false);
+  
+  // Approved feedback state
+  const [approvedFeedback, setApprovedFeedback] = useState([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
 
   // Ensure any modal-induced scroll lock is cleared when entering dashboard
   useEffect(() => {
@@ -198,6 +202,13 @@ const DonorDashboard = () => {
       if (countdownInterval.current) clearInterval(countdownInterval.current);
     }
   }, [user?.nextEligible]);
+
+  // Fetch approved feedback when component mounts or when switching to dashboard
+  useEffect(() => {
+    if (activeSection === 'dashboard') {
+      fetchApprovedFeedback();
+    }
+  }, [activeSection]);
 
   // Use custom dialog for logout
   const handleLogout = (e) => {
@@ -420,6 +431,34 @@ const DonorDashboard = () => {
     setShowHospitalPopup(true);
     if (user?.location) {
       fetchHospitals(user.location);
+    }
+  };
+
+  // Function to fetch approved feedback
+  const fetchApprovedFeedback = async () => {
+    setFeedbackLoading(true);
+    try {
+      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/get_approved_feedback.php?limit=6', {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setApprovedFeedback(data.feedbacks);
+      } else {
+        console.error('Failed to fetch approved feedback:', data.message);
+        setApprovedFeedback([]);
+      }
+    } catch (error) {
+      console.error('Error fetching approved feedback:', error);
+      setApprovedFeedback([]);
+    } finally {
+      setFeedbackLoading(false);
     }
   };
 
@@ -1249,6 +1288,153 @@ const DonorDashboard = () => {
                   <div className="reward-points stat-green">{user.points} Points</div>
                   <div className="reward-rank">Rank: {user.rank}</div>
                 </div>
+              </div>
+
+              {/* Community Feedback Section */}
+              <div className="dashboard-card glassy animate-fadein" style={{ marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                  <h3 className="gradient-text" style={{ margin: 0, fontSize: '1.5rem' }}>
+                    💬 Community Voices
+                  </h3>
+                  <span style={{ 
+                    color: '#6b7280', 
+                    fontSize: '0.9rem',
+                    background: '#f3f4f6',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '12px'
+                  }}>
+                    Recent Feedback
+                  </span>
+                </div>
+                <p style={{ color: '#6b7280', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+                  Hear what hospitals, donors, and medical officers are saying about our platform
+                </p>
+                
+                {feedbackLoading ? (
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center', 
+                    padding: '2rem',
+                    color: '#6b7280'
+                  }}>
+                    <LoadingSpinner />
+                  </div>
+                ) : approvedFeedback.length > 0 ? (
+                  <div style={{ 
+                    display: 'grid', 
+                    gap: '1rem',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
+                  }}>
+                    {approvedFeedback.map((feedback) => (
+                      <div
+                        key={feedback.feedback_id}
+                        style={{
+                          background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '12px',
+                          padding: '1.5rem',
+                          position: 'relative',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                          transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: feedback.role === 'hospital' ? '#ef4444' : 
+                                       feedback.role === 'donor' ? '#10b981' : 
+                                       feedback.role === 'mro' ? '#3b82f6' : '#6b7280',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontSize: '1.2rem',
+                            marginRight: '0.75rem'
+                          }}>
+                            {feedback.role === 'hospital' ? '🏥' : 
+                             feedback.role === 'donor' ? '🩸' : 
+                             feedback.role === 'mro' ? '👨‍⚕️' : '👤'}
+                          </div>
+                          <div>
+                            <div style={{ 
+                              fontWeight: '600', 
+                              color: '#1f2937',
+                              fontSize: '1rem'
+                            }}>
+                              {feedback.name || 'Anonymous'}
+                            </div>
+                            <div style={{ 
+                              fontSize: '0.875rem', 
+                              color: '#6b7280',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem'
+                            }}>
+                              <span style={{ 
+                                background: feedback.role === 'hospital' ? '#fef2f2' : 
+                                           feedback.role === 'donor' ? '#f0fdf4' : 
+                                           feedback.role === 'mro' ? '#eff6ff' : '#f9fafb',
+                                color: feedback.role === 'hospital' ? '#ef4444' : 
+                                       feedback.role === 'donor' ? '#10b981' : 
+                                       feedback.role === 'mro' ? '#3b82f6' : '#6b7280',
+                                padding: '0.125rem 0.5rem',
+                                borderRadius: '6px',
+                                fontSize: '0.75rem',
+                                fontWeight: '500'
+                              }}>
+                                {feedback.role_display}
+                              </span>
+                              {feedback.location && (
+                                <span>📍 {feedback.location}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{
+                          color: '#374151',
+                          lineHeight: '1.6',
+                          fontSize: '0.95rem',
+                          marginBottom: '1rem'
+                        }}>
+                          "{feedback.message}"
+                        </div>
+                        <div style={{ 
+                          fontSize: '0.8rem', 
+                          color: '#9ca3af',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}>
+                          <span>{feedback.formatted_date}</span>
+                          <span style={{ color: '#10b981', fontWeight: '500' }}>✓ Verified</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    color: '#6b7280', 
+                    padding: '2rem',
+                    background: '#f9fafb',
+                    borderRadius: '8px',
+                    border: '1px dashed #d1d5db'
+                  }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💬</div>
+                    <p style={{ margin: 0 }}>No feedback available yet. Be the first to share your experience!</p>
+                  </div>
+                )}
               </div>
 
               {/* Remove from System Option */}
