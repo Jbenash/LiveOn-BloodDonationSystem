@@ -1629,9 +1629,9 @@ const AdminDashboard = () => {
       if (data.success) {
         toast.success(data.message);
         // Update the feedback in the local state immediately for better UX
-        setAllFeedback(prevFeedback => 
-          prevFeedback.map(fb => 
-            fb.feedback_id === feedbackToAction.feedback_id 
+        setAllFeedback(prevFeedback =>
+          prevFeedback.map(fb =>
+            fb.feedback_id === feedbackToAction.feedback_id
               ? { ...fb, approved: feedbackActionType === 'approve' ? 1 : -1 }
               : fb
           )
@@ -1857,7 +1857,7 @@ const AdminDashboard = () => {
                           <td>{user.email}</td>
                           <td>{user.role}</td>
                           <td>
-                            <span className={`status-chip ${user.status}`}>{user.status}</span>
+                            <span className={`status-chip ${user.status?.replace(/\s+/g, '-')}`}>{user.status}</span>
                           </td>
                         </tr>
                       ))
@@ -1886,7 +1886,7 @@ const AdminDashboard = () => {
                           <td>{req.blood_type}</td>
                           <td>{req.required_units}</td>
                           <td>
-                            <span className={`status-chip ${req.status ? req.status.toLowerCase() : ''}`}>{req.status || 'N/A'}</span>
+                            <span className={`status-chip ${req.status ? req.status.toLowerCase().replace(/\s+/g, '-') : ''}`}>{req.status || 'N/A'}</span>
                           </td>
                         </tr>
                       ))
@@ -2075,7 +2075,9 @@ const AdminDashboard = () => {
                         <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</td>
                         <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</td>
                         <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.role}</td>
-                        <td style={{ padding: '8px', fontSize: '12px' }}><span className={`status-chip ${user.status}`}>{user.status}</span></td>
+                        <td style={{ padding: '8px', fontSize: '12px' }}>
+                          <span className={`status-chip ${user.status?.replace(/\s+/g, '-')}`}>{user.status}</span>
+                        </td>
                         <td onClick={(e) => e.stopPropagation()} style={{ padding: '8px', fontSize: '12px' }}>
                           <button className="dashboard-btn primary" style={{ padding: '4px 8px', fontSize: '11px', marginRight: '4px' }} onClick={() => handleEditClick(user)}>
                             Edit
@@ -2412,7 +2414,11 @@ const AdminDashboard = () => {
                               <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{donor.name}</td>
                               <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{donor.email}</td>
                               <td style={{ padding: '8px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{donor.blood_type}</td>
-                              <td style={{ padding: '8px', fontSize: '12px' }}><span className={`status-chip ${donor.status}`}>{donor.status}</span></td>
+                              <td style={{ padding: '8px', fontSize: '12px' }}>
+                                <span className={`status-chip ${donor.status?.replace(/\s+/g, '-')}`}>
+                                  {donor.status}
+                                </span>
+                              </td>
                               <td onClick={(e) => e.stopPropagation()} style={{ padding: '8px', fontSize: '12px' }}>
                                 <button className="dashboard-btn primary" style={{ padding: '4px 8px', fontSize: '11px', marginRight: '4px' }} onClick={() => handleEditDonorClick(donor)}>
                                   Edit
@@ -2489,6 +2495,7 @@ const AdminDashboard = () => {
                       <tr>
                         <th>Hospital</th>
                         <th>Blood Type</th>
+                        <th>Type</th>
                         <th>Units</th>
                         <th>Created At</th>
                       </tr>
@@ -2516,12 +2523,17 @@ const AdminDashboard = () => {
                           >
                             <td>{req.hospital_name || 'Unknown'}</td>
                             <td>{req.blood_type}</td>
+                            <td>
+                              <span className={`status-chip ${req.type === 'emergency' ? 'emergency' : 'donation'}`}>
+                                {req.type === 'emergency' ? 'Emergency' : 'Donation'}
+                              </span>
+                            </td>
                             <td>{req.units || 'N/A'}</td>
                             <td>{req.created_at ? new Date(req.created_at).toLocaleString() : 'N/A'}</td>
                           </tr>
                         ))
                       ) : (
-                        <tr><td colSpan="4">No blood requests found</td></tr>
+                        <tr><td colSpan="5">No blood requests found</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -2556,7 +2568,7 @@ const AdminDashboard = () => {
                               {req.requested_password}
                             </td>
                             <td>
-                              <span className={`status-chip ${req.status}`}>{req.status}</span>
+                              <span className={`status-chip ${req.status?.replace(/\s+/g, '-')}`}>{req.status}</span>
                             </td>
                             <td>{new Date(req.created_at).toLocaleString()}</td>
                             <td>
@@ -4145,7 +4157,11 @@ const AdminDashboard = () => {
                 <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🔵</span>
                 <div>
                   <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Status</strong>
-                  <div><span className={`status-chip ${selectedUserDetail.status}`}>{selectedUserDetail.status}</span></div>
+                  <div>
+                    <span className={`status-chip ${selectedUserDetail.status?.replace(/\s+/g, '-')}`}>
+                      {selectedUserDetail.status}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -4267,7 +4283,11 @@ const AdminDashboard = () => {
                 <span style={{ marginRight: '0.75rem', fontSize: '1.2rem' }}>🔵</span>
                 <div>
                   <strong style={{ color: '#64748b', fontSize: '0.9rem' }}>Status</strong>
-                  <div><span className={`status-chip ${selectedDonorDetail.status}`}>{selectedDonorDetail.status}</span></div>
+                  <div>
+                    <span className={`status-chip ${selectedDonorDetail.status?.replace(/\s+/g, '-')}`}>
+                      {selectedDonorDetail.status}
+                    </span>
+                  </div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px' }}>

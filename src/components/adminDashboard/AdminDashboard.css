@@ -664,6 +664,118 @@
   border: 2px solid #ffffff;
 }
 
+/* Status Chip Styles */
+.status-chip {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  text-align: center;
+  min-width: 60px;
+}
+
+.status-chip.emergency {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
+}
+
+.status-chip.donation {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  color: #059669;
+  border: 1px solid #bbf7d0;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.1);
+}
+
+.status-chip.active {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-chip.inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.status-chip.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-chip.approved {
+  background: #dcfce7;
+  color: #059669;
+}
+
+.status-chip.rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Donor Status Specific Styles */
+.status-chip.available {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #059669;
+  border: 1px solid #34d399;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.15);
+}
+
+.status-chip.not-available {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #dc2626;
+  border: 1px solid #f87171;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.15);
+}
+
+/* Additional donor status variants */
+.status-chip.unavailable {
+  background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+  color: #d97706;
+  border: 1px solid #fbbf24;
+  box-shadow: 0 2px 4px rgba(217, 119, 6, 0.15);
+}
+
+/* User Status Styles */
+.status-chip.active {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #059669;
+  border: 1px solid #34d399;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.15);
+}
+
+.status-chip.inactive {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 2px 4px rgba(100, 116, 139, 0.15);
+}
+
+/* General Status Styles - Enhanced */
+.status-chip.completed {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #059669;
+  border: 1px solid #34d399;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.15);
+}
+
+.status-chip.fulfilled {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1d4ed8;
+  border: 1px solid #60a5fa;
+  box-shadow: 0 2px 4px rgba(29, 78, 216, 0.15);
+}
+
+.status-chip.cancelled {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #dc2626;
+  border: 1px solid #f87171;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.15);
+}
+
 .notification-dropdown {
   position: absolute;
   top: 100%;
