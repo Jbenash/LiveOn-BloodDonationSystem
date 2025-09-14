@@ -240,7 +240,7 @@ const HospitalDashboard = () => {
 
       // Get response text first to handle potential HTML errors
       const responseText = await response.text();
-      
+
       // Try to parse as JSON
       let data;
       try {
@@ -255,7 +255,7 @@ const HospitalDashboard = () => {
         setFeedbackMessage('');
         setShowFeedbackSuccess(true);
         toast.success('Feedback submitted successfully! It will be reviewed by our admin team.');
-        
+
         // Hide success message after 3 seconds
         setTimeout(() => {
           setShowFeedbackSuccess(false);
@@ -734,13 +734,13 @@ const HospitalDashboard = () => {
               <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
                 Share your experience and suggestions to help us improve our platform.
               </p>
-              
+
               {showFeedbackSuccess && (
-                <div style={{ 
-                  backgroundColor: '#10b981', 
-                  color: 'white', 
-                  padding: '1rem', 
-                  borderRadius: '8px', 
+                <div style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  padding: '1rem',
+                  borderRadius: '8px',
                   marginBottom: '1.5rem',
                   display: 'flex',
                   alignItems: 'center',
@@ -752,9 +752,9 @@ const HospitalDashboard = () => {
               )}
 
               <div className="feedback-form">
-                <label htmlFor="feedbackMessage" style={{ 
-                  display: 'block', 
-                  marginBottom: '0.5rem', 
+                <label htmlFor="feedbackMessage" style={{
+                  display: 'block',
+                  marginBottom: '0.5rem',
                   color: '#374151',
                   fontWeight: '500'
                 }}>
@@ -778,14 +778,14 @@ const HospitalDashboard = () => {
                   }}
                   disabled={feedbackSubmitting}
                 />
-                <div style={{ 
-                  fontSize: '0.875rem', 
-                  color: '#6b7280', 
-                  marginBottom: '1rem' 
+                <div style={{
+                  fontSize: '0.875rem',
+                  color: '#6b7280',
+                  marginBottom: '1rem'
                 }}>
                   {feedbackMessage.length}/1000 characters (minimum 10 characters)
                 </div>
-                
+
                 <button
                   onClick={handleFeedbackSubmit}
                   disabled={feedbackSubmitting || feedbackMessage.trim().length < 10}
@@ -799,115 +799,195 @@ const HospitalDashboard = () => {
                 </button>
               </div>
 
-              <div style={{ 
-                marginTop: '2rem', 
-                padding: '1rem', 
-                backgroundColor: '#f9fafb', 
+              <div style={{
+                marginTop: '2rem',
+                padding: '1rem',
+                backgroundColor: '#f9fafb',
                 borderRadius: '8px',
                 border: '1px solid #e5e7eb'
               }}>
                 <h3 style={{ margin: '0 0 0.5rem 0', color: '#374151' }}>📝 Note</h3>
-                <p style={{ 
-                  margin: 0, 
-                  color: '#6b7280', 
+                <p style={{
+                  margin: 0,
+                  color: '#6b7280',
                   fontSize: '0.875rem',
                   lineHeight: '1.5'
                 }}>
-                  Your feedback will be reviewed by our admin team. Approved feedback may be displayed 
+                  Your feedback will be reviewed by our admin team. Approved feedback may be displayed
                   publicly to help other users understand the quality of our platform.
                 </p>
               </div>
             </section>
           )}
-          
+
           {/* Popups/Modals (reuse existing logic) */}
           {showEmergencyPopup && (
-            <div className="popup-overlay">
-              <div className="popup-form">
-                <button className="popup-close" onClick={() => setShowEmergencyPopup(false)}>&times;</button>
-                <h3>Send Emergency Request</h3>
-                <label>
-                  Blood Type:
-                  <select value={emergencyBloodType} onChange={e => setEmergencyBloodType(e.target.value)}>
-                    <option value="">Select</option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </select>
-                </label>
-                <label>
-                  Required Units:
-                  <input
-                    type="number"
-                    min="1"
-                    value={emergencyUnits}
-                    onChange={e => setEmergencyUnits(e.target.value)}
-                  />
-                </label>
-                {emergencyError && <div className="error-message" style={{ color: 'red', marginTop: '0.5rem' }}>{emergencyError}</div>}
-                <div className="modal-actions">
+            <div className="modal-overlay" onClick={() => setShowEmergencyPopup(false)}>
+              <div className="emergency-request-modal" onClick={e => e.stopPropagation()}>
+                {/* Modal Header */}
+                <div className="emergency-modal-header">
+                  <div className="emergency-header-content">
+                    <div className="emergency-icon">
+                      <span style={{ fontSize: '28px' }}>🚨</span>
+                    </div>
+                    <div className="emergency-title-section">
+                      <h2 className="emergency-modal-title">Emergency Blood Request</h2>
+                      <p className="emergency-modal-subtitle">Send urgent request to compatible donors in your area</p>
+                    </div>
+                  </div>
                   <button
-                    className="dashboard-btn primary"
-                    onClick={() => {
-                      if (!emergencyBloodType && !emergencyUnits) {
-                        setEmergencyError('You have to enter both blood type and required units.');
-                        return;
-                      } else if (!emergencyBloodType) {
-                        setEmergencyError('You forgot to enter blood type.');
-                        return;
-                      } else if (!emergencyUnits) {
-                        setEmergencyError('You forgot to enter blood units.');
-                        return;
-                      }
-                      if (window.confirm(`Are you sure you want to send an emergency request for ${emergencyUnits} units of ${emergencyBloodType} blood? This will notify all available donors.`)) {
-                        setEmergencyError('');
-                        fetch('http://localhost/Liveonv2/backend_api/controllers/emergency_request.php', {
-                          method: 'POST',
-                          credentials: 'include',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            blood_type: emergencyBloodType,
-                            required_units: emergencyUnits
-                          })
-                        })
-                          .then(res => res.json())
-                          .then(data => {
-                            setShowEmergencyPopup(false);
-                            setEmergencyBloodType('');
-                            setEmergencyUnits('');
-                            setShowRequestSentPopup(true);
-                            // Send SMS to all donors with the selected blood group
-                            const relevantDonors = donors.filter(d => d.bloodType === emergencyBloodType);
-                            relevantDonors.forEach(donor => {
-                              if (donor.contact) {
-                                const smsMessage = `Dear ${donor.name}, urgent need for ${emergencyUnits} units of ${emergencyBloodType} blood at ${hospital.name}. Please contact us if you can donate.`;
-                                fetch('http://localhost/Liveonv2/backend_api/controllers/send_sms.php', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    phone: donor.contact,
-                                    message: smsMessage
-                                  })
-                                });
-                              }
-                            });
-                          })
-                          .catch(err => {
-                            setEmergencyError('Failed to send emergency request');
-                          });
-                      }
-                    }}
+                    className="emergency-close-btn"
+                    onClick={() => setShowEmergencyPopup(false)}
+                    aria-label="Close emergency request"
                   >
-                    Send to All Donors
+                    ✕
                   </button>
-                  <button className="dashboard-btn" onClick={() => { setShowEmergencyPopup(false); setEmergencyError(''); }}>
-                    Cancel
-                  </button>
+                </div>
+
+                {/* Modal Body */}
+                <div className="emergency-modal-body">
+                  <div className="emergency-form">
+                    {/* Urgency Notice */}
+                    <div className="urgency-notice">
+                      <span className="urgency-icon">⚠️</span>
+                      <div className="urgency-text">
+                        <strong>Critical Blood Need</strong>
+                        <span>This request will be sent to all available donors with matching blood type</span>
+                      </div>
+                    </div>
+
+                    {/* Form Fields */}
+                    <div className="emergency-form-grid">
+                      <div className="form-field">
+                        <label className="field-label">
+                          <span className="label-icon">🩸</span>
+                          <span className="label-text">Blood Type Required</span>
+                          <span className="label-required">*</span>
+                        </label>
+                        <select 
+                          className="emergency-select"
+                          value={emergencyBloodType} 
+                          onChange={e => setEmergencyBloodType(e.target.value)}
+                        >
+                          <option value="">Select Blood Type</option>
+                          <option value="A+">A+ (A Positive)</option>
+                          <option value="A-">A- (A Negative)</option>
+                          <option value="B+">B+ (B Positive)</option>
+                          <option value="B-">B- (B Negative)</option>
+                          <option value="AB+">AB+ (AB Positive)</option>
+                          <option value="AB-">AB- (AB Negative)</option>
+                          <option value="O+">O+ (O Positive)</option>
+                          <option value="O-">O- (O Negative)</option>
+                        </select>
+                      </div>
+
+                      <div className="form-field">
+                        <label className="field-label">
+                          <span className="label-icon">📊</span>
+                          <span className="label-text">Units Needed</span>
+                          <span className="label-required">*</span>
+                        </label>
+                        <input
+                          className="emergency-input"
+                          type="number"
+                          value={emergencyUnits}
+                          onChange={e => setEmergencyUnits(e.target.value)}
+                          placeholder="Enter number of units (e.g., 3)"
+                          min="1"
+                          max="10"
+                        />
+                        <span className="field-help">Typical range: 1-5 units per patient</span>
+                      </div>
+                    </div>
+
+                    {/* Hospital Info Display */}
+                    <div className="hospital-info-card">
+                      <div className="hospital-info-header">
+                        <span className="hospital-icon">🏥</span>
+                        <span>Request from: <strong>{hospital?.name || 'Hospital'}</strong></span>
+                      </div>
+                      <div className="estimated-donors">
+                        <span className="donors-icon">👥</span>
+                        <span>Estimated compatible donors: <strong>12-15</strong></span>
+                      </div>
+                    </div>
+
+                    {/* Error Display */}
+                    {emergencyError && (
+                      <div className="emergency-error">
+                        <span className="error-icon">❌</span>
+                        <span>{emergencyError}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="emergency-modal-footer">
+                  <div className="footer-actions">
+                    <button 
+                      className="dashboard-btn secondary" 
+                      onClick={() => { setShowEmergencyPopup(false); setEmergencyError(''); }}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      className="dashboard-btn emergency-primary" 
+                      onClick={() => {
+                        if (!emergencyBloodType && !emergencyUnits) {
+                          setEmergencyError('You have to enter both blood type and required units.');
+                          return;
+                        } else if (!emergencyBloodType) {
+                          setEmergencyError('You forgot to enter blood type.');
+                          return;
+                        } else if (!emergencyUnits) {
+                          setEmergencyError('You forgot to enter blood units.');
+                          return;
+                        }
+                        if (window.confirm(`Are you sure you want to send an emergency request for ${emergencyUnits} units of ${emergencyBloodType} blood? This will notify all available donors.`)) {
+                          setEmergencyError('');
+                          fetch('http://localhost/Liveonv2/backend_api/controllers/emergency_request.php', {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              blood_type: emergencyBloodType,
+                              required_units: emergencyUnits
+                            })
+                          })
+                            .then(res => res.json())
+                            .then(data => {
+                              setShowEmergencyPopup(false);
+                              setEmergencyBloodType('');
+                              setEmergencyUnits('');
+                              setShowRequestSentPopup(true);
+                              // Send SMS to all donors with the selected blood group
+                              const relevantDonors = donors.filter(d => d.bloodType === emergencyBloodType);
+                              relevantDonors.forEach(donor => {
+                                if (donor.contact) {
+                                  const smsMessage = `Dear ${donor.name}, urgent need for ${emergencyUnits} units of ${emergencyBloodType} blood at ${hospital.name}. Please contact us if you can donate.`;
+                                  fetch('http://localhost/Liveonv2/backend_api/controllers/send_sms.php', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      phone: donor.contact,
+                                      message: smsMessage
+                                    })
+                                  });
+                                }
+                              });
+                            })
+                            .catch(err => {
+                              setEmergencyError('Failed to send emergency request');
+                            });
+                        }
+                      }}
+                      disabled={!emergencyBloodType || !emergencyUnits}
+                    >
+                      <span className="btn-icon">🚨</span>
+                      Send Emergency Request
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1031,7 +1111,6 @@ const HospitalDashboard = () => {
                     donorsByBloodType(selectedBloodType).map((donor, idx) => (
                       <div className="profile-summary-card" key={donor.donor_id || idx}>
                         <Avatar
-                          img={donor.profilePic || null}
                           alt={donor.name || 'Donor'}
                           size="lg"
                           rounded
