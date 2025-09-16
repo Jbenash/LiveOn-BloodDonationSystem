@@ -633,7 +633,7 @@ const HomePage = () => {
             <p onClick={openContactModal} style={{cursor: 'pointer', textDecoration: 'underline'}}>contact@liveon.org</p>
             <p>1-800-LIVE-ON</p>
             <p>123 Innovation Drive</p>
-            <p>Email: liveonsystem@gmail.com</p>
+            <p>Email: mbenash961030@gmail.com</p>
           </div>
         </div>
         

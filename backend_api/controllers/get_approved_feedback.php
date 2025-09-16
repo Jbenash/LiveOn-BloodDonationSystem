@@ -15,16 +15,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 try {
     $limit = isset($_GET['limit']) ? max(1, min(20, intval($_GET['limit']))) : 10;
     $role = isset($_GET['role']) ? $_GET['role'] : 'all';
-    
+
     // Build query based on role filter
     $whereClause = "WHERE f.approved = 1";
     $params = [];
-    
+
     if ($role !== 'all' && in_array($role, ['hospital', 'donor', 'mro'])) {
         $whereClause .= " AND f.role = ?";
         $params[] = $role;
     }
-    
+
     // Get approved feedback with user details
     $query = "
         SELECT 
@@ -53,29 +53,29 @@ try {
         ORDER BY f.created_at DESC
         LIMIT ?
     ";
-    
+
     $params[] = $limit;
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
     $feedbacks = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Format the data for frontend display
     foreach ($feedbacks as &$feedback) {
         // Format date to be more user-friendly
         $created_date = new DateTime($feedback['created_at']);
         $feedback['formatted_date'] = $created_date->format('M j, Y');
         $feedback['relative_date'] = getRelativeTime($created_date);
-        
+
         // Add role display name
         $feedback['role_display'] = ucfirst($feedback['role']);
-        
+
         // Ensure message is clean for display
         $feedback['message'] = htmlspecialchars($feedback['message'], ENT_QUOTES, 'UTF-8');
-        
+
         // Remove sensitive data
         unset($feedback['created_at']);
     }
-    
+
     echo json_encode([
         'success' => true,
         'feedbacks' => $feedbacks,
@@ -83,7 +83,6 @@ try {
         'limit' => $limit,
         'role_filter' => $role
     ]);
-    
 } catch (PDOException $e) {
     error_log("Database error in get_approved_feedback.php: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Database error occurred']);
@@ -92,10 +91,11 @@ try {
     echo json_encode(['success' => false, 'message' => 'An error occurred while fetching feedback']);
 }
 
-function getRelativeTime($datetime) {
+function getRelativeTime($datetime)
+{
     $now = new DateTime();
     $interval = $now->diff($datetime);
-    
+
     if ($interval->y > 0) {
         return $interval->y . ' year' . ($interval->y > 1 ? 's' : '') . ' ago';
     } elseif ($interval->m > 0) {
@@ -110,4 +110,3 @@ function getRelativeTime($datetime) {
         return 'Just now';
     }
 }
-?>
