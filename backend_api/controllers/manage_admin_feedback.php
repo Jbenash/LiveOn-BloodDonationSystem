@@ -26,39 +26,39 @@ try {
     // Create database connection
     $db = new Database();
     $pdo = $db->connect();
-    
+
     $input = json_decode(file_get_contents('php://input'), true);
-    
+
     if (!isset($input['feedback_id']) || !isset($input['action'])) {
         echo json_encode(['success' => false, 'message' => 'Feedback ID and action are required']);
         exit;
     }
-    
+
     $feedback_id = $input['feedback_id'];
     $action = $input['action']; // 'approve' or 'reject'
     $admin_id = $_SESSION['user_id'];
-    
+
     // Validate action
     if (!in_array($action, ['approve', 'reject'])) {
         echo json_encode(['success' => false, 'message' => 'Invalid action']);
         exit;
     }
-    
+
     // Check if feedback exists and is pending
     $check_stmt = $pdo->prepare("SELECT * FROM feedback WHERE feedback_id = ? AND approved = 0");
     $check_stmt->execute([$feedback_id]);
     $feedback = $check_stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$feedback) {
         echo json_encode(['success' => false, 'message' => 'Feedback not found or already processed']);
         exit;
     }
-    
+
     // Update feedback status
     $approved_value = $action === 'approve' ? 1 : -1;
     $update_stmt = $pdo->prepare("UPDATE feedback SET approved = ? WHERE feedback_id = ?");
     $result = $update_stmt->execute([$approved_value, $feedback_id]);
-    
+
     if ($result) {
         // Try to log the admin action (skip if it fails)
         try {
@@ -72,7 +72,7 @@ try {
             // Log the error but don't fail the operation
             error_log("Failed to log admin action: " . $log_error->getMessage());
         }
-        
+
         // Simple success response without complex JOINs
         echo json_encode([
             'success' => true,
@@ -84,7 +84,6 @@ try {
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to update feedback status']);
     }
-    
 } catch (PDOException $e) {
     error_log("Database error in manage_admin_feedback.php: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Database error occurred']);
@@ -92,4 +91,3 @@ try {
     error_log("Error in manage_admin_feedback.php: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'An error occurred while processing your request']);
 }
-?>

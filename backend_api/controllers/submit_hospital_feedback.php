@@ -28,39 +28,39 @@ try {
     // Create database connection
     $db = new Database();
     $pdo = $db->connect();
-    
+
     $input = json_decode(file_get_contents('php://input'), true);
-    
+
     if (!isset($input['message']) || empty(trim($input['message']))) {
         echo json_encode(['success' => false, 'message' => 'Feedback message is required']);
         exit;
     }
-    
+
     $message = trim($input['message']);
     $user_id = $_SESSION['user_id'];
-    
+
     // Validate message length
     if (strlen($message) < 10) {
         echo json_encode(['success' => false, 'message' => 'Feedback message must be at least 10 characters long']);
         exit;
     }
-    
+
     if (strlen($message) > 1000) {
         echo json_encode(['success' => false, 'message' => 'Feedback message must be less than 1000 characters']);
         exit;
     }
-    
+
     // Generate unique feedback ID
     $feedback_id = 'FB' . uniqid();
-    
+
     // Insert feedback into database
     $stmt = $pdo->prepare("
         INSERT INTO feedback (feedback_id, user_id, role, message, created_at, approved) 
         VALUES (?, ?, 'hospital', ?, NOW(), 0)
     ");
-    
+
     $result = $stmt->execute([$feedback_id, $user_id, $message]);
-    
+
     if ($result) {
         // Log the submission (skip if admin_logs table doesn't exist)
         try {
@@ -72,16 +72,15 @@ try {
         } catch (PDOException $log_error) {
             // Continue even if logging fails
         }
-        
+
         echo json_encode([
-            'success' => true, 
+            'success' => true,
             'message' => 'Feedback submitted successfully! It will be reviewed by our admin team.',
             'feedback_id' => $feedback_id
         ]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to submit feedback']);
     }
-    
 } catch (PDOException $e) {
     error_log("Database error in submit_hospital_feedback.php: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Database error occurred']);
@@ -89,4 +88,3 @@ try {
     error_log("Error in submit_hospital_feedback.php: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'An error occurred while processing your request']);
 }
-?>

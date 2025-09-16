@@ -53,13 +53,13 @@ try {
     $mail->isSMTP();
     $mail->Host = 'smtp.gmail.com';
     $mail->SMTPAuth = true;
-    $mail->Username = 'liveonsystem@gmail.com';
-    $mail->Password = 'jzjcyywthodnlrew';
+    $mail->Username = 'mbenash961030@gmail.com';
+    $mail->Password = 'dpgcldgacitgdnfq';
     $mail->SMTPSecure = 'tls';
     $mail->Port = 587;
     $mail->SMTPDebug = 0;
 
-    $mail->setFrom('liveonsystem@gmail.com', 'LiveOn Team');
+    $mail->setFrom('mbenash961030@gmail.com', 'LiveOn Team');
     $mail->addAddress($input['email'], $input['full_name']);
 
     // Test database connection before proceeding

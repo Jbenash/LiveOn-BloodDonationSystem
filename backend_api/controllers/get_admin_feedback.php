@@ -25,11 +25,11 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 try {
     $status = isset($_GET['status']) ? $_GET['status'] : 'all';
     $role = isset($_GET['role']) ? $_GET['role'] : 'all';
-    
+
     // Build query based on filters
     $whereClause = "WHERE 1=1";
     $params = [];
-    
+
     if ($status !== 'all') {
         if ($status === 'pending') {
             $whereClause .= " AND f.approved = 0";
@@ -39,12 +39,12 @@ try {
             $whereClause .= " AND f.approved = -1";
         }
     }
-    
+
     if ($role !== 'all') {
         $whereClause .= " AND f.role = ?";
         $params[] = $role;
     }
-    
+
     // Get feedback with user details
     $query = "
         SELECT 
@@ -76,24 +76,23 @@ try {
             END,
             f.created_at DESC
     ";
-    
+
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
     $feedbacks = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Format the data
     foreach ($feedbacks as &$feedback) {
-        $feedback['status'] = $feedback['approved'] == 1 ? 'approved' : 
-                             ($feedback['approved'] == -1 ? 'rejected' : 'pending');
-        
+        $feedback['status'] = $feedback['approved'] == 1 ? 'approved' : ($feedback['approved'] == -1 ? 'rejected' : 'pending');
+
         // Format dates
         $feedback['created_at'] = date('Y-m-d H:i:s', strtotime($feedback['created_at']));
-        
+
         // Truncate message for list view
-        $feedback['message_preview'] = strlen($feedback['message']) > 100 ? 
+        $feedback['message_preview'] = strlen($feedback['message']) > 100 ?
             substr($feedback['message'], 0, 100) . '...' : $feedback['message'];
     }
-    
+
     echo json_encode([
         'success' => true,
         'feedbacks' => $feedbacks,
@@ -103,7 +102,6 @@ try {
             'role' => $role
         ]
     ]);
-    
 } catch (PDOException $e) {
     error_log("Database error in get_admin_feedback.php: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Database error occurred']);
@@ -111,4 +109,3 @@ try {
     error_log("Error in get_admin_feedback.php: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'An error occurred while fetching feedback']);
 }
-?>
