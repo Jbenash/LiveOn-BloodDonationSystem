@@ -2,6 +2,10 @@
 
 require_once __DIR__ . '/Exceptions.php';
 
+use LiveOn\Exceptions\DatabaseException;
+use PDO;
+use PDOException;
+
 abstract class BaseModel
 {
     protected $pdo;
@@ -51,14 +55,18 @@ abstract class BaseModel
             if (!empty($orderBy)) {
                 $orderClause = [];
                 foreach ($orderBy as $column => $direction) {
+                    // Validate direction to prevent SQL injection
+                    $direction = strtoupper($direction);
+                    if (!in_array($direction, ['ASC', 'DESC'])) {
+                        $direction = 'ASC';
+                    }
                     $orderClause[] = "$column $direction";
                 }
                 $sql .= " ORDER BY " . implode(', ', $orderClause);
             }
 
             if ($limit) {
-                $sql .= " LIMIT :limit";
-                $params['limit'] = $limit;
+                $sql .= " LIMIT " . (int)$limit;
             }
 
             $stmt = $this->pdo->prepare($sql);
@@ -93,11 +101,14 @@ abstract class BaseModel
             }
 
             $primaryKey = $this->getPrimaryKey();
-            $sql = "UPDATE {$this->getTableName()} SET " . implode(', ', $setClause) . " WHERE {$primaryKey} = :id";
-            $data['id'] = $id;
+            $sql = "UPDATE {$this->getTableName()} SET " . implode(', ', $setClause) . " WHERE {$primaryKey} = :primary_key_id";
+            
+            // Separate the parameters to avoid conflicts
+            $params = $data;
+            $params['primary_key_id'] = $id;
 
             $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute($data);
+            return $stmt->execute($params);
         } catch (PDOException $e) {
             throw new DatabaseException("Failed to update record: " . $e->getMessage());
         }

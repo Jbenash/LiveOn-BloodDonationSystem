@@ -7,8 +7,8 @@ use PHPMailer\PHPMailer\Exception;
 
 class GmailLimitChecker
 {
-    private $username = 'mbenash961030@gmail.com';
-    private $password = 'dpgcldgacitgdnfq';
+    private $username = 'liveonsystem@gmail.com';
+    private $password = 'rhihffxiuglrlagp';
     private $logFile = __DIR__ . '/gmail_usage.log';
     
     public function checkStatus()

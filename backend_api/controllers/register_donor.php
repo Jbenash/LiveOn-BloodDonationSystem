@@ -20,8 +20,8 @@ class Mailer
         $this->mail->isSMTP();
         $this->mail->Host = 'smtp.gmail.com';
         $this->mail->SMTPAuth = true;
-        $this->mail->Username = 'mbenash961030@gmail.com';
-        $this->mail->Password = 'dpgcldgacitgdnfq';
+        $this->mail->Username = 'liveonsystem@gmail.com';
+        $this->mail->Password = 'rhihffxiuglrlagp';
         $this->mail->SMTPSecure = 'tls';
         $this->mail->Port = 587;
         $this->mail->isHTML(true);
@@ -37,7 +37,7 @@ class Mailer
     }
     public function sendOTP($toEmail, $toName, $otp)
     {
-        $this->mail->setFrom('mbenash961030@gmail.com', 'LiveOn System');
+        $this->mail->setFrom('liveonsystem@gmail.com', 'LiveOn System');
         $this->mail->addAddress($toEmail, $toName);
         $this->mail->Subject = 'LiveOn Registration OTP';
         $this->mail->Body = "<h3>Hello $toName,</h3><p>Your OTP for completing your LiveOn registration is:</p><h2>$otp</h2><p>This code will expire in 10 minutes.</p><br><p>Regards,<br>LiveOn Team</p>";

@@ -12,8 +12,8 @@ $mail = new PHPMailer(true);
 $mail->isSMTP();
 $mail->Host = 'smtp.gmail.com';
 $mail->SMTPAuth = true;
-$mail->Username = 'mbenash961030@gmail.com';
-$mail->Password = 'dpgcldgacitgdnfq';
+$mail->Username = 'liveonsystem@gmail.com';
+$mail->Password = 'rhihffxiuglrlagp';
 $mail->SMTPSecure = 'tls';
 $mail->Port = 587;
 $mail->isHTML(true);
@@ -40,8 +40,8 @@ $mail->Debugoutput = function($str, $level) {
 echo "<h4>📡 Testing Exact Registration Configuration</h4>";
 
 try {
-    $mail->setFrom('mbenash961030@gmail.com', 'LiveOn Registration Test');
-    $mail->addAddress('mbenash961030@gmail.com');
+    $mail->setFrom('liveonsystem@gmail.com', 'LiveOn Registration Test');
+    $mail->addAddress('liveonsystem@gmail.com');
     $mail->Subject = 'Registration System Test - ' . date('Y-m-d H:i:s');
     $mail->Body = "<h3>Hello Test User,</h3><p>Your OTP for completing your LiveOn registration is:</p><h2>123456</h2><p>This code will expire in 10 minutes.</p><br><p>Regards,<br>LiveOn Team</p>";
     
@@ -111,7 +111,7 @@ try {
 
 echo "<hr style='margin: 30px 0;'>";
 echo "<h4>📋 Account Information</h4>";
-echo "<strong>Email:</strong> mbenash961030@gmail.com<br>";
+echo "<strong>Email:</strong> liveonsystem@gmail.com<br>";
 echo "<strong>Current Time:</strong> " . date('Y-m-d H:i:s T') . "<br>";
 
 $pacific = new DateTime('now', new DateTimeZone('America/Los_Angeles'));

@@ -23,8 +23,8 @@ function checkGmailStatus() {
         $mail->isSMTP();
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
-        $mail->Username = 'mbenash961030@gmail.com';
-        $mail->Password = 'dpgcldgacitgdnfq';
+        $mail->Username = 'liveonsystem@gmail.com';
+        $mail->Password = 'rhihffxiuglrlagp';
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
         $mail->SMTPDebug = 0;
@@ -35,8 +35,8 @@ function checkGmailStatus() {
             $mail->smtpClose();
             
             // Test actual sending capability
-            $mail->setFrom('mbenash961030@gmail.com', 'Status Check');
-            $mail->addAddress('mbenash961030@gmail.com');
+            $mail->setFrom('liveonsystem@gmail.com', 'Status Check');
+            $mail->addAddress('liveonsystem@gmail.com');
             $mail->Subject = 'Status Check - ' . date('H:i:s');
             $mail->Body = 'Automated status check';
             
