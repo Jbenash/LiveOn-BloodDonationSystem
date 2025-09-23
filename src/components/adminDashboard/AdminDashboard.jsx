@@ -1625,24 +1625,32 @@ const AdminDashboard = () => {
         credentials: 'include'
       });
 
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
       const data = await res.json();
+      console.log('Feedback action response:', data); // Debug logging
+
       if (data.success) {
         toast.success(data.message);
         // Update the feedback in the local state immediately for better UX
         setAllFeedback(prevFeedback =>
           prevFeedback.map(fb =>
             fb.feedback_id === feedbackToAction.feedback_id
-              ? { ...fb, approved: feedbackActionType === 'approve' ? 1 : -1 }
+              ? { ...fb, approved: data.approved_status || (feedbackActionType === 'approve' ? 1 : -1) }
               : fb
           )
         );
         // Also refresh all admin data to ensure consistency
         fetchAdminData();
       } else {
+        console.error('Feedback action failed:', data);
         toast.error(data.message || 'Failed to ' + feedbackActionType + ' feedback');
       }
     } catch (err) {
-      toast.error('Error processing feedback action');
+      console.error('Error processing feedback action:', err);
+      toast.error('Error processing feedback action: ' + err.message);
     }
 
     setShowFeedbackActionDialog(false);

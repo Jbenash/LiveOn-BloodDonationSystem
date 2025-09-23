@@ -50,7 +50,7 @@ const HomePage = () => {
   });
   const [isSubmittingContact, setIsSubmittingContact] = useState(false);
   const [contactSubmitStatus, setContactSubmitStatus] = useState('');
-  
+
 
 
   useEffect(() => {
@@ -271,7 +271,7 @@ const HomePage = () => {
 
       {/* Hero Section */}
       <section id="hero" className="homepage-hero">
-        
+
         <div className="hero-content">
           <div className="hero-text">
             <h1 className="hero-title">Smart Giving, Safer Lives.</h1>
@@ -356,15 +356,15 @@ const HomePage = () => {
           <div className="howitworks-popup-content" onClick={e => e.stopPropagation()}>
             <button className="howitworks-popup-close" onClick={closeHowItWorksPopup}>×</button>
             <div className="howitworks-popup-body">
-              <div style={{fontSize: '2rem', marginBottom: 8}}>💙</div>
+              <div style={{ fontSize: '2rem', marginBottom: 8 }}>💙</div>
               <h4>Welcome to LiveOn — Start Your Donation Journey</h4>
-              <ul style={{paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left'}}>
+              <ul style={{ paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left' }}>
                 <li>Fill in your details through the ‘Become a Donor’ form.</li>
                 <li>An OTP will be sent to your registered email.</li>
                 <li>Enter the OTP to verify your identity.</li>
                 <li>Once verified, visit the Medical Registration Officer (MRO) at your selected hospital to complete the process.</li>
               </ul>
-              <div style={{marginTop: 16, fontWeight: 500}}>Thank you for choosing to save lives. You're a hero in action! 🩸</div>
+              <div style={{ marginTop: 16, fontWeight: 500 }}>Thank you for choosing to save lives. You're a hero in action! 🩸</div>
             </div>
           </div>
         </div>
@@ -374,16 +374,16 @@ const HomePage = () => {
           <div className="howitworks-popup-content" onClick={e => e.stopPropagation()}>
             <button className="howitworks-popup-close" onClick={closeHowItWorksPopup}>×</button>
             <div className="howitworks-popup-body">
-              <div style={{fontSize: '2rem', marginBottom: 8}}>🔍</div>
+              <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔍</div>
               <h4>Verify – At the Hospital</h4>
-              <div style={{marginBottom: 8, fontWeight: 600}}>Verify Your Identity with the MRO</div>
-              <ul style={{paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left'}}>
+              <div style={{ marginBottom: 8, fontWeight: 600 }}>Verify Your Identity with the MRO</div>
+              <ul style={{ paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left' }}>
                 <li>Visit the Medical Registration Officer (MRO).</li>
                 <li>Share your OTP, which serves as your donor token.</li>
                 <li>The MRO will collect basic medical details and perform eligibility checks.</li>
                 <li>After confirmation, your donor record will be added to the system.</li>
               </ul>
-              <div style={{marginTop: 16, fontWeight: 500}}>Thank you for taking the next step toward a life-saving act.</div>
+              <div style={{ marginTop: 16, fontWeight: 500 }}>Thank you for taking the next step toward a life-saving act.</div>
             </div>
           </div>
         </div>
@@ -393,15 +393,15 @@ const HomePage = () => {
           <div className="howitworks-popup-content" onClick={e => e.stopPropagation()}>
             <button className="howitworks-popup-close" onClick={closeHowItWorksPopup}>×</button>
             <div className="howitworks-popup-body">
-              <div style={{fontSize: '2rem', marginBottom: 8}}>❤️</div>
+              <div style={{ fontSize: '2rem', marginBottom: 8 }}>❤️</div>
               <h4>Donate – Save a Life</h4>
-              <div style={{marginBottom: 8, fontWeight: 600}}>Time to Donate and Make a Difference</div>
-              <ul style={{paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left'}}>
+              <div style={{ marginBottom: 8, fontWeight: 600 }}>Time to Donate and Make a Difference</div>
+              <ul style={{ paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left' }}>
                 <li>Once verified: You can now donate blood manually at the hospital.</li>
                 <li>Staffs will safely collect and handle your donation.</li>
                 <li>This act of kindness is recorded and appreciated by LiveOn.</li>
               </ul>
-              <div style={{marginTop: 16, fontWeight: 500}}>Your one unit of blood can save multiple lives. Thank you!</div>
+              <div style={{ marginTop: 16, fontWeight: 500 }}>Your one unit of blood can save multiple lives. Thank you!</div>
             </div>
           </div>
         </div>
@@ -411,9 +411,9 @@ const HomePage = () => {
           <div className="howitworks-popup-content" onClick={e => e.stopPropagation()}>
             <button className="howitworks-popup-close" onClick={closeHowItWorksPopup}>×</button>
             <div className="howitworks-popup-body">
-              <div style={{fontSize: '2rem', marginBottom: 8}}>📍</div>
+              <div style={{ fontSize: '2rem', marginBottom: 8 }}>📍</div>
               <h4>Track Your Donation Journey Anytime</h4>
-              <ul style={{paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left'}}>
+              <ul style={{ paddingLeft: 20, margin: 0, fontSize: '1rem', textAlign: 'left' }}>
                 <li>From your dashboard: View your donation history, including past dates.</li>
                 <li>See a count of how many lives you’ve helped save.</li>
                 <li>Get updates and future reminders for donation events.</li>
@@ -501,7 +501,7 @@ const HomePage = () => {
         </div>
         <div className="success-story-card-wrapper">
           <button className="story-arrow story-arrow-left" onClick={prevStory}>&#8592;</button>
-          <div className="success-story-card" style={{cursor: successStories.length ? 'pointer' : 'default'}} onClick={() => {
+          <div className="success-story-card" style={{ cursor: successStories.length ? 'pointer' : 'default' }} onClick={() => {
             if (successStories.length) {
               setPopupStory(successStories[storyIdx]);
               setShowStoryPopup(true);
@@ -520,7 +520,7 @@ const HomePage = () => {
                 <div style={{ fontSize: '0.9rem', color: '#64748b', marginTop: 8 }}>
                   {new Date(successStories[storyIdx].created_at).toLocaleDateString()}
                 </div>
-                <div style={{marginTop: 10, fontSize: '0.95rem', color: '#2563eb', fontWeight: 600}}>Click to read more</div>
+                <div style={{ marginTop: 10, fontSize: '0.95rem', color: '#2563eb', fontWeight: 600 }}>Click to read more</div>
               </>
             )}
           </div>
@@ -531,11 +531,11 @@ const HomePage = () => {
       {/* Story Popup Modal */}
       {showStoryPopup && popupStory && (
         <div className="article-overlay" onClick={() => setShowStoryPopup(false)}>
-          <div className="article-sheet" onClick={e => e.stopPropagation()} style={{maxWidth: 600}}>
+          <div className="article-sheet" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
             <button className="close-article-btn" onClick={() => setShowStoryPopup(false)}>✖</button>
-            <h2 style={{fontWeight: 700, fontSize: '1.3rem', marginBottom: 8, color: '#2563eb'}}>{popupStory.title}</h2>
-            <div style={{fontSize: '0.98rem', color: '#64748b', marginBottom: 12}}>{new Date(popupStory.created_at).toLocaleString()}</div>
-            <div style={{fontWeight: 500, fontSize: '1.08rem', marginBottom: 8}}>{popupStory.message}</div>
+            <h2 style={{ fontWeight: 700, fontSize: '1.3rem', marginBottom: 8, color: '#2563eb' }}>{popupStory.title}</h2>
+            <div style={{ fontSize: '0.98rem', color: '#64748b', marginBottom: 12 }}>{new Date(popupStory.created_at).toLocaleString()}</div>
+            <div style={{ fontWeight: 500, fontSize: '1.08rem', marginBottom: 8 }}>{popupStory.message}</div>
           </div>
         </div>
       )}
@@ -607,7 +607,7 @@ const HomePage = () => {
               <span className="social-icon">📷</span>
             </div>
           </div>
-          
+
           <div className="footer-section">
             <h4>Platform</h4>
             <ul>
@@ -617,7 +617,7 @@ const HomePage = () => {
               <li onClick={() => handleNavLinkClick('success-stories')}>Success Stories</li>
             </ul>
           </div>
-          
+
           <div className="footer-section">
             <h4>Support</h4>
             <ul>
@@ -627,16 +627,16 @@ const HomePage = () => {
               <li>Terms of Service</li>
             </ul>
           </div>
-          
+
           <div className="footer-section">
             <h4>Connect</h4>
-            <p onClick={openContactModal} style={{cursor: 'pointer', textDecoration: 'underline'}}>contact@liveon.org</p>
+            <p onClick={openContactModal} style={{ cursor: 'pointer', textDecoration: 'underline' }}>contact@liveon.org</p>
             <p>1-800-LIVE-ON</p>
             <p>123 Innovation Drive</p>
-            <p>Email: mbenash961030@gmail.com</p>
+            <p>Email: liveonsystem@gmail.com</p>
           </div>
         </div>
-        
+
         <div className="footer-bottom">
           <div className="footer-line"></div>
           <div className="footer-copyright">
@@ -663,7 +663,7 @@ const HomePage = () => {
               <h2>Contact Us</h2>
               <button className="close-modal-btn" onClick={closeContactModal}>✖</button>
             </div>
-            
+
             <div className="contact-modal-content">
               <form onSubmit={handleContactSubmit} className="contact-form">
                 {contactSubmitStatus && (
@@ -745,39 +745,39 @@ const HomePage = () => {
         <div className="article-overlay" onClick={() => setShowArticle(false)}>
           <div className="article-sheet" onClick={e => e.stopPropagation()}>
             <button className="close-article-btn" onClick={() => setShowArticle(false)}>✖</button>
-            <h2 style={{fontWeight: 700, fontSize: '1.3rem', marginBottom: 8}}><span role="img" aria-label="blood">🩸</span> 1. What is Blood Donation?</h2>
-            <div style={{fontWeight: 500, fontStyle: 'italic', marginBottom: 8}}>A Simple Act That Creates a Lifesaving Chain</div>
-            <div style={{fontWeight: 600, marginBottom: 6}}>Introduction:</div>
-            <div style={{marginBottom: 16}}>
+            <h2 style={{ fontWeight: 700, fontSize: '1.3rem', marginBottom: 8 }}><span role="img" aria-label="blood">🩸</span> 1. What is Blood Donation?</h2>
+            <div style={{ fontWeight: 500, fontStyle: 'italic', marginBottom: 8 }}>A Simple Act That Creates a Lifesaving Chain</div>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>Introduction:</div>
+            <div style={{ marginBottom: 16 }}>
               Blood donation is a voluntary process where a person donates blood that will be used to treat patients during surgeries, accidents, childbirth complications, or diseases like anemia and cancer. Donated blood is a life-saving resource that hospitals depend on daily.
             </div>
-            <div style={{fontWeight: 600, marginBottom: 6}}><span role="img" aria-label="syringe">💉</span> What Happens During a Blood Donation?</div>
-            <div style={{marginBottom: 16}}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}><span role="img" aria-label="syringe">💉</span> What Happens During a Blood Donation?</div>
+            <div style={{ marginBottom: 16 }}>
               The process is simple and takes <b>30–45 minutes</b> in total:
-              <ol style={{margin: '8px 0 0 20px'}}>
+              <ol style={{ margin: '8px 0 0 20px' }}>
                 <li><b>Registration:</b> You provide your details.</li>
                 <li><b>Health Screening:</b> Blood pressure, pulse, hemoglobin, and weight are checked.</li>
                 <li><b>Donation:</b> Around 350–450 ml of blood is drawn using a sterile needle (only 8% of your total blood).</li>
                 <li><b>Rest & Refresh:</b> You’re given juice or snacks and encouraged to rest for 10 minutes.</li>
               </ol>
             </div>
-            <div style={{fontWeight: 600, marginBottom: 6}}><span role="img" aria-label="test-tube">🧪</span> Where Does Your Blood Go?</div>
-            <div style={{marginBottom: 16}}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}><span role="img" aria-label="test-tube">🧪</span> Where Does Your Blood Go?</div>
+            <div style={{ marginBottom: 16 }}>
               Donated blood is separated into components, including:
-              <ul style={{margin: '8px 0 0 20px'}}>
+              <ul style={{ margin: '8px 0 0 20px' }}>
                 <li><b>Red blood cells:</b> For trauma and surgery patients.</li>
                 <li><b>Platelets:</b> For cancer patients and transplants.</li>
                 <li><b>Plasma:</b> For burn victims and clotting disorders.</li>
               </ul>
-              <span style={{fontWeight: 600}}>This means one donation can help 3 different people!</span>
+              <span style={{ fontWeight: 600 }}>This means one donation can help 3 different people!</span>
             </div>
-            <div style={{fontWeight: 600, marginBottom: 6}}><span role="img" aria-label="lightbulb">💡</span> Why Is Blood Donation Important?</div>
-            <ul style={{margin: '8px 0 16px 20px'}}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}><span role="img" aria-label="lightbulb">💡</span> Why Is Blood Donation Important?</div>
+            <ul style={{ margin: '8px 0 16px 20px' }}>
               <li><b>There’s no substitute:</b> Blood can’t be made artificially.</li>
               <li><b>Short shelf life:</b> Red cells last only 42 days, platelets just 5.</li>
               <li><b>Every 2 seconds, someone needs blood</b> — from accident victims to babies.</li>
             </ul>
-            <div style={{fontWeight: 600, color: '#2563eb', marginTop: 18, fontStyle: 'italic'}}>
+            <div style={{ fontWeight: 600, color: '#2563eb', marginTop: 18, fontStyle: 'italic' }}>
               Your small act of kindness may be the reason someone gets a second chance at life. Regular donors are real heroes.
             </div>
           </div>
@@ -787,46 +787,46 @@ const HomePage = () => {
         <div className="article-overlay" onClick={() => setShowMythsArticle(false)}>
           <div className="article-sheet" onClick={e => e.stopPropagation()}>
             <button className="close-article-btn" onClick={() => setShowMythsArticle(false)}>✖</button>
-            <div style={{fontWeight: 700, fontSize: '1.2rem', marginBottom: 12, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8}}>
+            <div style={{ fontWeight: 700, fontSize: '1.2rem', marginBottom: 12, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span role="img" aria-label="lightbulb">💡</span> Myths vs Facts About Blood Donation
             </div>
-            <div style={{fontWeight: 500, fontStyle: 'italic', marginBottom: 8}}>Clearing Misconceptions That Stop People From Donating</div>
-            <div style={{fontWeight: 600, marginBottom: 6}}>Introduction:</div>
-            <div style={{marginBottom: 16}}>
+            <div style={{ fontWeight: 500, fontStyle: 'italic', marginBottom: 8 }}>Clearing Misconceptions That Stop People From Donating</div>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>Introduction:</div>
+            <div style={{ marginBottom: 16 }}>
               Fear, rumors, and misinformation prevent millions from donating blood. It’s time to bust the myths and share the facts — because truth saves lives.
             </div>
-            <div className="table-container" style={{background: '#e0e7ef', borderRadius: 10, padding: 12, marginBottom: 18}}>
-              <div style={{fontWeight: 600, marginBottom: 6}}><span role="img" aria-label="no">🚫</span> Common Myths and <span role="img" aria-label="yes">✅</span> The Truth</div>
-              <table style={{width: '100%', borderCollapse: 'separate', borderSpacing: 0}}>
+            <div className="table-container" style={{ background: '#e0e7ef', borderRadius: 10, padding: 12, marginBottom: 18 }}>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}><span role="img" aria-label="no">🚫</span> Common Myths and <span role="img" aria-label="yes">✅</span> The Truth</div>
+              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
                 <thead>
                   <tr>
-                    <th style={{textAlign: 'left', padding: '6px', fontWeight: 700, color: '#e11d48', borderRight: '3px solid #2563eb'}}>❌ Myth</th>
-                    <th style={{textAlign: 'left', padding: '6px', fontWeight: 700, color: '#22c55e'}}>✅ Fact</th>
+                    <th style={{ textAlign: 'left', padding: '6px', fontWeight: 700, color: '#e11d48', borderRight: '3px solid #2563eb' }}>❌ Myth</th>
+                    <th style={{ textAlign: 'left', padding: '6px', fontWeight: 700, color: '#22c55e' }}>✅ Fact</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr style={{borderBottom: '2px solid #2563eb'}}><td style={{padding: '6px', borderRight: '3px solid #2563eb'}}>It hurts a lot</td><td style={{padding: '6px'}}>Just a small prick — most donors say it’s like a mosquito bite</td></tr>
-                  <tr style={{borderBottom: '2px solid #2563eb'}}><td style={{padding: '6px', borderRight: '3px solid #2563eb'}}>I’ll feel weak for days</td><td style={{padding: '6px'}}>You might feel tired for a short time; rest and fluids help quickly</td></tr>
-                  <tr style={{borderBottom: '2px solid #2563eb'}}><td style={{padding: '6px', borderRight: '3px solid #2563eb'}}>I can’t donate if I’m on my period</td><td style={{padding: '6px'}}>You can, if you’re feeling well</td></tr>
-                  <tr style={{borderBottom: '2px solid #2563eb'}}><td style={{padding: '6px', borderRight: '3px solid #2563eb'}}>You can catch infections</td><td style={{padding: '6px'}}>Totally false — all needles are sterile and used once</td></tr>
-                  <tr style={{borderBottom: '2px solid #2563eb'}}><td style={{padding: '6px', borderRight: '3px solid #2563eb'}}>Only men should donate</td><td style={{padding: '6px'}}>Everyone (of any gender) can donate if they meet health requirements</td></tr>
-                  <tr style={{borderBottom: '2px solid #2563eb'}}><td style={{padding: '6px', borderRight: '3px solid #2563eb'}}>I have diabetes — I can’t donate</td><td style={{padding: '6px'}}>Diabetics on oral medication (not insulin) may be eligible</td></tr>
-                  <tr style={{borderBottom: '2px solid #2563eb'}}><td style={{padding: '6px', borderRight: '3px solid #2563eb'}}>You can’t donate if you’re vegetarian</td><td style={{padding: '6px'}}>Your diet doesn’t affect your eligibility as long as you're healthy</td></tr>
-                  <tr style={{borderBottom: '2px solid #2563eb'}}><td style={{padding: '6px', borderRight: '3px solid #2563eb'}}>You need to fast before donation</td><td style={{padding: '6px'}}>You should actually eat and drink water beforehand!</td></tr>
+                  <tr style={{ borderBottom: '2px solid #2563eb' }}><td style={{ padding: '6px', borderRight: '3px solid #2563eb' }}>It hurts a lot</td><td style={{ padding: '6px' }}>Just a small prick — most donors say it’s like a mosquito bite</td></tr>
+                  <tr style={{ borderBottom: '2px solid #2563eb' }}><td style={{ padding: '6px', borderRight: '3px solid #2563eb' }}>I’ll feel weak for days</td><td style={{ padding: '6px' }}>You might feel tired for a short time; rest and fluids help quickly</td></tr>
+                  <tr style={{ borderBottom: '2px solid #2563eb' }}><td style={{ padding: '6px', borderRight: '3px solid #2563eb' }}>I can’t donate if I’m on my period</td><td style={{ padding: '6px' }}>You can, if you’re feeling well</td></tr>
+                  <tr style={{ borderBottom: '2px solid #2563eb' }}><td style={{ padding: '6px', borderRight: '3px solid #2563eb' }}>You can catch infections</td><td style={{ padding: '6px' }}>Totally false — all needles are sterile and used once</td></tr>
+                  <tr style={{ borderBottom: '2px solid #2563eb' }}><td style={{ padding: '6px', borderRight: '3px solid #2563eb' }}>Only men should donate</td><td style={{ padding: '6px' }}>Everyone (of any gender) can donate if they meet health requirements</td></tr>
+                  <tr style={{ borderBottom: '2px solid #2563eb' }}><td style={{ padding: '6px', borderRight: '3px solid #2563eb' }}>I have diabetes — I can’t donate</td><td style={{ padding: '6px' }}>Diabetics on oral medication (not insulin) may be eligible</td></tr>
+                  <tr style={{ borderBottom: '2px solid #2563eb' }}><td style={{ padding: '6px', borderRight: '3px solid #2563eb' }}>You can’t donate if you’re vegetarian</td><td style={{ padding: '6px' }}>Your diet doesn’t affect your eligibility as long as you're healthy</td></tr>
+                  <tr style={{ borderBottom: '2px solid #2563eb' }}><td style={{ padding: '6px', borderRight: '3px solid #2563eb' }}>You need to fast before donation</td><td style={{ padding: '6px' }}>You should actually eat and drink water beforehand!</td></tr>
                 </tbody>
               </table>
             </div>
-            <div style={{fontWeight: 600, marginBottom: 6}}><span role="img" aria-label="speech">💬</span> Why Myths Are Dangerous</div>
-            <div style={{marginBottom: 16}}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}><span role="img" aria-label="speech">💬</span> Why Myths Are Dangerous</div>
+            <div style={{ marginBottom: 16 }}>
               These myths stop thousands from donating and worsen blood shortages. Education and awareness are the only cure.
             </div>
-            <div style={{fontWeight: 600, marginBottom: 6}}><span role="img" aria-label="brain">🧠</span> How to Stay Informed</div>
-            <ul style={{margin: '8px 0 16px 20px'}}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}><span role="img" aria-label="brain">🧠</span> How to Stay Informed</div>
+            <ul style={{ margin: '8px 0 16px 20px' }}>
               <li>Talk to medical professionals at blood centers.</li>
               <li>Refer to official blood bank websites (e.g., Red Cross, WHO).</li>
               <li>Attend awareness drives or donation camps.</li>
             </ul>
-            <div style={{fontWeight: 600, color: '#2563eb', marginTop: 18, fontStyle: 'italic'}}>
+            <div style={{ fontWeight: 600, color: '#2563eb', marginTop: 18, fontStyle: 'italic' }}>
               Don't let myths steal the chance of life from someone. Donate with confidence — and encourage others with truth.
             </div>
           </div>
@@ -836,23 +836,23 @@ const HomePage = () => {
         <div className="article-overlay" onClick={() => setShowWhoArticle(false)}>
           <div className="article-sheet" onClick={e => e.stopPropagation()}>
             <button className="close-article-btn" onClick={() => setShowWhoArticle(false)}>✖</button>
-            <div style={{fontWeight: 700, fontSize: '1.2rem', marginBottom: 12, color: '#2563eb', display: 'flex', alignItems: 'center', gap: 8}}>
+            <div style={{ fontWeight: 700, fontSize: '1.2rem', marginBottom: 12, color: '#2563eb', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span role="img" aria-label="globe">🌍</span> Who Can Donate Blood?
             </div>
-            <div style={{fontWeight: 500, fontStyle: 'italic', marginBottom: 8}}>Are You Eligible to Be a Lifesaver?</div>
-            <div style={{fontWeight: 600, marginBottom: 6}}>Introduction:</div>
-            <div style={{marginBottom: 16}}>
+            <div style={{ fontWeight: 500, fontStyle: 'italic', marginBottom: 8 }}>Are You Eligible to Be a Lifesaver?</div>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>Introduction:</div>
+            <div style={{ marginBottom: 16 }}>
               Millions are eligible to donate blood — but many don’t know it. Here’s a detailed look at the criteria, restrictions, and what you need to know to start giving.
             </div>
-            <div style={{fontWeight: 600, marginBottom: 6}}><span role="img" aria-label="check">✅</span> General Eligibility Criteria</div>
-            <ul style={{margin: '8px 0 16px 20px'}}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}><span role="img" aria-label="check">✅</span> General Eligibility Criteria</div>
+            <ul style={{ margin: '8px 0 16px 20px' }}>
               <li>Be aged 18 to 60 years</li>
               <li>Weigh at least 50 kg</li>
               <li>Have hemoglobin ≥ 12.5 g/dL</li>
               <li>Be in generally good health</li>
             </ul>
-            <div style={{fontWeight: 600, marginBottom: 6}}><span role="img" aria-label="no">⛔</span> You can’t donate if you:</div>
-            <ul style={{margin: '8px 0 16px 20px'}}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}><span role="img" aria-label="no">⛔</span> You can’t donate if you:</div>
+            <ul style={{ margin: '8px 0 16px 20px' }}>
               <li>Have had recent surgery or tattoo (within last 6 months)</li>
               <li>Have cold, flu, or fever</li>
               <li>Are pregnant or menstruating heavily</li>
@@ -860,37 +860,37 @@ const HomePage = () => {
               <li>Are HIV+, Hepatitis B/C+, or STD positive</li>
               <li>Took antibiotics in the past 72 hours</li>
             </ul>
-            <div style={{fontWeight: 600, marginBottom: 6}}><span role="img" aria-label="clock">⏱️</span> Donation Frequency</div>
-            <div className="table-container" style={{background: '#e0e7ef', borderRadius: 10, padding: 12, marginBottom: 18}}>
-              <table style={{width: '100%', borderCollapse: 'separate', borderSpacing: 0}}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}><span role="img" aria-label="clock">⏱️</span> Donation Frequency</div>
+            <div className="table-container" style={{ background: '#e0e7ef', borderRadius: 10, padding: 12, marginBottom: 18 }}>
+              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
                 <thead>
                   <tr>
-                    <th style={{textAlign: 'left', padding: '6px', fontWeight: 700, color: '#2563eb', borderRight: '3px solid #2563eb'}}>Type</th>
-                    <th style={{textAlign: 'left', padding: '6px', fontWeight: 700, color: '#2563eb'}}>Interval</th>
+                    <th style={{ textAlign: 'left', padding: '6px', fontWeight: 700, color: '#2563eb', borderRight: '3px solid #2563eb' }}>Type</th>
+                    <th style={{ textAlign: 'left', padding: '6px', fontWeight: 700, color: '#2563eb' }}>Interval</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr style={{borderBottom: '2px solid #2563eb'}}><td style={{padding: '6px', borderRight: '3px solid #2563eb'}}>Whole Blood</td><td style={{padding: '6px'}}>Every 3 months</td></tr>
-                  <tr style={{borderBottom: '2px solid #2563eb'}}><td style={{padding: '6px', borderRight: '3px solid #2563eb'}}>Platelets</td><td style={{padding: '6px'}}>Every 2 weeks</td></tr>
-                  <tr style={{borderBottom: '2px solid #2563eb'}}><td style={{padding: '6px', borderRight: '3px solid #2563eb'}}>Plasma</td><td style={{padding: '6px'}}>Every 15 days</td></tr>
+                  <tr style={{ borderBottom: '2px solid #2563eb' }}><td style={{ padding: '6px', borderRight: '3px solid #2563eb' }}>Whole Blood</td><td style={{ padding: '6px' }}>Every 3 months</td></tr>
+                  <tr style={{ borderBottom: '2px solid #2563eb' }}><td style={{ padding: '6px', borderRight: '3px solid #2563eb' }}>Platelets</td><td style={{ padding: '6px' }}>Every 2 weeks</td></tr>
+                  <tr style={{ borderBottom: '2px solid #2563eb' }}><td style={{ padding: '6px', borderRight: '3px solid #2563eb' }}>Plasma</td><td style={{ padding: '6px' }}>Every 15 days</td></tr>
                 </tbody>
               </table>
             </div>
-            <div style={{fontWeight: 600, marginBottom: 6}}><span role="img" aria-label="blood">🩸</span> What You Should Do Before Donating</div>
-            <ul style={{margin: '8px 0 16px 20px'}}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}><span role="img" aria-label="blood">🩸</span> What You Should Do Before Donating</div>
+            <ul style={{ margin: '8px 0 16px 20px' }}>
               <li>Eat a healthy meal (not fatty) 1–2 hours before</li>
               <li>Stay hydrated</li>
               <li>Avoid smoking or alcohol before and after donation</li>
             </ul>
-            <div style={{fontWeight: 600, marginBottom: 6}}><span role="img" aria-label="speech">💬</span> Am I Too Old or Too Young?</div>
-            <div style={{marginBottom: 16}}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}><span role="img" aria-label="speech">💬</span> Am I Too Old or Too Young?</div>
+            <div style={{ marginBottom: 16 }}>
               Most blood banks accept donors from 18 to 60, but regular donors who are healthy can sometimes donate up to age 65–70 with approval.
             </div>
-            <div style={{fontWeight: 600, marginBottom: 6}}><span role="img" aria-label="star">🌟</span> Why You Should Check Again</div>
-            <div style={{marginBottom: 16}}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}><span role="img" aria-label="star">🌟</span> Why You Should Check Again</div>
+            <div style={{ marginBottom: 16 }}>
               Even if you were rejected once due to low hemoglobin or weight, you may become eligible later. Many people miss the chance because they never re-check.
             </div>
-            <div style={{fontWeight: 600, color: '#2563eb', marginTop: 18, fontStyle: 'italic'}}>
+            <div style={{ fontWeight: 600, color: '#2563eb', marginTop: 18, fontStyle: 'italic' }}>
               You could be the reason a cancer patient finishes treatment, a mother survives childbirth, or an accident victim goes home safely.
             </div>
           </div>

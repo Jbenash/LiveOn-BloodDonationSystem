@@ -23,12 +23,12 @@ class EmailService extends BaseService
             $this->mailer->isSMTP();
             $this->mailer->Host = 'smtp.gmail.com';
             $this->mailer->SMTPAuth = true;
-            $this->mailer->Username = 'mbenash961030@gmail.com';
-            $this->mailer->Password = 'dpgcldgacitgdnfq';
+            $this->mailer->Username = 'liveonsystem@gmail.com';
+            $this->mailer->Password = 'rhihffxiuglrlagp';
             $this->mailer->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $this->mailer->Port = 587;
             $this->mailer->isHTML(true);
-            $this->mailer->setFrom('mbenash961030@gmail.com', 'LiveOn System');
+            $this->mailer->setFrom('liveonsystem@gmail.com', 'LiveOn System');
 
             // Enhanced settings for better reliability
             $this->mailer->Timeout = 60;
@@ -64,7 +64,7 @@ class EmailService extends BaseService
             $this->mailer->Body = $this->generateOTPEmailTemplate($toName, $otp);
 
             $this->mailer->send();
-            
+
             // Log successful send
             $this->logEmailUsage('SUCCESS', "OTP sent to $toEmail");
 
@@ -74,14 +74,14 @@ class EmailService extends BaseService
             );
         } catch (Exception $e) {
             $errorMsg = $e->getMessage();
-            
+
             // Log the error
             if (strpos($errorMsg, '5.4.5') !== false) {
                 $this->logEmailUsage('LIMIT_EXCEEDED', $errorMsg);
             } else {
                 $this->logEmailUsage('ERROR', $errorMsg);
             }
-            
+
             return $this->errorResponse('Email could not be sent: ' . $errorMsg);
         }
     }
@@ -399,7 +399,7 @@ class EmailService extends BaseService
                     <p style='color: #999; font-size: 14px; margin: 0;'>
                         If you have any questions, please contact our support team.<br>
                         <strong>LiveOn Team</strong><br>
-                        Email: mbenash961030@gmail.com
+                        Email: liveonsystem@gmail.com
                     </p>
                 </div>
             </div>
@@ -427,7 +427,7 @@ You can now log in to your account using your new password. For security purpose
 If you have any questions, please contact our support team.
 
 LiveOn Team
-Email: mbenash961030@gmail.com
+Email: liveonsystem@gmail.com
         ";
     }
 
@@ -445,7 +445,7 @@ Email: mbenash961030@gmail.com
             return $errorMessage;
         }
     }
-    
+
     private function logEmailUsage(string $status, string $message): void
     {
         $logFile = __DIR__ . '/../../gmail_usage.log';

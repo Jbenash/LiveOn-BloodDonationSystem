@@ -232,9 +232,9 @@ class DonorService
             $date->setTimezone(new \DateTimeZone('Asia/Colombo'));
             $localDatetime = $date->format('Y-m-d H:i:s.v');
 
-            // Calculate next eligible date (56 days after donation for whole blood)
+            // Calculate next eligible date (6 months after donation)
             $nextEligibleDate = new \DateTime($input['donation_date']);
-            $nextEligibleDate->add(new \DateInterval('P56D')); // Add 56 days
+            $nextEligibleDate->add(new \DateInterval('P6M')); // Add 6 months (approximately 180 days)
             $nextEligibleDateStr = $nextEligibleDate->format('Y-m-d');
 
             $sql2 = "UPDATE donors SET status = 'not available', last_donation_date = :donation_date, next_eligible_date = :next_eligible_date WHERE donor_id = :donor_id";
@@ -252,6 +252,9 @@ class DonorService
             if ($row = $userStmt->fetch()) {
                 $user_id = $row['user_id'];
             }
+            // Update rewards system
+            $this->updateDonorRewards($input['donor_id'], $input['donation_date']);
+
             // Insert notification for new donation
             if ($user_id) {
                 $notifStmt = $pdo->prepare("INSERT INTO notifications (user_id, message, type, status, timestamp) VALUES (?, ?, ?, ?, NOW())");
@@ -399,6 +402,288 @@ class DonorService
                 'success' => false,
                 'message' => 'Failed to send OTP email: ' . $e->getMessage()
             ];
+        }
+    }
+
+    /**
+     * Updates donor availability status based on next_eligible_date
+     * Automatically changes status from 'not available' to 'available' 
+     * when next_eligible_date has passed
+     * 
+     * @return array Results of the update operation
+     */
+    public function updateDonorAvailability(): array
+    {
+        try {
+            $currentDate = date('Y-m-d');
+
+            // Find all donors who are 'not available' but have passed their next_eligible_date
+            $sql = "SELECT donor_id, user_id, next_eligible_date 
+                    FROM donors 
+                    WHERE status = 'not available' 
+                    AND next_eligible_date IS NOT NULL 
+                    AND next_eligible_date <= :current_date";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindParam(':current_date', $currentDate);
+            $stmt->execute();
+
+            $eligibleDonors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $updatedCount = 0;
+
+            if (empty($eligibleDonors)) {
+                return [
+                    'success' => true,
+                    'message' => 'No donors eligible for availability update',
+                    'updated_count' => 0,
+                    'eligible_donors' => 0
+                ];
+            }
+
+            // Update each eligible donor to 'available' status
+            $updateSql = "UPDATE donors 
+                         SET status = 'available' 
+                         WHERE donor_id = :donor_id";
+            $updateStmt = $this->pdo->prepare($updateSql);
+
+            foreach ($eligibleDonors as $donor) {
+                try {
+                    $updateStmt->bindParam(':donor_id', $donor['donor_id']);
+                    $updateStmt->execute();
+                    $updatedCount++;
+
+                    // Insert notification for the donor about their availability update
+                    if ($donor['user_id']) {
+                        $notifSql = "INSERT INTO notifications (user_id, message, type, status, timestamp) 
+                                    VALUES (:user_id, :message, 'info', 'unread', NOW())";
+                        $notifStmt = $this->pdo->prepare($notifSql);
+                        $message = "You are now available for blood donation again!";
+                        $notifStmt->bindParam(':user_id', $donor['user_id']);
+                        $notifStmt->bindParam(':message', $message);
+                        $notifStmt->execute();
+                    }
+                } catch (\PDOException $e) {
+                    error_log("Failed to update donor availability for {$donor['donor_id']}: " . $e->getMessage());
+                }
+            }
+
+            return [
+                'success' => true,
+                'message' => "Successfully updated availability for {$updatedCount} donors",
+                'updated_count' => $updatedCount,
+                'eligible_donors' => count($eligibleDonors)
+            ];
+        } catch (\PDOException $e) {
+            error_log('Database error in updateDonorAvailability: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => 'Database error occurred while updating donor availability'
+            ];
+        } catch (\Exception $e) {
+            error_log('Error in updateDonorAvailability: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => 'Server error occurred while updating donor availability'
+            ];
+        }
+    }
+
+    /**
+     * Update donor rewards when a donation is made
+     */
+    private function updateDonorRewards(string $donorId, string $donationDate): void
+    {
+        try {
+            $pdo = $this->pdo;
+
+            // Check if donor rewards record exists
+            $checkStmt = $pdo->prepare("SELECT * FROM donor_rewards WHERE donor_id = ?");
+            $checkStmt->execute([$donorId]);
+            $rewardsRecord = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+            // Calculate points for this donation (base 100 points per donation)
+            $basePoints = 100;
+            $bonusPoints = 0;
+
+            // Calculate streak and bonus points
+            $currentStreak = $this->calculateDonationStreak($donorId, $donationDate);
+
+            // Bonus points for streaks
+            if ($currentStreak >= 12) {
+                $bonusPoints += 100; // Annual streak bonus
+            } elseif ($currentStreak >= 6) {
+                $bonusPoints += 50; // Semi-annual bonus
+            } elseif ($currentStreak >= 3) {
+                $bonusPoints += 25; // Quarterly bonus
+            }
+
+            // Weekend donation bonus
+            $donationDay = date('N', strtotime($donationDate)); // 1=Monday, 7=Sunday
+            if ($donationDay >= 6) { // Saturday or Sunday
+                $bonusPoints += 25;
+            }
+
+            $totalPoints = $basePoints + $bonusPoints;
+
+            if ($rewardsRecord) {
+                // Update existing record
+                $newCurrentPoints = $rewardsRecord['current_points'] + $totalPoints;
+                $newTotalEarned = $rewardsRecord['total_points_earned'] + $totalPoints;
+                $longestStreak = max($rewardsRecord['longest_streak'], $currentStreak);
+
+                $updateStmt = $pdo->prepare("
+                    UPDATE donor_rewards 
+                    SET current_points = ?, 
+                        total_points_earned = ?, 
+                        current_streak = ?, 
+                        longest_streak = ?, 
+                        last_donation_date = ?,
+                        updated_at = NOW()
+                    WHERE donor_id = ?
+                ");
+                $updateStmt->execute([
+                    $newCurrentPoints,
+                    $newTotalEarned,
+                    $currentStreak,
+                    $longestStreak,
+                    $donationDate,
+                    $donorId
+                ]);
+            } else {
+                // Create new record
+                $insertStmt = $pdo->prepare("
+                    INSERT INTO donor_rewards 
+                    (donor_id, current_points, total_points_earned, total_points_spent, 
+                     current_streak, longest_streak, last_donation_date) 
+                    VALUES (?, ?, ?, 0, ?, ?, ?)
+                ");
+                $insertStmt->execute([
+                    $donorId,
+                    $totalPoints,
+                    $totalPoints,
+                    $currentStreak,
+                    $currentStreak,
+                    $donationDate
+                ]);
+            }
+
+            // Check and award achievements
+            $this->checkAndAwardAchievements($donorId);
+        } catch (\PDOException $e) {
+            error_log('Database error in updateDonorRewards: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            error_log('Error in updateDonorRewards: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Calculate the current donation streak for a donor
+     */
+    private function calculateDonationStreak(string $donorId, string $currentDonationDate): int
+    {
+        try {
+            $pdo = $this->pdo;
+
+            // Get all donations for this donor ordered by date
+            $stmt = $pdo->prepare("
+                SELECT DATE_FORMAT(donation_date, '%Y-%m') as month
+                FROM donations 
+                WHERE donor_id = ? 
+                ORDER BY donation_date DESC
+            ");
+            $stmt->execute([$donorId]);
+            $donations = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            if (empty($donations)) {
+                return 1; // First donation
+            }
+
+            $streak = 1; // Include current donation
+            $currentMonth = date('Y-m', strtotime($currentDonationDate));
+            $checkMonth = date('Y-m', strtotime($currentMonth . ' -1 month'));
+
+            foreach ($donations as $month) {
+                if ($month === $checkMonth) {
+                    $streak++;
+                    $checkMonth = date('Y-m', strtotime($checkMonth . ' -1 month'));
+                } else {
+                    break;
+                }
+            }
+
+            return $streak;
+        } catch (\Exception $e) {
+            error_log('Error calculating donation streak: ' . $e->getMessage());
+            return 1;
+        }
+    }
+
+    /**
+     * Check and award achievements based on donation count and other criteria
+     */
+    private function checkAndAwardAchievements(string $donorId): void
+    {
+        try {
+            $pdo = $this->pdo;
+
+            // Get current rewards record with current points
+            $stmt = $pdo->prepare("SELECT achievements_earned, current_points, current_streak FROM donor_rewards WHERE donor_id = ?");
+            $stmt->execute([$donorId]);
+            $rewardsRecord = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $currentAchievements = [];
+            if ($rewardsRecord && $rewardsRecord['achievements_earned']) {
+                $currentAchievements = json_decode($rewardsRecord['achievements_earned'], true) ?: [];
+            }
+
+            $currentPoints = $rewardsRecord['current_points'] ?? 0;
+            $newAchievements = [];
+            $bonusPoints = 0;
+
+            // Define achievement IDs and their point-based requirements
+            $achievementRules = [
+                1 => ['requirement' => $currentPoints >= 100, 'bonus' => 50, 'name' => 'First Donation'],
+                2 => ['requirement' => $currentPoints >= 200, 'bonus' => 100, 'name' => 'Life Saver'],
+                3 => ['requirement' => $currentPoints >= 300, 'bonus' => 150, 'name' => 'Rising Star'],
+                4 => ['requirement' => $currentPoints >= 500, 'bonus' => 200, 'name' => 'Champion'],
+                5 => ['requirement' => $currentPoints >= 750, 'bonus' => 250, 'name' => 'Hero'],
+                6 => ['requirement' => $currentPoints >= 1000, 'bonus' => 300, 'name' => 'Legend'],
+                7 => ['requirement' => $currentPoints >= 1500, 'bonus' => 500, 'name' => 'Ultimate Donor'],
+                8 => ['requirement' => $currentPoints >= 2000, 'bonus' => 750, 'name' => 'Master Donor']
+            ];
+
+            // Check each achievement
+            foreach ($achievementRules as $achievementId => $rule) {
+                if ($rule['requirement'] && !in_array($achievementId, $currentAchievements)) {
+                    $newAchievements[] = $achievementId;
+                    $bonusPoints += $rule['bonus'];
+                    error_log("Awarding achievement {$achievementId} ({$rule['name']}) to donor {$donorId} - {$rule['bonus']} bonus points");
+                }
+            }
+
+            // Award new achievements
+            if (!empty($newAchievements)) {
+                $allAchievements = array_merge($currentAchievements, $newAchievements);
+
+                // Update achievements and add bonus points
+                $stmt = $pdo->prepare("
+                    UPDATE donor_rewards 
+                    SET achievements_earned = ?, 
+                        current_points = current_points + ?,
+                        total_points_earned = total_points_earned + ?
+                    WHERE donor_id = ?
+                ");
+                $stmt->execute([
+                    json_encode($allAchievements),
+                    $bonusPoints,
+                    $bonusPoints,
+                    $donorId
+                ]);
+
+                error_log("Updated achievements for donor {$donorId}: " . json_encode($allAchievements) . " (+" . $bonusPoints . " bonus points)");
+            }
+        } catch (\Exception $e) {
+            error_log('Error checking achievements: ' . $e->getMessage());
         }
     }
 }

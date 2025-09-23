@@ -53,9 +53,11 @@ try {
         LEFT JOIN hospitals h2 ON m.hospital_id = h2.hospital_id
     ";
 
-    // Add approval filter if requested
+    // Add approval filter if requested and filter out rejected users
     if ($approvedOnly) {
-        $sql .= " WHERE f.approved = 1";
+        $sql .= " WHERE f.approved = 1 AND u.status != 'rejected'";
+    } else {
+        $sql .= " WHERE u.status != 'rejected'";
     }
 
     $sql .= " ORDER BY f.created_at DESC";

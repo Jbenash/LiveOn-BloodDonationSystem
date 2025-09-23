@@ -78,21 +78,79 @@ const DonorDashboard = () => {
 
     const controller = new AbortController();
 
-    // Add a small delay to ensure session is ready
-    const fetchData = () => {
+    // Add a delay to ensure session is ready and prevent race conditions
+    const fetchData = async () => {
       // Check if we have any session-related cookies
       const hasSessionCookie = document.cookie.includes('LIVEON_SESSION') ||
         document.cookie.includes('PHPSESSID') ||
         document.cookie.includes('session');
 
-      // Don't redirect immediately - let the API call determine if session is valid
-      // The session might be valid even if we can't detect the cookie name
+      // Log session state for debugging
+      console.log('Dashboard fetchData - Cookie check:', hasSessionCookie, 'Document cookies:', document.cookie);
 
-      fetch('http://localhost/Liveonv2/backend_api/controllers/donor_dashboard.php', {
-        credentials: 'include',
-        signal: controller.signal
-      })
+      try {
+        // First, validate session with optimized retry logic
+        console.log('Checking session validity...');
+        let sessionValid = false;
+        let attempts = 0;
+        const maxAttempts = 2;
+
+        while (attempts < maxAttempts && !sessionValid) {
+          try {
+            const sessionResponse = await fetch('http://localhost/liveonv2/backend_api/controllers/check_session.php?simple=true', {
+              credentials: 'include'
+            });
+
+            const sessionData = await sessionResponse.json();
+            console.log(`Session check attempt ${attempts + 1}:`, sessionData);
+
+            if (sessionData.valid) {
+              sessionValid = true;
+              console.log('Session validated successfully');
+              break; // Exit immediately on success
+            } else {
+              attempts++;
+              if (attempts < maxAttempts) {
+                console.log(`Session not valid yet, waiting before retry ${attempts}/${maxAttempts}...`);
+                await new Promise(resolve => setTimeout(resolve, 200));
+              }
+            }
+          } catch (sessionError) {
+            console.log('Session check error:', sessionError);
+            attempts++;
+            if (attempts < maxAttempts) {
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
+          }
+        }
+
+        if (!sessionValid) {
+          console.log('Session validation failed after all attempts, redirecting to login...');
+          setLoading(false);
+          navigate('/');
+          return;
+        }
+
+        // Session is valid, proceed with dashboard data fetch
+        console.log('Session valid, fetching dashboard data...');
+        const response = await fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
+          credentials: 'include',
+          signal: controller.signal
+        });
+
+        return response;
+      } catch (error) {
+        console.error('Session check failed:', error);
+        throw error;
+      }
+    };
+
+    // Updated fetchData call that returns a response
+    const loadDashboardData = () => {
+      fetchData()
         .then(res => {
+          if (!res) return; // Session check failed, already handled
+
           if (!res.ok) {
             if (res.status === 401) {
               // Session expired or user not logged in - redirect to login
@@ -126,9 +184,12 @@ const DonorDashboard = () => {
             console.error('Error fetching donor data:', err);
 
             if (err.message === 'SESSION_EXPIRED') {
-              // Don't set error state, just redirect immediately
-              setLoading(false);
-              navigate('/');
+              console.log('Session expired, redirecting to login...');
+              // Add a small delay before redirect to prevent flash
+              setTimeout(() => {
+                setLoading(false);
+                navigate('/');
+              }, 500);
               return;
             }
 
@@ -144,19 +205,25 @@ const DonorDashboard = () => {
         });
     };
 
-    // Add a longer delay to ensure session is ready and prevent unnecessary API calls
-    const timeoutId = setTimeout(fetchData, 200);
+    // Load dashboard data immediately
+    loadDashboardData();
+
+    // Add a timeout to prevent loading spinner from getting stuck
+    const loadingTimeout = setTimeout(() => {
+      console.log('Loading timeout reached - forcing loading to false');
+      setLoading(false);
+    }, 8000); // 8 seconds timeout
 
     // Cleanup function to abort fetch if component unmounts or logout starts
     return () => {
       controller.abort();
-      clearTimeout(timeoutId);
+      clearTimeout(loadingTimeout);
     };
   }, [navigate, isLoggingOut]);
 
   useEffect(() => {
     if (activeSection === 'donations' && user?.donorId) {
-      fetch(`http://localhost/Liveonv2/backend_api/controllers/get_donor_donations.php?donor_id=${user.donorId}`, {
+      fetch(`http://localhost/liveonv2/backend_api/controllers/get_donor_donations.php?donor_id=${user.donorId}`, {
         credentials: 'include'
       })
         .then(res => res.json())
@@ -233,7 +300,7 @@ const DonorDashboard = () => {
     setError(null); // Clear any error state during logout
 
     // Call logout API first
-    fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
+    fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
       method: 'POST',
       credentials: 'include'
     })
@@ -281,7 +348,7 @@ const DonorDashboard = () => {
 
     try {
       // Call logout API
-      const response = await fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
+      const response = await fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
         method: 'POST',
         credentials: 'include',
       });
@@ -324,7 +391,7 @@ const DonorDashboard = () => {
       formData.append('removeAvatar', '1');
     }
     try {
-      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/update_donor_profile.php', {
+      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/update_donor_profile.php', {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -338,7 +405,7 @@ const DonorDashboard = () => {
           // bloodType and age: keep existing values as they cannot be changed
           location: editForm.location,
           email: editForm.email,
-          profilePic: (editForm.removeAvatar || data.avatarRemoved) ? null : (data.imagePath ? `http://localhost/Liveonv2/${data.imagePath}` : u.profilePic)
+          profilePic: (editForm.removeAvatar || data.avatarRemoved) ? null : (data.imagePath ? `http://localhost/liveonv2/${data.imagePath}` : u.profilePic)
         }));
 
         // Reset edit form to clear any cached data
@@ -368,7 +435,7 @@ const DonorDashboard = () => {
     }
 
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/request_donor_removal.php', {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/request_donor_removal.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -402,7 +469,7 @@ const DonorDashboard = () => {
   const fetchHospitals = async (location) => {
     setLoadingHospitals(true);
     try {
-      const response = await fetch(`http://localhost/Liveonv2/backend_api/controllers/get_hospitals.php?location=${encodeURIComponent(location)}`, {
+      const response = await fetch(`http://localhost/liveonv2/backend_api/controllers/get_hospitals.php?location=${encodeURIComponent(location)}`, {
         credentials: 'include'
       });
 
@@ -438,7 +505,7 @@ const DonorDashboard = () => {
   const fetchApprovedFeedback = async () => {
     setFeedbackLoading(true);
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/get_approved_feedback.php?limit=6', {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/get_approved_feedback.php?limit=6', {
         credentials: 'include'
       });
 
@@ -585,7 +652,7 @@ const DonorDashboard = () => {
           setError(null);
           setLoading(true);
           // Re-fetch data
-          fetch('http://localhost/Liveonv2/backend_api/controllers/donor_dashboard.php', {
+          fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
             credentials: 'include'
           })
             .then(res => {
@@ -1526,7 +1593,7 @@ const DonorDashboard = () => {
                     }
 
                     try {
-                      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/submit_feedback.php', {
+                      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_feedback.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

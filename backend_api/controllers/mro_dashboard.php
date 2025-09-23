@@ -42,17 +42,17 @@ try {
     $stmt->execute([$hospital_id]);
     $pending_requests = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // 2. Get total donors registered for this hospital
+    // 2. Get total donors registered for this hospital (excluding rejected users)
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as total_donors 
         FROM donors d 
         INNER JOIN users u ON d.user_id = u.user_id 
-        WHERE d.preferred_hospital_id = ? AND u.role = 'donor'
+        WHERE d.preferred_hospital_id = ? AND u.role = 'donor' AND u.status != 'rejected'
     ");
     $stmt->execute([$hospital_id]);
     $total_donors = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // 3. Get active donors (user status = active and donor status = available)
+    // 3. Get active donors (user status = active and donor status = available, excluding rejected)
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as active_donors 
         FROM donors d 
@@ -65,7 +65,7 @@ try {
     $stmt->execute([$hospital_id]);
     $active_donors = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // 4. Get not available donors (donated recently)
+    // 4. Get not available donors (donated recently, excluding rejected)
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as not_available_donors 
         FROM donors d 
@@ -78,7 +78,7 @@ try {
     $stmt->execute([$hospital_id]);
     $not_available_donors = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // 5. Get inactive donors (not yet verified by MRO)
+    // 5. Get inactive donors (not yet verified by MRO, excluding rejected)
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as inactive_donors 
         FROM donors d 
@@ -109,14 +109,14 @@ try {
     $stmt->execute([$hospital_id]);
     $donations = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Get recent medical verifications
+    // Get recent medical verifications (excluding rejected users)
     $stmt = $pdo->prepare("
         SELECT mv.verification_id, u.name as donor_name, mv.verification_date, 
                CASE WHEN u.status = 'active' THEN 'verified' ELSE 'pending' END as status
         FROM medical_verifications mv
         INNER JOIN donors d ON mv.donor_id = d.donor_id
         INNER JOIN users u ON d.user_id = u.user_id
-        WHERE d.preferred_hospital_id = ?
+        WHERE d.preferred_hospital_id = ? AND u.status != 'rejected'
         ORDER BY mv.verification_date DESC
         LIMIT 5
     ");
@@ -133,13 +133,13 @@ try {
     $stmt->execute([$hospital_id]);
     $blood_inventory = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Get recent donations for this hospital
+    // Get recent donations for this hospital (excluding rejected users)
     $stmt = $pdo->prepare("
         SELECT d.donation_id, d.blood_type, d.units_donated, d.donation_date, u.name as donor_name
         FROM donations d
         INNER JOIN donors dn ON d.donor_id = dn.donor_id
         INNER JOIN users u ON dn.user_id = u.user_id
-        WHERE d.hospital_id = ?
+        WHERE d.hospital_id = ? AND u.status != 'rejected'
         ORDER BY d.donation_date DESC
         LIMIT 5
     ");

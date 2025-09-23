@@ -130,71 +130,95 @@ try {
         }
     }
 
-    // Define achievements
+    // Get donor's current achievements from database
+    $earnedAchievements = [];
+    if ($rewards_data && $rewards_data['achievements_earned']) {
+        $earnedAchievements = json_decode($rewards_data['achievements_earned'], true) ?: [];
+    }
+
+    // Define achievements with earned status (point-based system)
+    $currentPoints = $rewards_data['current_points'] ?? 0;
+
     $achievements = [
         [
             'id' => 1,
             'achievement_name' => 'First Donation',
             'badge_icon' => '🎯',
-            'description' => 'Completed your first donation',
-            'points_reward' => 100,
-            'trigger' => 'donation_count >= 1'
+            'description' => 'Reach 100 points',
+            'points_required' => 100,
+            'bonus_points' => 50,
+            'trigger' => 'points >= 100',
+            'earned' => in_array(1, $earnedAchievements) || $currentPoints >= 100
         ],
         [
             'id' => 2,
             'achievement_name' => 'Life Saver',
             'badge_icon' => '🏥',
-            'description' => 'Made an emergency donation',
-            'points_reward' => 200,
-            'trigger' => 'emergency_donation = true'
+            'description' => 'Reach 200 points',
+            'points_required' => 200,
+            'bonus_points' => 100,
+            'trigger' => 'points >= 200',
+            'earned' => in_array(2, $earnedAchievements) || $currentPoints >= 200
         ],
         [
             'id' => 3,
-            'achievement_name' => 'Consistency Champion',
-            'badge_icon' => '📈',
-            'description' => '12 consecutive months of donations',
-            'points_reward' => 500,
-            'trigger' => 'streak >= 12'
+            'achievement_name' => 'Rising Star',
+            'badge_icon' => '⭐',
+            'description' => 'Reach 300 points',
+            'points_required' => 300,
+            'bonus_points' => 150,
+            'trigger' => 'points >= 300',
+            'earned' => in_array(3, $earnedAchievements) || $currentPoints >= 300
         ],
         [
             'id' => 4,
-            'achievement_name' => 'Emergency Hero',
-            'badge_icon' => '🚨',
-            'description' => 'Responded to emergency call',
-            'points_reward' => 150,
-            'trigger' => 'emergency_response = true'
+            'achievement_name' => 'Champion',
+            'badge_icon' => '🏆',
+            'description' => 'Reach 500 points',
+            'points_required' => 500,
+            'bonus_points' => 200,
+            'trigger' => 'points >= 500',
+            'earned' => in_array(4, $earnedAchievements) || $currentPoints >= 500
         ],
         [
             'id' => 5,
-            'achievement_name' => 'Weekend Warrior',
-            'badge_icon' => '⚡',
-            'description' => 'Donated on weekend',
-            'points_reward' => 125,
-            'trigger' => 'weekend_donation = true'
+            'achievement_name' => 'Hero',
+            'badge_icon' => '🦸',
+            'description' => 'Reach 750 points',
+            'points_required' => 750,
+            'bonus_points' => 250,
+            'trigger' => 'points >= 750',
+            'earned' => in_array(5, $earnedAchievements) || $currentPoints >= 750
         ],
         [
             'id' => 6,
-            'achievement_name' => '10th Donation',
-            'badge_icon' => '🔟',
-            'description' => 'Completed 10 donations',
-            'points_reward' => 200,
-            'trigger' => 'donation_count >= 10'
+            'achievement_name' => 'Legend',
+            'badge_icon' => '�',
+            'description' => 'Reach 1000 points',
+            'points_required' => 1000,
+            'bonus_points' => 300,
+            'trigger' => 'points >= 1000',
+            'earned' => in_array(6, $earnedAchievements) || $currentPoints >= 1000
         ],
         [
             'id' => 7,
-            'achievement_name' => '50th Donation',
-            'badge_icon' => '5️⃣0️⃣',
-            'description' => 'Completed 50 donations',
-            'points_reward' => 500,
-            'trigger' => 'donation_count >= 50'
+            'achievement_name' => 'Ultimate Donor',
+            'badge_icon' => '👑',
+            'description' => 'Reach 1500 points',
+            'points_required' => 1500,
+            'bonus_points' => 500,
+            'trigger' => 'points >= 1500',
+            'earned' => in_array(7, $earnedAchievements) || $currentPoints >= 1500
         ],
         [
             'id' => 8,
-            'achievement_name' => '100th Donation',
-            'badge_icon' => '💯',
-            'description' => 'Completed 100 donations',
-            'points_reward' => 1000,
-            'trigger' => 'donation_count >= 100'
+            'achievement_name' => 'Master Donor',
+            'badge_icon' => '🌟',
+            'description' => 'Reach 2000 points',
+            'points_required' => 2000,
+            'bonus_points' => 750,
+            'trigger' => 'points >= 2000',
+            'earned' => in_array(8, $earnedAchievements) || $currentPoints >= 2000
         ]
     ];
 

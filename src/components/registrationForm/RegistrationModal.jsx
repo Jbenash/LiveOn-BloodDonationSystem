@@ -81,7 +81,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     if (isOpen) {
       document.body.classList.add('modal-open');
       // Fetch hospitals when modal opens
-      fetch('http://localhost/Liveonv2/backend_api/controllers/get_hospitals.php', {
+      fetch('http://localhost/liveonv2/backend_api/controllers/get_hospitals.php', {
         credentials: 'include'
       })
         .then(res => res.json())
@@ -262,7 +262,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
           hospitalId: formData.hospitalId,
         };
 
-        const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/register_donor.php', {
+        const response = await fetch('http://localhost/liveonv2/backend_api/controllers/register_donor.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestData),
@@ -309,7 +309,7 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
     }
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/verify_otp.php', {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/verify_otp.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

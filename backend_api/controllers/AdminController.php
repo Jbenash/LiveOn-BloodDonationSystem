@@ -50,7 +50,7 @@ class AdminController extends BaseController
             $stmt = $this->pdo->query("SELECT COUNT(*) as total_users FROM users");
             $totalUsers = $stmt->fetch(PDO::FETCH_ASSOC)['total_users'];
 
-            $stmt = $this->pdo->query("SELECT COUNT(*) as total_donors FROM donors");
+            $stmt = $this->pdo->query("SELECT COUNT(*) as total_donors FROM donors d INNER JOIN users u ON d.user_id = u.user_id WHERE u.status != 'rejected'");
             $totalDonors = $stmt->fetch(PDO::FETCH_ASSOC)['total_donors'];
 
             $stmt = $this->pdo->query("SELECT COUNT(*) as total_hospitals FROM hospitals");

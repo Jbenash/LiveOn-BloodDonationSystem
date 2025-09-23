@@ -20,12 +20,12 @@ class Mailer
         $this->mail->isSMTP();
         $this->mail->Host = 'smtp.gmail.com';
         $this->mail->SMTPAuth = true;
-        $this->mail->Username = 'mbenash961030@gmail.com';
-        $this->mail->Password = 'dpgcldgacitgdnfq';
+        $this->mail->Username = 'liveonsystem@gmail.com';
+        $this->mail->Password = 'rhihffxiuglrlagp';
         $this->mail->SMTPSecure = 'tls';
         $this->mail->Port = 587;
         $this->mail->isHTML(true);
-        
+
         // Additional settings for Gmail
         $this->mail->SMTPOptions = array(
             'ssl' => array(
@@ -37,7 +37,7 @@ class Mailer
     }
     public function sendOTP($toEmail, $toName, $otp)
     {
-        $this->mail->setFrom('mbenash961030@gmail.com', 'LiveOn System');
+        $this->mail->setFrom('liveonsystem@gmail.com', 'LiveOn System');
         $this->mail->addAddress($toEmail, $toName);
         $this->mail->Subject = 'LiveOn Registration OTP';
         $this->mail->Body = "<h3>Hello $toName,</h3><p>Your OTP for completing your LiveOn registration is:</p><h2>$otp</h2><p>This code will expire in 10 minutes.</p><br><p>Regards,<br>LiveOn Team</p>";
@@ -153,11 +153,11 @@ try {
         echo json_encode(["success" => true]);
     } catch (Exception $e) {
         $errorMessage = $e->getMessage();
-        
+
         // Check if it's a Gmail daily limit error
         if (strpos($errorMessage, '5.4.5') !== false || strpos($errorMessage, 'Daily user sending limit exceeded') !== false) {
             echo json_encode([
-                "success" => false, 
+                "success" => false,
                 "message" => "Registration successful, but email service temporarily unavailable. Please contact admin to activate your account manually.",
                 "error_type" => "email_limit",
                 "user_id" => $userId

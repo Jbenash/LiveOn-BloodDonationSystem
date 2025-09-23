@@ -13,19 +13,22 @@ if (!defined('SESSION_CONFIG_LOADED')) {
 // Configure session settings before session_start()
 function configureSession()
 {
-    // Set secure session configuration
-    ini_set('session.cookie_httponly', 1);
-    ini_set('session.cookie_secure', 0); // Set to 1 in production with HTTPS
-    ini_set('session.cookie_samesite', 'Lax'); // Changed from 'None' to 'Lax' for better compatibility
-    ini_set('session.cookie_lifetime', 0); // Session cookie
-    ini_set('session.gc_maxlifetime', 7200); // 2 hour session timeout (increased from 1 hour)
-    ini_set('session.use_strict_mode', 1);
-    ini_set('session.use_only_cookies', 1);
-    ini_set('session.cookie_path', '/');
-    ini_set('session.cookie_domain', '');
+    // Only configure if session is not already active
+    if (session_status() === PHP_SESSION_NONE) {
+        // Set secure session configuration for development
+        ini_set('session.cookie_httponly', 0); // Allow JavaScript access for debugging
+        ini_set('session.cookie_secure', 0); // Set to 1 in production with HTTPS
+        ini_set('session.cookie_samesite', ''); // Empty for better cross-origin compatibility
+        ini_set('session.cookie_lifetime', 0); // Session cookie
+        ini_set('session.gc_maxlifetime', 7200); // 2 hour session timeout (increased from 1 hour)
+        ini_set('session.use_strict_mode', 1);
+        ini_set('session.use_only_cookies', 1);
+        ini_set('session.cookie_path', '/');
+        ini_set('session.cookie_domain', ''); // Empty for localhost compatibility
 
-    // Set session name
-    session_name('LIVEON_SESSION');
+        // Set session name
+        session_name('LIVEON_SESSION');
+    }
 }
 
 // Initialize session with proper configuration
@@ -37,32 +40,16 @@ function initSession()
         session_start();
     }
 
-    // Regenerate session ID periodically for security
+    // Regenerate session ID periodically for security (increased to 30 minutes)
     if (!isset($_SESSION['last_regeneration'])) {
         $_SESSION['last_regeneration'] = time();
-    } elseif (time() - $_SESSION['last_regeneration'] > 300) { // 5 minutes
+    } elseif (time() - $_SESSION['last_regeneration'] > 1800) { // 30 minutes
         session_regenerate_id(true);
         $_SESSION['last_regeneration'] = time();
     }
 
-    // Ensure session cookie is set for cross-origin requests
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        // Set cookie with proper parameters for cross-origin compatibility
-        $cookieSet = setcookie(session_name(), session_id(), [
-            'expires' => 0,
-            'path' => '/',
-            'domain' => '',
-            'secure' => false,
-            'httponly' => true,
-            'samesite' => 'Lax'
-        ]);
-
-        // If setcookie fails, try alternative approach
-        if (!$cookieSet) {
-            // Try setting cookie with headers
-            header('Set-Cookie: ' . session_name() . '=' . session_id() . '; Path=/; HttpOnly; SameSite=Lax');
-        }
-    }
+    // Session cookie is automatically handled by PHP session_start()
+    // Just ensure the cookie parameters are set correctly via ini_set above
 }
 
 // Set CORS headers consistently

@@ -1,4 +1,8 @@
 <?php
+// Suppress PHP warnings/errors from breaking JSON output
+error_reporting(E_ERROR | E_PARSE);
+ini_set('display_errors', 0);
+
 require_once __DIR__ . '/../config/session_config.php';
 
 // Set CORS headers and handle preflight
@@ -10,9 +14,9 @@ initSession();
 
 // Check if user is logged in before requiring role
 $currentUser = getCurrentUser();
-if (!$currentUser) {
+if (!$currentUser || !isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo json_encode(['error' => 'Not logged in. Please log in first.']);
+    echo json_encode(['error' => 'SESSION_EXPIRED']);
     exit();
 }
 
@@ -87,7 +91,13 @@ class DonorDashboard
             $nextEligible = 'First Donation';
         }
         $livesSaved = $totalDonations * 3; // Calculate lives saved as 3 times total donations
-        $points = $totalDonations * 100;
+
+        // Get actual points from donor_rewards table
+        $stmt = $this->pdo->prepare("SELECT current_points FROM donor_rewards WHERE donor_id = ?");
+        $stmt->execute([$donor['donor_id']]);
+        $rewardsData = $stmt->fetch(PDO::FETCH_ASSOC);
+        $points = $rewardsData ? $rewardsData['current_points'] : 0;
+
         $rank = $totalDonations > 10 ? 'Gold Donor' : ($totalDonations >= 5 ? 'Silver Donor' : 'Bronze Donor');
 
         // Fetch age from the latest medical_verifications record for this donor
@@ -129,13 +139,13 @@ $db = new Database();
 $pdo = $db->connect();
 $donorId = $_SESSION['user_id'];
 
-// First check if user exists and is active
-$stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role = 'donor' AND status = 'active'");
+// First check if user exists and is donor (allow inactive users to login)
+$stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ? AND role = 'donor' AND status != 'rejected'");
 $stmt->execute([$donorId]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$user) {
-    echo json_encode(['error' => 'User not found or not active']);
+    echo json_encode(['error' => 'User not found or access denied']);
     http_response_code(401);
     exit();
 }
