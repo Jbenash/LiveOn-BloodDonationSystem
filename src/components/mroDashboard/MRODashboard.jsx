@@ -481,7 +481,7 @@ const MRODashboard = () => {
       });
       const data = await response.json();
       if (data.success) {
-        // Immediately set donor status to 'not available'
+        // Immediately set donor status to 'not available' and user status to 'inactive'
         await fetch('http://localhost/Liveonv2/backend_api/controllers/update_donor_status.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -489,11 +489,23 @@ const MRODashboard = () => {
           body: JSON.stringify({ donor_id: donatePopupDonor.donor_id, status: 'not available' })
         });
 
-        // No alert after successful donation
+        // Update the local state to reflect the status change immediately
+        setDonorRegistrations(prev =>
+          prev.map(donor =>
+            donor.donor_id === donatePopupDonor.donor_id
+              ? { ...donor, status: 'inactive' }
+              : donor
+          )
+        );
+
+        // Close popup and reset form
         setShowDonatePopup(false);
         setDonatePopupDonor(null);
         setDonateForm({ bloodType: '', donationDate: '', volume: '' });
         setDonationTimestamp('');
+
+        // Show success message
+        toast.success('Donation recorded successfully!');
       } else {
         toast.error('Error: ' + (data.error || 'Failed to save donation'));
       }
@@ -1106,8 +1118,8 @@ const MRODashboard = () => {
                             display: 'inline-block',
                             padding: '4px 12px',
                             borderRadius: '12px',
-                            backgroundColor: donor.status === 'available' ? '#bbf7d0' : '#fecaca',
-                            color: donor.status === 'available' ? '#166534' : '#b91c1c',
+                            backgroundColor: donor.status === 'active' ? '#bbf7d0' : '#fecaca',
+                            color: donor.status === 'active' ? '#166534' : '#b91c1c',
                             fontWeight: 500,
                             fontSize: '0.95em',
                             minWidth: '80px',
@@ -1120,20 +1132,20 @@ const MRODashboard = () => {
                         <td>
                           <button
                             style={{
-                              background: donor.status === 'available' ? '#22c55e' : '#d1d5db',
-                              color: donor.status === 'available' ? '#fff' : '#6b7280',
+                              background: donor.status === 'active' ? '#22c55e' : '#d1d5db',
+                              color: donor.status === 'active' ? '#fff' : '#6b7280',
                               border: 'none',
                               borderRadius: '6px',
                               padding: '6px 12px',
                               fontSize: '0.9rem',
-                              cursor: donor.status === 'available' ? 'pointer' : 'not-allowed',
+                              cursor: donor.status === 'active' ? 'pointer' : 'not-allowed',
                               fontWeight: '500',
                               transition: 'background 0.2s'
                             }}
-                            disabled={donor.status !== 'available'}
-                            onMouseOver={donor.status === 'available' ? (e) => e.target.style.background = '#16a34a' : undefined}
-                            onMouseOut={donor.status === 'available' ? (e) => e.target.style.background = '#22c55e' : undefined}
-                            onClick={donor.status === 'available' ? () => handleOpenDonatePopup(donor) : undefined}
+                            disabled={donor.status !== 'active'}
+                            onMouseOver={donor.status === 'active' ? (e) => e.target.style.background = '#16a34a' : undefined}
+                            onMouseOut={donor.status === 'active' ? (e) => e.target.style.background = '#22c55e' : undefined}
+                            onClick={donor.status === 'active' ? () => handleOpenDonatePopup(donor) : undefined}
                           >
                             Donate
                           </button>

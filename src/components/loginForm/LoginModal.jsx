@@ -10,6 +10,7 @@ const LoginModal = ({ isOpen, onClose }) => {
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("Signing in...");
   const navigate = useNavigate();
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showRequestSent, setShowRequestSent] = useState(false);
@@ -27,9 +28,10 @@ const LoginModal = ({ isOpen, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setLoadingMessage("Signing in...");
 
     try {
-      const response = await fetch("http://localhost/Liveonv2/backend_api/controllers/user_login.php", {
+      const response = await fetch("http://localhost/liveonv2/backend_api/controllers/user_login.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -60,43 +62,87 @@ const LoginModal = ({ isOpen, onClose }) => {
       }
 
       if (data.success) {
-        onClose(); // Close modal on successful login
+        setLoadingMessage("Preparing dashboard...");
 
-        // Add a longer delay to ensure session is fully established and prevent race conditions
-        setTimeout(() => {
-          try {
-            if (data.user.role === "hospital") {
-              navigate('/HospitalDashboard', { replace: true });
-            } else if (data.user.role === "mro") {
-              navigate('/MRODashboard', { replace: true });
-            } else if (data.user.role === "admin") {
-              navigate('/AdminDashboard', { replace: true });
-            } else if (data.user.role === "donor") {
-              navigate('/DonorDashboard', { replace: true });
+        // Wait for session to be fully established with validation check
+        const validateAndNavigate = async () => {
+          let attempts = 0;
+          const maxAttempts = 3;
+
+          const checkSession = async () => {
+            try {
+              const sessionResponse = await fetch('http://localhost/liveonv2/backend_api/controllers/check_session.php?simple=true', {
+                credentials: 'include'
+              });
+              const sessionData = await sessionResponse.json();
+              return sessionData.valid;
+            } catch (error) {
+              console.log('Session validation error:', error);
+              return false;
             }
-          } catch (navError) {
-            console.log('Navigation error, using window.location:', navError);
-            // Fallback to window.location if navigate fails
-            if (data.user.role === "hospital") {
-              window.location.href = '/HospitalDashboard';
-            } else if (data.user.role === "mro") {
-              window.location.href = '/MRODashboard';
-            } else if (data.user.role === "admin") {
-              window.location.href = '/AdminDashboard';
-            } else if (data.user.role === "donor") {
-              window.location.href = '/DonorDashboard';
+          };
+
+          while (attempts < maxAttempts) {
+            const isSessionValid = await checkSession();
+            if (isSessionValid) {
+              console.log('Session validated, navigating...');
+              onClose(); // Close modal just before navigation
+              try {
+                if (data.user.role === "hospital") {
+                  navigate('/HospitalDashboard', { replace: true });
+                } else if (data.user.role === "mro") {
+                  navigate('/MRODashboard', { replace: true });
+                } else if (data.user.role === "admin") {
+                  navigate('/AdminDashboard', { replace: true });
+                } else if (data.user.role === "donor") {
+                  navigate('/DonorDashboard', { replace: true });
+                }
+              } catch (navError) {
+                console.log('Navigation error, using window.location:', navError);
+                // Fallback to window.location if navigate fails
+                if (data.user.role === "hospital") {
+                  window.location.href = '/HospitalDashboard';
+                } else if (data.user.role === "mro") {
+                  window.location.href = '/MRODashboard';
+                } else if (data.user.role === "admin") {
+                  window.location.href = '/AdminDashboard';
+                } else if (data.user.role === "donor") {
+                  window.location.href = '/DonorDashboard';
+                }
+              }
+              return;
             }
+
+            attempts++;
+            console.log(`Session not ready (attempt ${attempts}/${maxAttempts}), waiting...`);
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
-        }, 200); // Increased delay to 200ms to ensure session is established
+
+          // If session validation fails after all attempts, still try to navigate
+          console.log('Session validation failed after max attempts, attempting navigation anyway');
+          onClose(); // Close modal before fallback navigation
+          if (data.user.role === "donor") {
+            window.location.href = '/DonorDashboard';
+          } else if (data.user.role === "hospital") {
+            window.location.href = '/HospitalDashboard';
+          } else if (data.user.role === "mro") {
+            window.location.href = '/MRODashboard';
+          } else if (data.user.role === "admin") {
+            window.location.href = '/AdminDashboard';
+          }
+        };
+
+        await validateAndNavigate();
+        setIsLoading(false); // Only reset loading after navigation completes
 
       } else {
         toast.error(data.message || "Login Failed");
+        setIsLoading(false);
       }
 
     } catch (err) {
       console.error('Login error:', err);
       toast.error('Login failed. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -129,7 +175,7 @@ const LoginModal = ({ isOpen, onClose }) => {
       return;
     }
     try {
-      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/submit_password_reset_request.php', {
+      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_password_reset_request.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.username, requested_password: newPassword })
@@ -230,7 +276,7 @@ const LoginModal = ({ isOpen, onClose }) => {
                       stroke="2"
                       speed="1"
                       color="#ffffff"
-                      text="Signing in..."
+                      text={loadingMessage}
                       className="button"
                     />
                   ) : (
@@ -443,7 +489,7 @@ const ContactAdminPopup = ({ isOpen, onClose, userEmail }) => {
     setSubmitStatus('');
 
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/submit_admin_contact.php', {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_admin_contact.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

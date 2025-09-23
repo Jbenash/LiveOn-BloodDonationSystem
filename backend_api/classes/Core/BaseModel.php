@@ -102,7 +102,7 @@ abstract class BaseModel
 
             $primaryKey = $this->getPrimaryKey();
             $sql = "UPDATE {$this->getTableName()} SET " . implode(', ', $setClause) . " WHERE {$primaryKey} = :primary_key_id";
-            
+
             // Separate the parameters to avoid conflicts
             $params = $data;
             $params['primary_key_id'] = $id;

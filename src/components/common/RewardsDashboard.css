@@ -189,6 +189,77 @@
   padding: 0.25rem 0.5rem;
   border-radius: 6px;
   display: inline-block;
+  margin-right: 0.5rem;
+}
+
+.earned-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #d97706;
+  background: #fef3c7;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.not-earned-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.achievement-card.earned {
+  background: linear-gradient(135deg, #ffffff 0%, #fef9f3 100%);
+  border: 1px solid #fbbf24;
+  box-shadow: 0 4px 20px rgba(251, 191, 36, 0.15);
+}
+
+.achievement-card.earned:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(251, 191, 36, 0.25);
+}
+
+.achievement-card.not-earned {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  opacity: 0.7;
+}
+
+.achievement-card.not-earned .achievement-icon {
+  opacity: 0.5;
+  filter: grayscale(100%);
+}
+
+.achievement-card.not-earned .achievement-info h4 {
+  color: #9ca3af;
+}
+
+.achievement-card.not-earned .achievement-info p {
+  color: #9ca3af;
+}
+
+.achievement-card.not-earned:hover {
+  transform: translateY(-2px);
+  opacity: 0.8;
+}
+
+.no-achievements {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 2px dashed #d1d5db;
+}
+
+.no-achievements p {
+  color: #6b7280;
+  font-size: 1.1rem;
+  margin: 0;
 }
 
 /* Partner Rewards Section */
@@ -388,8 +459,13 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .rewards-error button {
@@ -469,4 +545,4 @@
   .rewards-header h2 {
     font-size: 1.3rem;
   }
-} 
+}

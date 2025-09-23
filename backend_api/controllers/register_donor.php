@@ -25,7 +25,7 @@ class Mailer
         $this->mail->SMTPSecure = 'tls';
         $this->mail->Port = 587;
         $this->mail->isHTML(true);
-        
+
         // Additional settings for Gmail
         $this->mail->SMTPOptions = array(
             'ssl' => array(
@@ -153,11 +153,11 @@ try {
         echo json_encode(["success" => true]);
     } catch (Exception $e) {
         $errorMessage = $e->getMessage();
-        
+
         // Check if it's a Gmail daily limit error
         if (strpos($errorMessage, '5.4.5') !== false || strpos($errorMessage, 'Daily user sending limit exceeded') !== false) {
             echo json_encode([
-                "success" => false, 
+                "success" => false,
                 "message" => "Registration successful, but email service temporarily unavailable. Please contact admin to activate your account manually.",
                 "error_type" => "email_limit",
                 "user_id" => $userId

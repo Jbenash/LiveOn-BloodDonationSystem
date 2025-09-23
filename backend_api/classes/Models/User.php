@@ -32,7 +32,7 @@ class User
                 // Successful login - clear failed attempts
                 $this->clearFailedAttempts($email);
 
-                if ($user['status'] === 'active') {
+                if ($user['status'] === 'active' || $user['status'] === 'inactive') {
                     return [
                         'user_id' => $user['user_id'],
                         'name' => $user['name'],
@@ -41,19 +41,10 @@ class User
                         'phone' => $user['phone'],
                         'status' => $user['status']
                     ];
-                } else if ($user['status'] === 'inactive') {
-                    // Check if they have verified OTP but are waiting for MRO verification
-                    $otpStmt = $this->conn->prepare("SELECT verified FROM otp_verification WHERE user_id = ? AND verified = 1 LIMIT 1");
-                    $otpStmt->execute([$user['user_id']]);
-                    $hasVerifiedOTP = $otpStmt->fetch();
-
-                    if ($hasVerifiedOTP) {
-                        return ['pending' => true, 'status' => $user['status'], 'message' => 'Your email is verified. Your registration is pending medical verification by our MRO team.'];
-                    } else {
-                        return ['pending' => true, 'status' => $user['status'], 'message' => 'Please verify your email first. Check your inbox for the OTP code.'];
-                    }
+                } else if ($user['status'] === 'rejected') {
+                    return ['blocked' => true, 'status' => $user['status'], 'message' => 'Your account has been deactivated by the administrator. Please contact support for assistance.'];
                 } else {
-                    return ['pending' => true, 'status' => $user['status']];
+                    return ['pending' => true, 'status' => $user['status'], 'message' => 'Your account status is under review. Please contact support for assistance.'];
                 }
             } else {
                 // Failed login - record the attempt

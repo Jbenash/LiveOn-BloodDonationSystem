@@ -106,6 +106,16 @@ try {
             $sql4 = "INSERT INTO donors (donor_id, user_id, dob, address, city, preferred_hospital_id, blood_type, status, registration_date) VALUES (?, ?, ?, ?, ?, ?, ?, 'available', ?)";
             $stmt4 = $pdo->prepare($sql4);
             $stmt4->execute([$donor_id, $user_id, $dob, $address, $city, $preferred_hospital_id, $blood_group, date('Y-m-d')]);
+
+            error_log("Creating donor reward record");
+            // Create donor reward record (prevents dashboard errors)
+            $rewardStmt = $pdo->prepare("
+                INSERT INTO donor_rewards 
+                (donor_id, current_points, total_points_earned, total_points_spent, 
+                 current_streak, longest_streak, last_donation_date, created_at, updated_at) 
+                VALUES (?, 0, 0, 0, 0, 0, NULL, NOW(), NOW())
+            ");
+            $rewardStmt->execute([$donor_id]);
         }
 
         error_log("Creating medical verification record");

@@ -1,10 +1,21 @@
 <?php
+// Suppress PHP warnings/errors from breaking JSON output
+error_reporting(E_ERROR | E_PARSE);
+ini_set('display_errors', 0);
+
 require_once '../config/db_connection.php';
 require_once '../config/session_config.php';
 
 // Set CORS headers and handle preflight  
 setCorsHeaders();
 handlePreflight();
+
+// Initialize session
+initSession();
+
+// Initialize database connection
+$db = new Database();
+$pdo = $db->connect();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
@@ -25,36 +36,23 @@ try {
         $params[] = $role;
     }
 
-    // Get approved feedback with user details
+    // Get approved feedback with basic query
     $query = "
         SELECT 
             f.feedback_id,
             f.role,
             f.message,
             f.created_at,
-            CASE 
-                WHEN f.role = 'hospital' THEN h.name
-                WHEN f.role = 'donor' THEN CONCAT(d.first_name, ' ', d.last_name)
-                WHEN f.role = 'mro' THEN m.officer_name
-                ELSE 'Anonymous'
-            END as name,
-            CASE 
-                WHEN f.role = 'hospital' THEN h.location
-                WHEN f.role = 'donor' THEN d.city
-                WHEN f.role = 'mro' THEN h2.location
-                ELSE NULL
-            END as location
+            'Anonymous' as name,
+            '' as location
         FROM feedback f
-        LEFT JOIN hospitals h ON f.user_id = h.user_id AND f.role = 'hospital'
-        LEFT JOIN donors d ON f.user_id = d.user_id AND f.role = 'donor'
-        LEFT JOIN mro_officers m ON f.user_id = m.user_id AND f.role = 'mro'
-        LEFT JOIN hospitals h2 ON m.hospital_id = h2.hospital_id AND f.role = 'mro'
         {$whereClause}
         ORDER BY f.created_at DESC
         LIMIT ?
     ";
 
-    $params[] = $limit;
+    // Replace LIMIT placeholder with actual integer value
+    $query = str_replace('LIMIT ?', "LIMIT $limit", $query);
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
     $feedbacks = $stmt->fetchAll(PDO::FETCH_ASSOC);

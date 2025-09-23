@@ -33,7 +33,7 @@ try {
     // Fetch system activities from various tables
     $activities = [];
 
-    // 1. Recent user registrations (using registration_date from donors table as proxy)
+    // 1. Recent user registrations (using registration_date from donors table as proxy, excluding rejected users)
     $userQuery = "SELECT 
                     u.user_id,
                     u.name,
@@ -42,7 +42,7 @@ try {
                     COALESCE(d.registration_date, CURDATE()) as registration_date
                   FROM users u
                   LEFT JOIN donors d ON u.user_id = d.user_id
-                  WHERE u.role IN ('donor', 'hospital', 'mro')
+                  WHERE u.role IN ('donor', 'hospital', 'mro') AND u.status != 'rejected'
                   ORDER BY COALESCE(d.registration_date, CURDATE()) DESC 
                   LIMIT 10";
 
@@ -71,7 +71,7 @@ try {
                       FROM donations d
                       LEFT JOIN donors dn ON d.donor_id = dn.donor_id
                       LEFT JOIN users u ON dn.user_id = u.user_id
-                      WHERE d.donation_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                      WHERE d.donation_date >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND u.status != 'rejected'
                       ORDER BY d.donation_date DESC 
                       LIMIT 10";
 

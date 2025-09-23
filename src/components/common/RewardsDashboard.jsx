@@ -5,6 +5,8 @@ const RewardsDashboard = ({ donorId }) => {
   const [rewardsData, setRewardsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [redemptionHistory, setRedemptionHistory] = useState([]);
+  const [redeeming, setRedeeming] = useState(null);
 
   useEffect(() => {
 
@@ -19,7 +21,7 @@ const RewardsDashboard = ({ donorId }) => {
   const fetchRewardsData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost/Liveonv2/backend_api/controllers/get_donor_rewards.php?donor_id=${donorId}`);
+      const response = await fetch(`http://localhost/liveonv2/backend_api/controllers/get_donor_rewards.php?donor_id=${donorId}`);
       const data = await response.json();
 
       if (data.success) {
@@ -27,10 +29,51 @@ const RewardsDashboard = ({ donorId }) => {
       } else {
         setError(data.error || 'Failed to fetch rewards data');
       }
+
+      // Also fetch redemption history
+      const historyResponse = await fetch(`http://localhost/liveonv2/backend_api/controllers/get_redemption_history.php?donor_id=${donorId}`);
+      const historyData = await historyResponse.json();
+
+      if (historyData.success) {
+        setRedemptionHistory(historyData.data);
+      }
     } catch (err) {
       setError('Network error: ' + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRedeem = async (rewardId) => {
+    if (redeeming) return;
+
+    try {
+      setRedeeming(rewardId);
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/redeem_reward.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          donor_id: donorId,
+          reward_id: rewardId
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`🎉 Reward redeemed successfully!\n\nRedemption Code: ${result.data.redemption_code}\n\nShow this code to ${result.data.reward.partner_name} to claim your ${result.data.reward.reward_description}.\n\nExpires: ${result.data.expires_at}`);
+
+        // Refresh rewards data
+        fetchRewardsData();
+      } else {
+        alert('❌ Redemption failed: ' + result.error);
+      }
+    } catch (err) {
+      alert('❌ Network error: ' + err.message);
+    } finally {
+      setRedeeming(null);
     }
   };
 
@@ -122,17 +165,36 @@ const RewardsDashboard = ({ donorId }) => {
         <h3>🎖️ Achievements</h3>
         <div className="achievements-grid">
           {(achievements || []).map((achievement) => (
-            <div key={achievement.id} className="achievement-card">
+            <div key={achievement.id} className={`achievement-card ${achievement.earned ? 'earned' : 'not-earned'}`}>
               <div className="achievement-icon">
-                {achievement.badge_icon}
+                {achievement.badge_icon && achievement.badge_icon !== '�' ? achievement.badge_icon :
+                  achievement.achievement_name === 'First Donation' ? '🎯' :
+                    achievement.achievement_name === '10th Donation' ? '🏆' :
+                      achievement.achievement_name === '50th Donation' ? '⭐' :
+                        achievement.achievement_name === '100th Donation' ? '💎' :
+                          achievement.achievement_name === 'Life Saver' ? '🏥' :
+                            achievement.achievement_name === 'Consistency Champion' ? '📈' : '🏅'
+                }
               </div>
               <div className="achievement-info">
                 <h4>{achievement.achievement_name}</h4>
                 <p>{achievement.description}</p>
-                <span className="points-reward">+{achievement.points_reward} points</span>
+                <span className="points-reward">
+                  {achievement.points_required ? `${achievement.points_required} points needed` : `+${achievement.bonus_points || achievement.points_reward} bonus points`}
+                </span>
+                {achievement.earned ? (
+                  <span className="earned-badge">✅ Earned</span>
+                ) : (
+                  <span className="not-earned-badge">🔒 Locked</span>
+                )}
               </div>
             </div>
           ))}
+          {(achievements || []).length === 0 && (
+            <div className="no-achievements">
+              <p>🎯 Loading achievements...</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -159,14 +221,47 @@ const RewardsDashboard = ({ donorId }) => {
               </div>
               <button
                 className="redeem-btn"
-                disabled={(rewards_data?.current_points || 0) < reward.points_required}
+                disabled={(rewards_data?.current_points || 0) < reward.points_required || redeeming === reward.id}
+                onClick={() => handleRedeem(reward.id)}
               >
-                {(rewards_data?.current_points || 0) >= reward.points_required ? 'Redeem' : 'Not Enough Points'}
+                {redeeming === reward.id ? 'Processing...' :
+                  (rewards_data?.current_points || 0) >= reward.points_required ? 'Redeem' : 'Not Enough Points'}
               </button>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Redemption History Section */}
+      {redemptionHistory.length > 0 && (
+        <div className="redemption-history-section">
+          <h3>🎫 Redemption History</h3>
+          <div className="history-list">
+            {redemptionHistory.map((redemption) => (
+              <div key={redemption.id} className="history-item">
+                <div className="history-info">
+                  <span className="transaction-reason">
+                    {redemption.redemption_type || `${redemption.reward_description} - ${redemption.partner_name}`}
+                  </span>
+                  <span className="transaction-date">
+                    {new Date(redemption.redemption_date).toLocaleDateString()}
+                  </span>
+                  <span className="redemption-code">Code: {redemption.redemption_code}</span>
+                  <span className={`redemption-status status-${redemption.status}`}>
+                    {redemption.status.toUpperCase()}
+                  </span>
+                  {redemption.expires_at && (
+                    <span className="expiry-date">Expires: {new Date(redemption.expires_at).toLocaleDateString()}</span>
+                  )}
+                </div>
+                <div className="transaction-points">
+                  <span className="points-spent">-{redemption.points_spent}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Points History Section */}
       <div className="points-history-section">

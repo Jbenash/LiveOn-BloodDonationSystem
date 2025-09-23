@@ -8,7 +8,8 @@ use PHPMailer\PHPMailer\Exception;
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
-function checkGmailStatus() {
+function checkGmailStatus()
+{
     $result = [
         'timestamp' => date('Y-m-d H:i:s'),
         'connection' => false,
@@ -17,7 +18,7 @@ function checkGmailStatus() {
         'time_until_reset' => null,
         'message' => ''
     ];
-    
+
     try {
         $mail = new PHPMailer(true);
         $mail->isSMTP();
@@ -28,18 +29,18 @@ function checkGmailStatus() {
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
         $mail->SMTPDebug = 0;
-        
+
         // Test connection
         if ($mail->smtpConnect()) {
             $result['connection'] = true;
             $mail->smtpClose();
-            
+
             // Test actual sending capability
             $mail->setFrom('liveonsystem@gmail.com', 'Status Check');
             $mail->addAddress('liveonsystem@gmail.com');
             $mail->Subject = 'Status Check - ' . date('H:i:s');
             $mail->Body = 'Automated status check';
-            
+
             try {
                 $mail->send();
                 $result['can_send'] = true;
@@ -48,7 +49,7 @@ function checkGmailStatus() {
                 if (strpos($e->getMessage(), '5.4.5') !== false) {
                     $result['limit_exceeded'] = true;
                     $result['message'] = 'Daily sending limit exceeded';
-                    
+
                     // Calculate time until reset (midnight Pacific Time)
                     $now = new DateTime();
                     $pacific = new DateTime('now', new DateTimeZone('America/Los_Angeles'));
@@ -63,13 +64,11 @@ function checkGmailStatus() {
         } else {
             $result['message'] = 'Cannot connect to Gmail SMTP';
         }
-        
     } catch (Exception $e) {
         $result['message'] = 'Connection error: ' . $e->getMessage();
     }
-    
+
     return $result;
 }
 
 echo json_encode(checkGmailStatus(), JSON_PRETTY_PRINT);
-?>

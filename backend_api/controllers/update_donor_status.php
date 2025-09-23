@@ -61,13 +61,27 @@ try {
     $database = new Database();
     $pdo = $database->connect();
 
-    $sql = "UPDATE donors SET status = ? WHERE donor_id = ?";
-    $stmt = $pdo->prepare($sql);
-    if ($stmt->execute([$status, $donor_id])) {
-        echo json_encode(['success' => true, 'message' => 'Donor status updated']);
-    } else {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'error' => 'Failed to update donor status']);
+    // Start transaction to update both donor and user status
+    $pdo->beginTransaction();
+
+    try {
+        // Update donor status (for donation eligibility)
+        $sql = "UPDATE donors SET status = ? WHERE donor_id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$status, $donor_id]);
+
+        // If setting donor to "not available" (after donation), also set user to "inactive"
+        if ($status === 'not available') {
+            $sql = "UPDATE users SET status = 'inactive' WHERE user_id = (SELECT user_id FROM donors WHERE donor_id = ?)";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([$donor_id]);
+        }
+
+        $pdo->commit();
+        echo json_encode(['success' => true, 'message' => 'Donor and user status updated']);
+    } catch (Exception $e) {
+        $pdo->rollback();
+        throw $e;
     }
 } catch (PDOException $e) {
     http_response_code(500);

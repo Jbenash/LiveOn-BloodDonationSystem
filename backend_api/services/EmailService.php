@@ -64,7 +64,7 @@ class EmailService extends BaseService
             $this->mailer->Body = $this->generateOTPEmailTemplate($toName, $otp);
 
             $this->mailer->send();
-            
+
             // Log successful send
             $this->logEmailUsage('SUCCESS', "OTP sent to $toEmail");
 
@@ -74,14 +74,14 @@ class EmailService extends BaseService
             );
         } catch (Exception $e) {
             $errorMsg = $e->getMessage();
-            
+
             // Log the error
             if (strpos($errorMsg, '5.4.5') !== false) {
                 $this->logEmailUsage('LIMIT_EXCEEDED', $errorMsg);
             } else {
                 $this->logEmailUsage('ERROR', $errorMsg);
             }
-            
+
             return $this->errorResponse('Email could not be sent: ' . $errorMsg);
         }
     }
@@ -445,7 +445,7 @@ Email: liveonsystem@gmail.com
             return $errorMessage;
         }
     }
-    
+
     private function logEmailUsage(string $status, string $message): void
     {
         $logFile = __DIR__ . '/../../gmail_usage.log';

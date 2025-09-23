@@ -47,13 +47,13 @@ try {
     $hospital_id = $row['hospital_id'];
 
     $sql = "SELECT DISTINCT d.donor_id, u.name AS full_name, u.email, d.blood_type AS blood_group, 
-            d.address, d.city, d.preferred_hospital_id, h.name AS preferred_hospital_name, d.last_donation_date, d.lives_saved, d.status,
+            d.address, d.city, d.preferred_hospital_id, h.name AS preferred_hospital_name, d.last_donation_date, d.lives_saved, u.status,
             mv.verification_date AS verification_date
     FROM donors d
     INNER JOIN users u ON d.user_id = u.user_id
     LEFT JOIN medical_verifications mv ON d.donor_id = mv.donor_id
     LEFT JOIN hospitals h ON d.preferred_hospital_id = h.hospital_id
-    WHERE d.preferred_hospital_id = ?";
+    WHERE d.preferred_hospital_id = ? AND u.status != 'rejected'";
 
     try {
         $stmt = $pdo->prepare($sql);

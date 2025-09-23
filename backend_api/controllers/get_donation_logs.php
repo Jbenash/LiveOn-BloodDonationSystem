@@ -25,12 +25,12 @@ class DonationLogsHandler
         }
 
         try {
-            // Prepare SQL statement to get donation logs for this hospital
+            // Prepare SQL statement to get donation logs for this hospital (excluding rejected users)
             $sql = "SELECT d.donation_id, d.donor_id, u.name AS full_name, d.blood_type, d.units_donated, d.donation_date
                     FROM donations d
                     INNER JOIN donors dn ON d.donor_id = dn.donor_id
                     INNER JOIN users u ON dn.user_id = u.user_id
-                    WHERE d.hospital_id = :hospital_id
+                    WHERE d.hospital_id = :hospital_id AND u.status != 'rejected'
                     ORDER BY d.donation_date DESC";
 
             $stmt = $this->pdo->prepare($sql);

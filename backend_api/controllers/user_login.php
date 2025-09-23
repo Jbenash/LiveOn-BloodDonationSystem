@@ -78,22 +78,13 @@ if ($user && isset($user['user_id'])) {
     $_SESSION['name'] = $user['name'];
     $_SESSION['user'] = $user;
 
-    // Ensure session cookie is set for cross-origin requests with proper parameters
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        $cookieSet = setcookie(session_name(), session_id(), [
-            'expires' => 0,
-            'path' => '/',
-            'domain' => '',
-            'secure' => false,
-            'httponly' => true,
-            'samesite' => 'Lax'
-        ]);
+    // Force session write to ensure it's immediately available
+    session_write_close();
 
-        // If setcookie fails, try alternative approach
-        if (!$cookieSet) {
-            header('Set-Cookie: ' . session_name() . '=' . session_id() . '; Path=/; HttpOnly; SameSite=Lax');
-        }
-    }
+    // Restart session to continue using it
+    initSession();
+
+    // Session cookie is automatically handled by session configuration
 
     // Check for any captured output (HTML errors)
     $captured_output = ob_get_contents();

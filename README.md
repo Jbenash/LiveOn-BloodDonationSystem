@@ -128,6 +128,10 @@ LiveOnv2/
 
 ---
 
+## Additional Documentation
+
+- **[Donor Availability System](DONOR_AVAILABILITY_SYSTEM.md)** - Automated donor availability management system with 6-month eligibility rules
+
 ## Notes
 
 - All API calls use JSON
