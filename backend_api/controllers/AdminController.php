@@ -84,10 +84,11 @@ class AdminController extends BaseController
     {
         try {
             $stmt = $this->pdo->query("
-                SELECT u.name, u.email, u.role, u.status, u.user_id
-                FROM users u 
-                ORDER BY u.user_id DESC 
-                LIMIT 5
+                    SELECT u.name, u.email, u.role, u.status, u.user_id
+                    FROM users u 
+                    WHERE u.role IN ('donor', 'mro', 'hospital')
+                    ORDER BY u.user_id DESC 
+                    LIMIT 5
             ");
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
@@ -116,6 +117,7 @@ class AdminController extends BaseController
     {
         try {
             $stmt = $this->pdo->query("SELECT user_id, name, email, phone, role, status FROM users ORDER BY user_id DESC");
+            $stmt = $this->pdo->query("SELECT user_id, name, email, phone, role, status FROM users WHERE role IN ('donor', 'mro', 'hospital') ORDER BY user_id DESC");
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             throw new Exception("Database error in getAllUsers: " . $e->getMessage());

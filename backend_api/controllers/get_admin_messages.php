@@ -39,7 +39,7 @@ try {
                 CASE WHEN f.approved = 1 THEN 'read' ELSE 'unread' END as status
               FROM feedback f
               LEFT JOIN users u ON f.user_id = u.user_id
-              WHERE f.role IN ('donor', 'hospital', 'mro')
+              WHERE f.role IN ('donor', 'hospital', 'mro', 'admin')
               ORDER BY f.created_at DESC 
               LIMIT 50";
 
@@ -50,7 +50,7 @@ try {
     // Get unread count
     $unreadQuery = "SELECT COUNT(*) as unread_count 
                     FROM feedback 
-                    WHERE approved = 0 AND role IN ('donor', 'hospital', 'mro')";
+                    WHERE approved = 0 AND role IN ('donor', 'hospital', 'mro', 'admin')";
     $unreadStmt = $pdo->prepare($unreadQuery);
     $unreadStmt->execute();
     $unreadResult = $unreadStmt->fetch(PDO::FETCH_ASSOC);

@@ -43,6 +43,9 @@ const HospitalDashboard = () => {
   const [isLogoutTriggered, setIsLogoutTriggered] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  // Blood inventory update state
+  const [updatingInventory, setUpdatingInventory] = useState(false);
+
   // Browser back button handling
   useEffect(() => {
     const handlePopState = (e) => {
@@ -274,6 +277,52 @@ const HospitalDashboard = () => {
   // Use custom dialog for logo click
   const handleLogoClick = () => {
     setShowLogoDialog(true);
+  };
+
+  // Blood inventory update function
+  const updateBloodInventory = async (bloodId, change) => {
+    if (updatingInventory) return;
+
+    setUpdatingInventory(true);
+    try {
+      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/update_blood_inventory.php', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          blood_id: bloodId,
+          change: change
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      // Update local state
+      setBloodInventory(prev =>
+        prev.map(item =>
+          item.bloodId === bloodId
+            ? { ...item, units: Math.max(0, item.units + change) }
+            : item
+        )
+      );
+
+      toast.success(`Blood inventory updated successfully`);
+    } catch (error) {
+      console.error('Error updating blood inventory:', error);
+      toast.error('Failed to update blood inventory. Please try again.');
+    } finally {
+      setUpdatingInventory(false);
+    }
   };
   const confirmLogo = async () => {
     setShowLogoDialog(false);
@@ -535,22 +584,43 @@ const HospitalDashboard = () => {
                         const width = Math.min(100, (item.units / 20) * 100);
                         const levelClass = item.units < 4 ? 'low' : item.units < 10 ? 'medium' : 'high';
                         return (
-                          <div className="inventory-item" key={idx}>
-                            <span className="blood-type">{item.type}</span>
-                            <div
-                              className="inventory-bar-container clickable"
-                              onClick={() => {
-                                setSelectedBloodType(item.type);
-                                setShowDonorPopup(true);
-                              }}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              <div className={`inventory-bar ${levelClass}`} style={{ width: `${width}%` }}>
-                                <span className="inventory-bar-label">{item.units}</span>
-
+                          <div className="inventory-item" key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px', marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                              <span className="blood-type" style={{ minWidth: '60px', fontWeight: 'bold', color: '#2d3a8c' }}>{item.type}</span>
+                              <div
+                                className="inventory-bar-container clickable"
+                                onClick={() => {
+                                  setSelectedBloodType(item.type);
+                                  setShowDonorPopup(true);
+                                }}
+                                style={{ cursor: 'pointer', flex: 1, margin: '0 16px' }}
+                              >
+                                <div className={`inventory-bar ${levelClass}`} style={{ width: `${width}%` }}>
+                                  <span className="inventory-bar-label">{item.units}</span>
+                                </div>
                               </div>
+                              <span className="inventory-units" style={{ minWidth: '80px' }}>{item.units} units</span>
                             </div>
-                            <span className="inventory-units">{item.units} units</span>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <button
+                                onClick={() => updateBloodInventory(item.bloodId, -1)}
+                                disabled={updatingInventory || item.units <= 0}
+                                style={{
+                                  background: '#dc2626',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  padding: '6px 12px',
+                                  cursor: updatingInventory || item.units <= 0 ? 'not-allowed' : 'pointer',
+                                  fontSize: '12px',
+                                  fontWeight: 'bold',
+                                  opacity: updatingInventory || item.units <= 0 ? 0.5 : 1
+                                }}
+                                title="Use blood unit (decrease inventory)"
+                              >
+                                Use -1
+                              </button>
+                            </div>
                           </div>
                         );
                       })
@@ -662,21 +732,43 @@ const HospitalDashboard = () => {
                     const width = Math.min(100, (item.units / 20) * 100);
                     const levelClass = item.units < 4 ? 'low' : item.units < 10 ? 'medium' : 'high';
                     return (
-                      <div className="inventory-item" key={idx}>
-                        <span className="blood-type">{item.type}</span>
-                        <div
-                          className="inventory-bar-container clickable"
-                          onClick={() => {
-                            setSelectedBloodType(item.type);
-                            setShowDonorPopup(true);
-                          }}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <div className={`inventory-bar ${levelClass}`} style={{ width: `${width}%` }}>
-                            <span className="inventory-bar-label">{item.units}</span>
+                      <div className="inventory-item" key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                          <span className="blood-type" style={{ minWidth: '60px', fontWeight: 'bold', color: '#2d3a8c' }}>{item.type}</span>
+                          <div
+                            className="inventory-bar-container clickable"
+                            onClick={() => {
+                              setSelectedBloodType(item.type);
+                              setShowDonorPopup(true);
+                            }}
+                            style={{ cursor: 'pointer', flex: 1, margin: '0 16px' }}
+                          >
+                            <div className={`inventory-bar ${levelClass}`} style={{ width: `${width}%` }}>
+                              <span className="inventory-bar-label">{item.units}</span>
+                            </div>
                           </div>
+                          <span className="inventory-units" style={{ minWidth: '80px' }}>{item.units} units</span>
                         </div>
-                        <span className="inventory-units">{item.units} units</span>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <button
+                            onClick={() => updateBloodInventory(item.bloodId, -1)}
+                            disabled={updatingInventory || item.units <= 0}
+                            style={{
+                              background: '#dc2626',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '6px 12px',
+                              cursor: updatingInventory || item.units <= 0 ? 'not-allowed' : 'pointer',
+                              fontSize: '12px',
+                              fontWeight: 'bold',
+                              opacity: updatingInventory || item.units <= 0 ? 0.5 : 1
+                            }}
+                            title="Use blood unit (decrease inventory)"
+                          >
+                            Use -1
+                          </button>
+                        </div>
                       </div>
                     );
                   })
