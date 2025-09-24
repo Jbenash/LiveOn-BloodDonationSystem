@@ -1525,7 +1525,7 @@ const DonorDashboard = () => {
                     <thead>
                       <tr>
                         <th className="th-number">No.</th>
-                        <th className="th-volume">Volume (ml)</th>
+                        <th className="th-volume">Units</th>
                         <th className="th-date">Date</th>
                         <th className="th-hospital">Hospital</th>
                       </tr>
@@ -1536,7 +1536,7 @@ const DonorDashboard = () => {
                           <td className="td-number">{idx + 1}</td>
                           <td className="td-volume">{don.units_donated}</td>
                           <td className="td-date">{new Date(don.donation_date).toLocaleString()}</td>
-                          <td className="td-hospital">{don.hospital_id}</td>
+                          <td className="td-hospital">{don.hospital_name || 'Unknown Hospital'}</td>
                         </tr>
                       ))}
                     </tbody>

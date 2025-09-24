@@ -29,8 +29,9 @@ try {
         exit();
     }
 
-    $sql = "SELECT d.donation_id, d.donor_id, d.blood_type, d.units_donated, d.donation_date, d.hospital_id
+    $sql = "SELECT d.donation_id, d.donor_id, d.blood_type, d.units_donated, d.donation_date, d.hospital_id, h.name as hospital_name
             FROM donations d
+            LEFT JOIN hospitals h ON d.hospital_id = h.hospital_id
             WHERE d.donor_id = ?
             ORDER BY d.donation_date DESC";
     $stmt = $pdo->prepare($sql);

@@ -522,6 +522,11 @@ const RegistrationModal = ({ isOpen, onClose, onRegistrationComplete }) => {
                         placeholder="Create a password"
                         required
                       />
+                      <div className="password-requirements">
+                        <small className="password-help-text">
+                          Use capital letters, numbers, and symbols for a strong password (minimum 8 characters)
+                        </small>
+                      </div>
                       {formData.password && (
                         <div className="password-strength-container">
                           <div className="password-strength-bar">
