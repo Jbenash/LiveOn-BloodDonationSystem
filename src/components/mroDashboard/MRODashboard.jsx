@@ -43,6 +43,7 @@ const MRODashboard = () => {
   const [hospitalNameError, setHospitalNameError] = useState(null);
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
   const [rejectDonorId, setRejectDonorId] = useState(null);
+  const [rejectDonorData, setRejectDonorData] = useState(null);
   const [verificationDateTime, setVerificationDateTime] = useState('');
   const [hospitalId, setHospitalId] = useState("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -514,8 +515,9 @@ const MRODashboard = () => {
     }
   };
 
-  const handleReject = (donorId) => {
-    setRejectDonorId(donorId);
+  const handleReject = (donor) => {
+    setRejectDonorId(donor.donor_id);
+    setRejectDonorData(donor);
     setShowRejectConfirm(true);
   };
 
@@ -533,6 +535,7 @@ const MRODashboard = () => {
     }
     setShowRejectConfirm(false);
     setRejectDonorId(null);
+    setRejectDonorData(null);
   };
 
   // Filter donorRequests based on search term, role, and status
@@ -1025,7 +1028,7 @@ const MRODashboard = () => {
                         <td>{donor.city}</td>
                         <td>{new Date(donor.created_at).toLocaleDateString()}</td>
                         <td>
-                          <button className="btn-cancel" onClick={() => handleReject(donor.donor_id)}>Reject</button>
+                          <button className="btn-cancel" onClick={() => handleReject(donor)}>Reject</button>
                           <button className="btn-verify" onClick={() => handleOpenPopup({
                             donor_id: donor.donor_id,
                             fullName: donor.donor_fullname,
@@ -1327,14 +1330,142 @@ const MRODashboard = () => {
               </div>
             </div>
           )}
-          {showRejectConfirm && (
-            <div className="modal-overlay">
-              <div className="modal-content">
-                <h3>Confirm Rejection</h3>
-                <p>Are you really want to reject this donor request?</p>
-                <div className="modal-actions">
-                  <button className="btn-cancel" onClick={() => setShowRejectConfirm(false)}>Cancel</button>
-                  <button className="btn-verify" onClick={confirmReject}>Confirm</button>
+          {showRejectConfirm && rejectDonorData && (
+            <div className="modal-overlay" onClick={() => setShowRejectConfirm(false)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{
+                maxWidth: '500px',
+                padding: '2rem',
+                borderRadius: '16px',
+                background: 'white',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                border: '1px solid #e5e7eb'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginBottom: '1.5rem',
+                  paddingBottom: '1rem',
+                  borderBottom: '2px solid #fee2e2'
+                }}>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: '1rem',
+                    fontSize: '1.5rem'
+                  }}>
+                    ⚠️
+                  </div>
+                  <div>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '1.25rem',
+                      fontWeight: '700',
+                      color: '#dc2626',
+                      marginBottom: '0.25rem'
+                    }}>Confirm Rejection</h3>
+                    <p style={{
+                      margin: 0,
+                      fontSize: '0.875rem',
+                      color: '#6b7280'
+                    }}>This action cannot be undone</p>
+                  </div>
+                </div>
+                
+                <div style={{
+                  background: '#f9fafb',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <p style={{
+                    margin: '0 0 1rem 0',
+                    fontSize: '1rem',
+                    color: '#374151',
+                    fontWeight: '500'
+                  }}>Are you sure you want to reject this donor registration request?</p>
+                  
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'auto 1fr',
+                    gap: '0.5rem 1rem',
+                    fontSize: '0.875rem'
+                  }}>
+                    <span style={{ fontWeight: '600', color: '#6b7280' }}>Name:</span>
+                    <span style={{ color: '#111827', fontWeight: '500' }}>{rejectDonorData.donor_fullname}</span>
+                    
+                    <span style={{ fontWeight: '600', color: '#6b7280' }}>Email:</span>
+                    <span style={{ color: '#111827' }}>{rejectDonorData.donor_email}</span>
+                    
+                    <span style={{ fontWeight: '600', color: '#6b7280' }}>Request ID:</span>
+                    <span style={{ color: '#111827', fontFamily: 'monospace', fontSize: '0.8rem' }}>{rejectDonorData.request_id}</span>
+                    
+                    <span style={{ fontWeight: '600', color: '#6b7280' }}>City:</span>
+                    <span style={{ color: '#111827' }}>{rejectDonorData.city}</span>
+                    
+                    <span style={{ fontWeight: '600', color: '#6b7280' }}>Requested:</span>
+                    <span style={{ color: '#111827' }}>{new Date(rejectDonorData.created_at).toLocaleString()}</span>
+                  </div>
+                </div>
+                
+                <div style={{
+                  display: 'flex',
+                  gap: '0.75rem',
+                  justifyContent: 'flex-end'
+                }}>
+                  <button 
+                    onClick={() => setShowRejectConfirm(false)}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      background: 'white',
+                      color: '#374151',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={e => {
+                      e.target.style.borderColor = '#d1d5db';
+                      e.target.style.background = '#f9fafb';
+                    }}
+                    onMouseOut={e => {
+                      e.target.style.borderColor = '#e5e7eb';
+                      e.target.style.background = 'white';
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={confirmReject}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      border: '2px solid #dc2626',
+                      borderRadius: '8px',
+                      background: '#dc2626',
+                      color: 'white',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={e => {
+                      e.target.style.background = '#b91c1c';
+                      e.target.style.borderColor = '#b91c1c';
+                    }}
+                    onMouseOut={e => {
+                      e.target.style.background = '#dc2626';
+                      e.target.style.borderColor = '#dc2626';
+                    }}
+                  >
+                    Reject Request
+                  </button>
                 </div>
               </div>
             </div>

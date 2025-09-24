@@ -26,14 +26,15 @@ try {
     }
 
     // Fetch donor registration requests from the donor_requests table
-    // Only show pending requests for this MRO's hospital
+    // Only show pending requests for this MRO's hospital where the user has verified their OTP
     $sql = "SELECT dr.request_id, dr.donor_id, dr.user_id, dr.dob, dr.address, dr.city, dr.preferred_hospital_id, dr.status, dr.created_at,
             u.name AS donor_fullname, u.email AS donor_email, u.phone AS donor_phone,
             h.name AS hospital_name, h.location AS hospital_location
     FROM donor_requests dr
     LEFT JOIN users u ON dr.user_id = u.user_id
     LEFT JOIN hospitals h ON dr.preferred_hospital_id = h.hospital_id
-    WHERE dr.status = 'pending' AND dr.preferred_hospital_id = ?
+    INNER JOIN otp_verification ov ON dr.user_id = ov.user_id
+    WHERE dr.status = 'pending' AND dr.preferred_hospital_id = ? AND ov.verified = 1
     ORDER BY dr.created_at DESC";
 
     $stmt = $pdo->prepare($sql);
