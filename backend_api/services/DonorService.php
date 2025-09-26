@@ -487,7 +487,6 @@ class DonorService
             ];
         }
     }
-<<<<<<< Updated upstream
 
     /**
      * Update donor rewards when a donation is made
@@ -687,6 +686,4 @@ class DonorService
             error_log('Error checking achievements: ' . $e->getMessage());
         }
     }
-=======
->>>>>>> Stashed changes
 }
