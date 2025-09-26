@@ -6,6 +6,25 @@
   display: none !important;
 }
 
+/* Hide scrollbars while maintaining scroll functionality */
+.modal-overlay {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.modal-overlay::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.modal-content {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.modal-content::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 /* Main Dashboard Container */
 .donor-dashboard-container {
   display: flex;

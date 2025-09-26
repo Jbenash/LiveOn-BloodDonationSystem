@@ -1,3 +1,22 @@
+/* Hide scrollbars while maintaining scroll functionality */
+.popup-overlay, .modal-overlay {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.popup-overlay::-webkit-scrollbar, .modal-overlay::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.popup-content, .modal-content {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.popup-content::-webkit-scrollbar, .modal-content::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 /* Root and Animated Background */
 .hospital-dashboard-container {
   display: flex;

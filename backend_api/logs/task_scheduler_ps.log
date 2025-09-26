@@ -1,0 +1,6 @@
+[2025-09-21 22:16:52] Starting donor reminder task (PowerShell)
+[2025-09-21 22:16:52] Executing PHP script: D:\Xampp\htdocs\Liveonv2\backend_api\cron\donor_reminder_cron.php
+[2025-09-21 22:16:57] PHP: [2025-09-21 18:46:53] Starting donor reminder cron job
+[2025-09-21 22:16:57] PHP: {"success":false,"message":"Database connection failed"}
+[2025-09-21 22:16:57] Donor reminder task completed successfully
+[2025-09-21 22:16:57] Task execution finished

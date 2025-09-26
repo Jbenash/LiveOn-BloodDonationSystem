@@ -1,6 +1,25 @@
 /* Avoid setting global html/body sizing that breaks scrolling across other pages */
 /* Scoped layout rules live on `.mro-dashboard-container` below */
 
+/* Hide scrollbars while maintaining scroll functionality */
+.popup-overlay, .modal-overlay {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.popup-overlay::-webkit-scrollbar, .modal-overlay::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.popup-content, .modal-content {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.popup-content::-webkit-scrollbar, .modal-content::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 .mro-dashboard-container {
   display: flex;
   height: 100vh;
@@ -39,6 +58,19 @@
     margin-left: 32px;
     margin-bottom: 40px;
   }
+
+/* Hide scrollbars for modal */
+.popup-overlay::-webkit-scrollbar,
+.popup-overlay div::-webkit-scrollbar {
+  display: none;
+}
+
+.popup-overlay,
+.popup-overlay div {
+  -webkit-scrollbar-width: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
 
 /* Loading Animation */
 .dashboard-loading {

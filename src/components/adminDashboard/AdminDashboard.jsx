@@ -112,7 +112,6 @@ const AdminDashboard = () => {
   const [showMroSaveConfirm, setShowMroSaveConfirm] = useState(false);
   const [showHospitalSaveConfirm, setShowHospitalSaveConfirm] = useState(false);
   const [showDonorSaveConfirm, setShowDonorSaveConfirm] = useState(false);
-  const [showStorySaveConfirm, setShowStorySaveConfirm] = useState(false);
   const [showPasswordResetRejectConfirm, setShowPasswordResetRejectConfirm] = useState(false);
   const [pendingPasswordResetAction, setPendingPasswordResetAction] = useState(null);
 
@@ -1732,26 +1731,83 @@ const AdminDashboard = () => {
     setStoryForm((prev) => ({ ...prev, [name]: value }));
   };
   const handleStorySave = async () => {
-    setShowStorySaveConfirm(true);
-  };
-
-  // Confirm story save
-  const confirmStorySave = async () => {
-    setShowStorySaveConfirm(false);
     setStoryLoading(true);
     setStoryError('');
-    // TODO: Implement API call for add/edit
-    // Example: POST to /backend_api/edit_story.php or /backend_api/add_story.php
-    setTimeout(() => {
-      setStoryLoading(false);
-      setStoryModalOpen(false);
-      fetchAdminData(); // refresh data
-    }, 1000);
-  };
 
-  // Cancel story save
-  const cancelStorySave = () => {
-    setShowStorySaveConfirm(false);
+    try {
+      // Validate form data
+      if (!storyForm.title.trim() || !storyForm.message.trim()) {
+        setStoryError('Title and message are required');
+        setStoryLoading(false);
+        return;
+      }
+
+      // First verify the session is still valid
+      const sessionValid = await verifyAdminSession();
+      if (!sessionValid) {
+        setStoryError('Session expired. Please log in again.');
+        setStoryLoading(false);
+        setTimeout(() => {
+          window.location.href = '/?login=true';
+        }, 2000);
+        return;
+      }
+
+      const requestData = {
+        title: storyForm.title.trim(),
+        message: storyForm.message.trim()
+      };
+
+      // Add story_id for editing existing story
+      if (editStory && editStory.story_id) {
+        requestData.story_id = editStory.story_id;
+      }
+
+      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/save_success_story.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(requestData)
+      });
+
+      // Check if response is unauthorized
+      if (response.status === 401) {
+        setStoryError('Session expired. Please log in again.');
+        setStoryLoading(false);
+        setTimeout(() => {
+          window.location.href = '/?login=true';
+        }, 2000);
+        return;
+      }
+
+      if (!response.ok) {
+        setStoryError(`Server error: ${response.status} ${response.statusText}`);
+        setStoryLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        const actionText = editStory ? 'updated' : 'created';
+        toast.success(`Success story ${actionText} successfully`);
+        
+        // Close modal and reset form
+        setStoryModalOpen(false);
+        setEditStory(null);
+        setStoryForm({ title: '', message: '' });
+        
+        // Refresh admin data to show updated stories
+        await fetchAdminData();
+      } else {
+        setStoryError(data.error || 'Failed to save success story');
+      }
+    } catch (error) {
+      console.error('Error saving success story:', error);
+      setStoryError('Network error occurred while saving story');
+    } finally {
+      setStoryLoading(false);
+    }
   };
 
   // Handle password reset reject
@@ -1795,9 +1851,15 @@ const AdminDashboard = () => {
     setPendingPasswordResetAction(null);
   };
 
-  // Open profile modal and prefill with current user info (dummy for now)
+  // Open profile modal and prefill with current user info
   const openProfileModal = () => {
-    setProfileForm({ name: 'Admin', email: 'admin@email.com', password: '', photo: null, photoPreview: null });
+    setProfileForm({ 
+      name: profileForm?.name || 'Admin', 
+      email: profileForm?.email || 'admin@email.com', 
+      password: '', 
+      photo: null, 
+      photoPreview: null 
+    });
     setProfileError('');
     setProfileModalOpen(true);
   };
@@ -1813,15 +1875,57 @@ const AdminDashboard = () => {
     }
   };
 
-  // Handle profile save (dummy, no backend yet)
+  // Handle profile save
   const handleProfileSave = async () => {
     setProfileLoading(true);
     setProfileError('');
-    // TODO: Implement backend call for profile update
-    setTimeout(() => {
+    
+    try {
+      // Validate form data
+      if (!profileForm.name.trim()) {
+        setProfileError('Name is required');
+        setProfileLoading(false);
+        return;
+      }
+      
+      if (!profileForm.email.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(profileForm.email)) {
+        setProfileError('Valid email is required');
+        setProfileLoading(false);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('name', profileForm.name.trim());
+      formData.append('email', profileForm.email.trim());
+      if (profileForm.password.trim()) {
+        formData.append('password', profileForm.password.trim());
+      }
+      if (profileForm.photo) {
+        formData.append('profile_photo', profileForm.photo);
+      }
+
+      const response = await fetch('/backend_api/controllers/update_admin_profile.php', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success('Profile updated successfully');
+        setProfileModalOpen(false);
+        // Refresh current user data
+        await fetchAdminData();
+      } else {
+        setProfileError(result.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setProfileError('Network error occurred');
+    } finally {
       setProfileLoading(false);
-      setProfileModalOpen(false);
-    }, 1000);
+    }
   };
 
   // Section content rendering
@@ -2980,7 +3084,10 @@ const AdminDashboard = () => {
               alt="User"
               size="md"
               rounded
-              placeholderInitials="AD"
+              placeholderInitials={profileForm?.name ? 
+                profileForm.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 
+                'AD'
+              }
               className="custom-avatar"
               style={{
                 cursor: 'pointer',
@@ -3920,26 +4027,201 @@ const AdminDashboard = () => {
       )}
       {showPasswordResetModal && selectedResetRequest && (
         <div className="modal-overlay" onClick={closePasswordResetModal}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
-            <h3>Password Reset Request</h3>
-            <div style={{ marginBottom: 10 }}><b>User:</b> {selectedResetRequest.name} ({selectedResetRequest.email})</div>
-            <div style={{ marginBottom: 10, color: '#64748b', fontSize: '0.98em' }}>
-              Wants to change their password to: <b>{selectedResetRequest.requested_password}</b>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}>
+            {/* Modal Header */}
+            <div className="modal-header" style={{ 
+              padding: '24px 28px 20px',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  backgroundColor: '#fef3c7',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '24px'
+                }}>
+                  🔐
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#1f2937' }}>Password Reset Request</h3>
+                  <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: '14px' }}>Review and approve password change</p>
+                </div>
+              </div>
+              <button
+                onClick={closePasswordResetModal}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#6b7280',
+                  padding: '4px',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+              >
+                ×
+              </button>
             </div>
-            <label>
-              New Password:
-              <input
-                type="text"
-                value={adminNewPassword}
-                onChange={handleAdminPasswordChange}
-                placeholder="Enter new password"
-              />
-            </label>
-            {passwordResetError && <div className="error-message" style={{ color: 'red', marginTop: 8 }}>{passwordResetError}</div>}
-            <div className="modal-actions" style={{ marginTop: 16, display: 'flex', gap: 12 }}>
-              <button className="dashboard-btn primary" onClick={handleAdminPasswordSave} disabled={passwordResetLoading}>{passwordResetLoading ? 'Saving...' : 'Accept'}</button>
-              <button className="dashboard-btn" onClick={() => handlePasswordResetReject(selectedResetRequest)} disabled={passwordResetLoading}>Reject</button>
-              <button className="dashboard-btn" onClick={closePasswordResetModal} disabled={passwordResetLoading}>Cancel</button>
+
+            {/* Modal Body */}
+            <div style={{ padding: '24px 28px' }}>
+              {/* User Information Section */}
+              <div style={{
+                backgroundColor: '#f8fafc',
+                padding: '20px',
+                borderRadius: '12px',
+                marginBottom: '24px',
+                border: '1px solid #e2e8f0'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '20px' }}>👤</span>
+                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#374151' }}>User Information</h4>
+                </div>
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Name:</span>
+                    <span style={{ color: '#1f2937', fontWeight: '600' }}>{selectedResetRequest.name}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Email:</span>
+                    <span style={{ color: '#1f2937', fontWeight: '600' }}>{selectedResetRequest.email}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#6b7280', fontWeight: '500' }}>Requested Password:</span>
+                    <span style={{ 
+                      color: '#1f2937', 
+                      fontWeight: '600',
+                      fontFamily: 'monospace',
+                      backgroundColor: '#fff',
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      border: '1px solid #d1d5db'
+                    }}>
+                      {selectedResetRequest.requested_password}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* New Password Section */}
+              <div style={{
+                backgroundColor: '#f0f9ff',
+                padding: '20px',
+                borderRadius: '12px',
+                border: '1px solid #7dd3fc'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '20px' }}>🔑</span>
+                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#374151' }}>Set New Password</h4>
+                </div>
+                <label style={{ display: 'block' }}>
+                  <span style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    color: '#374151', 
+                    fontWeight: '500',
+                    fontSize: '14px'
+                  }}>
+                    New Password <span style={{ color: '#ef4444' }}>*</span>
+                  </span>
+                  <input
+                    type="text"
+                    value={adminNewPassword}
+                    onChange={handleAdminPasswordChange}
+                    placeholder="Enter new password"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontFamily: 'monospace',
+                      transition: 'border-color 0.2s',
+                      outline: 'none'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+                  />
+                </label>
+                {passwordResetError && (
+                  <div style={{ 
+                    color: '#ef4444', 
+                    marginTop: '12px', 
+                    fontSize: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span>⚠️</span>
+                    {passwordResetError}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ 
+              padding: '20px 28px 28px',
+              borderTop: '1px solid #e5e7eb',
+              display: 'flex', 
+              gap: '12px',
+              justifyContent: 'flex-end'
+            }}>
+              <button 
+                className="dashboard-btn" 
+                onClick={closePasswordResetModal} 
+                disabled={passwordResetLoading}
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: '8px',
+                  fontWeight: '500',
+                  fontSize: '14px'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="dashboard-btn" 
+                onClick={() => handlePasswordResetReject(selectedResetRequest)} 
+                disabled={passwordResetLoading}
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: '8px',
+                  fontWeight: '500',
+                  fontSize: '14px',
+                  backgroundColor: '#fef2f2',
+                  color: '#dc2626',
+                  border: '1px solid #fecaca'
+                }}
+              >
+                Reject
+              </button>
+              <button 
+                className="dashboard-btn primary" 
+                onClick={handleAdminPasswordSave} 
+                disabled={passwordResetLoading}
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: '8px',
+                  fontWeight: '500',
+                  fontSize: '14px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                }}
+              >
+                {passwordResetLoading ? 'Processing...' : 'Accept & Save'}
+              </button>
             </div>
           </div>
         </div>

@@ -41,9 +41,9 @@ class HospitalDashboard
         $inventoryStmt->execute([$hospitalId]);
         $inventory = $inventoryStmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Fetch all active donors (both available and not available)
+        // Fetch all donors (both active and inactive users)
         $donorStmt = $this->pdo->query("
-            SELECT d.donor_id, u.name, d.blood_type, u.phone AS contact, d.city AS location, d.last_donation_date AS lastDonation, d.status, d.preferred_hospital_id, h.name AS preferred_hospital_name, u.email, d.donor_image,
+            SELECT d.donor_id, u.name, d.blood_type, u.phone AS contact, d.city AS location, d.last_donation_date AS lastDonation, d.status, d.preferred_hospital_id, h.name AS preferred_hospital_name, u.email, d.donor_image, u.status AS user_status,
                    (
                        SELECT mv.age
                        FROM medical_verifications mv
@@ -54,7 +54,6 @@ class HospitalDashboard
             FROM donors d
             JOIN users u ON d.user_id = u.user_id
             LEFT JOIN hospitals h ON d.preferred_hospital_id = h.hospital_id
-            WHERE u.status = 'active'
         ");
         $donors = [];
         while ($row = $donorStmt->fetch(PDO::FETCH_ASSOC)) {
@@ -66,6 +65,7 @@ class HospitalDashboard
                 'location' => $row['location'],
                 'lastDonation' => $row['lastDonation'],
                 'status' => $row['status'],
+                'userStatus' => $row['user_status'],
                 'preferredHospitalId' => $row['preferred_hospital_id'],
                 'preferredHospitalName' => $row['preferred_hospital_name'],
                 'email' => $row['email'],

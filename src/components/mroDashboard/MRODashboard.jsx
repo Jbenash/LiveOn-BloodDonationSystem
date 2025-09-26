@@ -22,6 +22,35 @@ const MRODashboard = () => {
     bloodGroup: '',
     age: ''
   });
+
+  // Function to calculate age from date of birth
+  const calculateAge = (dob) => {
+    if (!dob || dob === '' || dob === null || dob === undefined) {
+      return '';
+    }
+    
+    try {
+      const today = new Date();
+      const birthDate = new Date(dob);
+      
+      // Check if birthDate is valid
+      if (isNaN(birthDate.getTime())) {
+        return '';
+      }
+      
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      return age;
+    } catch (error) {
+      console.error('Error calculating age from DOB:', dob, error);
+      return '';
+    }
+  };
   const [donorRequests, setDonorRequests] = useState([]);
   const [donorRegistrations, setDonorRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +61,8 @@ const MRODashboard = () => {
   const [donateForm, setDonateForm] = useState({
     bloodType: '',
     donationDate: '',
-    volume: ''
+    volume: '',
+    notes: ''
   });
   const [donationLogs, setDonationLogs] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,6 +73,7 @@ const MRODashboard = () => {
   const [hospitalNameError, setHospitalNameError] = useState(null);
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
   const [rejectDonorId, setRejectDonorId] = useState(null);
+  const [rejectDonorData, setRejectDonorData] = useState(null);
   const [verificationDateTime, setVerificationDateTime] = useState('');
   const [hospitalId, setHospitalId] = useState("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
@@ -324,6 +355,15 @@ const MRODashboard = () => {
   const handleOpenPopup = (donor) => {
     setPopupDonor(donor);
     setShowPopup(true);
+    
+    // Calculate age automatically from DOB
+    const calculatedAge = calculateAge(donor.dob);
+    
+    setFormData(prev => ({
+      ...prev,
+      age: calculatedAge ? calculatedAge.toString() : '',
+      bloodGroup: donor.blood_group || ''
+    }));
   };
   const handleClosePopup = () => {
     setShowPopup(false);
@@ -336,11 +376,11 @@ const MRODashboard = () => {
 
     // Validate age for blood donation eligibility
     const age = parseInt(formData.age);
-    if (age < 18) {
-      toast.error('Donor must be at least 18 years old to be medically verified for blood donation');
+    if (!age || age < 18) {
+      toast.error('Donor must be at least 18 years old to be medically verified for blood donation. Age calculated from DOB: ' + age);
       return;
     } else if (age > 65) {
-      toast.error('Donor must be 65 years old or younger to be medically verified for blood donation');
+      toast.error('Donor must be 65 years old or younger to be medically verified for blood donation. Age calculated from DOB: ' + age);
       return;
     }
 
@@ -444,7 +484,9 @@ const MRODashboard = () => {
     setDonationTimestamp(now.toISOString()); // ISO string with ms
     setDonateForm({
       bloodType: donor.blood_group || '',
-      volume: ''
+      donationDate: '',
+      volume: '',
+      notes: ''
     });
 
   };
@@ -481,7 +523,7 @@ const MRODashboard = () => {
       });
       const data = await response.json();
       if (data.success) {
-        // Immediately set donor status to 'not available' and user status to 'inactive'
+        // Update donor status via separate API call (this updates both donor and user status)
         await fetch('http://localhost/Liveonv2/backend_api/controllers/update_donor_status.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -501,7 +543,7 @@ const MRODashboard = () => {
         // Close popup and reset form
         setShowDonatePopup(false);
         setDonatePopupDonor(null);
-        setDonateForm({ bloodType: '', donationDate: '', volume: '' });
+        setDonateForm({ bloodType: '', donationDate: '', volume: '', notes: '' });
         setDonationTimestamp('');
 
         // Show success message
@@ -514,8 +556,9 @@ const MRODashboard = () => {
     }
   };
 
-  const handleReject = (donorId) => {
-    setRejectDonorId(donorId);
+  const handleReject = (donor) => {
+    setRejectDonorId(donor.donor_id);
+    setRejectDonorData(donor);
     setShowRejectConfirm(true);
   };
 
@@ -533,6 +576,7 @@ const MRODashboard = () => {
     }
     setShowRejectConfirm(false);
     setRejectDonorId(null);
+    setRejectDonorData(null);
   };
 
   // Filter donorRequests based on search term, role, and status
@@ -735,7 +779,7 @@ const MRODashboard = () => {
     },
     {
       label: 'Active Donors',
-      value: donorRegistrations.length,
+      value: donorRegistrations.filter(donor => donor.status === 'active').length,
       icon: <FaUserCheck size={32} color="#22c55e" />,
       bg: 'linear-gradient(135deg, #dcfce7 0%, #22c55e 100%)',
       color: '#166534',
@@ -1025,13 +1069,14 @@ const MRODashboard = () => {
                         <td>{donor.city}</td>
                         <td>{new Date(donor.created_at).toLocaleDateString()}</td>
                         <td>
-                          <button className="btn-cancel" onClick={() => handleReject(donor.donor_id)}>Reject</button>
+                          <button className="btn-cancel" onClick={() => handleReject(donor)}>Reject</button>
                           <button className="btn-verify" onClick={() => handleOpenPopup({
                             donor_id: donor.donor_id,
                             fullName: donor.donor_fullname,
                             email: donor.donor_email,
                             otp: donor.otp_number,
-                            blood_group: donor.blood_group // add blood_group for email
+                            blood_group: donor.blood_group,
+                            dob: donor.dob // Add DOB for age calculation
                           })}>Accept</button>
                         </td>
                       </tr>
@@ -1238,109 +1283,1253 @@ const MRODashboard = () => {
             </section>
           )}
           {showPopup && popupDonor && (
-            <div className="popup-overlay">
-              <div className="popup-form" style={{ maxWidth: 480, width: '95%', padding: '2.2rem 2rem', borderRadius: 18, fontWeight: 700 }}>
-                <button className="popup-close" onClick={handleClosePopup} style={{ fontWeight: 700 }}>&times;</button>
-                <h3 style={{ textAlign: 'center', marginBottom: 24, color: '#2563eb', fontWeight: 700 }}>Donor Medical Verification</h3>
-                <form style={{ fontWeight: 700 }}>
-                  <div style={{ marginBottom: 18 }}>
-                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Donor ID</label>
-                    <input type="text" value={popupDonor.donor_id || ''} readOnly style={{ background: '#f1f5f9', color: '#64748b', fontWeight: 700, border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%' }} />
-                  </div>
-                  <div style={{ marginBottom: 18 }}>
-                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Full Name</label>
-                    <input type="text" value={popupDonor.fullName || ''} readOnly style={{ background: '#f1f5f9', color: '#64748b', fontWeight: 700, border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%' }} />
-                  </div>
-                  <div style={{ marginBottom: 18 }}>
-                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Height (cm)</label>
-                    <input type="text" name="height" value={formData.height} onChange={handleInputChange} placeholder="Height" style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', fontWeight: 700 }} />
-                  </div>
-                  <div style={{ marginBottom: 18 }}>
-                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Weight (kg)</label>
-                    <input type="text" name="weight" value={formData.weight} onChange={handleInputChange} placeholder="Weight" style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', fontWeight: 700 }} />
-                  </div>
-                  <div style={{ marginBottom: 18 }}>
-                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Medical History</label>
-                    <textarea name="medicalHistory" value={formData.medicalHistory} onChange={handleInputChange} placeholder="Enter medical history" style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', minHeight: 60, fontWeight: 700 }} />
-                  </div>
-                  <div style={{ marginBottom: 18 }}>
-                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Doctor's Note</label>
-                    <textarea name="doctorsNote" value={formData.doctorsNote} onChange={handleInputChange} placeholder="Enter doctor's note" style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', minHeight: 60, fontWeight: 700 }} />
-                  </div>
-                  <div style={{ marginBottom: 18 }}>
-                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Verification Date</label>
-                    <input type="text" name="verificationDate" value={verificationDateTime} readOnly style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', fontWeight: 700, background: '#f1f5f9', color: '#64748b' }} />
-                  </div>
-                  <div style={{ marginBottom: 18 }}>
-                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Blood Group</label>
-                    <select name="bloodGroup" value={formData.bloodGroup} onChange={handleInputChange} required style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', fontWeight: 700 }}>
-                      <option value="">Select Blood Group</option>
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
-                    </select>
-                  </div>
-                  <div style={{ marginBottom: 18 }}>
-                    <label style={{ fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 6 }}>Age</label>
-                    <input type="number" name="age" value={formData.age} onChange={handleInputChange} placeholder="Age" style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '10px 12px', width: '100%', fontWeight: 700 }} />
-                  </div>
-                  <hr style={{ margin: '24px 0', border: 'none', borderTop: '1.5px solid #e2e8f0' }} />
-                  <button type="button" className="btn-verify" style={{ width: '100%', fontSize: '1.13rem', padding: '14px 0', fontWeight: 700 }} onClick={handleSubmitDonorDetails}>Submit</button>
-                  {submitStatus && <div style={{ marginTop: '10px', color: submitStatus.startsWith('Donor details saved') ? 'green' : 'red', textAlign: 'center', fontWeight: 700 }}>{submitStatus}</div>}
-                </form>
+            <div className="popup-overlay" style={{ 
+              position: 'fixed', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0, 
+              backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              zIndex: 1000,
+              padding: '20px',
+              overflowY: 'auto',
+              scrollbarWidth: 'none', /* Firefox */
+              msOverflowStyle: 'none' /* IE and Edge */
+            }}>
+              <div style={{ 
+                backgroundColor: 'white',
+                borderRadius: '16px',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                maxWidth: '800px',
+                width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                position: 'relative',
+                margin: 'auto',
+                scrollbarWidth: 'none', /* Firefox */
+                msOverflowStyle: 'none' /* IE and Edge */
+              }}>
+                <button 
+                  onClick={handleClosePopup} 
+                  style={{ 
+                    position: 'absolute',
+                    top: '16px',
+                    right: '16px',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '40px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    zIndex: 10,
+                    color: '#64748b',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                >
+                  ×
+                </button>
+
+                <div style={{ 
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                  color: 'white', 
+                  padding: '32px 40px', 
+                  borderRadius: '16px 16px 0 0',
+                  textAlign: 'center'
+                }}>
+                  <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>🏥 Medical Verification</h3>
+                  <p style={{ margin: '8px 0 0 0', opacity: 0.9, fontSize: '1rem' }}>Complete donor medical assessment</p>
+                </div>
+                
+                <div style={{ padding: '32px 40px' }}>
+                  <form>
+                    {/* Donor Information Section */}
+                    <div style={{ 
+                      background: '#f8fafc', 
+                      padding: '24px', 
+                      borderRadius: '12px', 
+                      marginBottom: '24px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <h4 style={{ 
+                        margin: '0 0 20px 0', 
+                        color: '#1e293b', 
+                        fontSize: '1.1rem',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        👤 Donor Information
+                      </h4>
+                      
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+                        gap: '16px', 
+                        marginBottom: '16px' 
+                      }}>
+                        <div>
+                          <label style={{ 
+                            fontWeight: 600, 
+                            color: '#64748b', 
+                            display: 'block', 
+                            marginBottom: '6px', 
+                            fontSize: '0.875rem' 
+                          }}>
+                            Donor ID
+                          </label>
+                          <input 
+                            type="text" 
+                            value={popupDonor.donor_id || ''} 
+                            readOnly 
+                            style={{ 
+                              background: '#e2e8f0', 
+                              color: '#475569', 
+                              fontWeight: 500, 
+                              border: '2px solid #cbd5e1', 
+                              borderRadius: '8px', 
+                              padding: '12px 16px', 
+                              width: '100%',
+                              fontSize: '0.9rem',
+                              boxSizing: 'border-box'
+                            }} 
+                          />
+                        </div>
+                        
+                        <div>
+                          <label style={{ 
+                            fontWeight: 600, 
+                            color: '#64748b', 
+                            display: 'block', 
+                            marginBottom: '6px', 
+                            fontSize: '0.875rem' 
+                          }}>
+                            Age (Auto-calculated)
+                          </label>
+                          <input 
+                            type="text" 
+                            value={formData.age ? `${formData.age} years` : 'Not available'} 
+                            readOnly 
+                            style={{ 
+                              background: '#dcfce7', 
+                              color: '#15803d', 
+                              fontWeight: 600, 
+                              border: '2px solid #bbf7d0', 
+                              borderRadius: '8px', 
+                              padding: '12px 16px', 
+                              width: '100%',
+                              fontSize: '0.9rem',
+                              boxSizing: 'border-box'
+                            }} 
+                          />
+                        </div>
+                      </div>
+                      
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+                        gap: '16px' 
+                      }}>
+                        <div>
+                          <label style={{ 
+                            fontWeight: 600, 
+                            color: '#64748b', 
+                            display: 'block', 
+                            marginBottom: '6px', 
+                            fontSize: '0.875rem' 
+                          }}>
+                            Full Name
+                          </label>
+                          <input 
+                            type="text" 
+                            value={popupDonor.fullName || popupDonor.full_name || ''} 
+                            readOnly 
+                            style={{ 
+                              background: '#e2e8f0', 
+                              color: '#475569', 
+                              fontWeight: 500, 
+                              border: '2px solid #cbd5e1', 
+                              borderRadius: '8px', 
+                              padding: '12px 16px', 
+                              width: '100%',
+                              fontSize: '0.9rem',
+                              boxSizing: 'border-box'
+                            }} 
+                          />
+                        </div>
+                        
+                        <div>
+                          <label style={{ 
+                            fontWeight: 600, 
+                            color: '#64748b', 
+                            display: 'block', 
+                            marginBottom: '6px', 
+                            fontSize: '0.875rem' 
+                          }}>
+                            Date of Birth
+                          </label>
+                          <input 
+                            type="text" 
+                            value={popupDonor.dob ? new Date(popupDonor.dob).toLocaleDateString('en-US', { 
+                              year: 'numeric', month: 'long', day: 'numeric' 
+                            }) : 'Not available'} 
+                            readOnly 
+                            style={{ 
+                              background: '#e2e8f0', 
+                              color: '#475569', 
+                              fontWeight: 500, 
+                              border: '2px solid #cbd5e1', 
+                              borderRadius: '8px', 
+                              padding: '12px 16px', 
+                              width: '100%',
+                              fontSize: '0.9rem',
+                              boxSizing: 'border-box'
+                            }} 
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Physical Measurements Section */}
+                    <div style={{ 
+                      background: '#fefce8', 
+                      padding: '24px', 
+                      borderRadius: '12px', 
+                      marginBottom: '24px',
+                      border: '1px solid #fde047'
+                    }}>
+                      <h4 style={{ 
+                        margin: '0 0 20px 0', 
+                        color: '#a16207', 
+                        fontSize: '1.1rem',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        📏 Physical Measurements
+                      </h4>
+                      
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                        gap: '20px' 
+                      }}>
+                        <div>
+                          <label style={{ 
+                            fontWeight: 600, 
+                            color: '#a16207', 
+                            display: 'block', 
+                            marginBottom: '6px', 
+                            fontSize: '0.875rem' 
+                          }}>
+                            Height (cm) <span style={{ color: '#dc2626' }}>*</span>
+                          </label>
+                          <input 
+                            type="number" 
+                            name="height" 
+                            value={formData.height} 
+                            onChange={handleInputChange} 
+                            placeholder="e.g., 170" 
+                            min="100" 
+                            max="250"
+                            required
+                            style={{ 
+                              border: '2px solid #fbbf24', 
+                              borderRadius: '8px', 
+                              padding: '12px 16px', 
+                              width: '100%', 
+                              fontWeight: 500,
+                              fontSize: '0.9rem',
+                              outline: 'none',
+                              transition: 'all 0.2s',
+                              boxSizing: 'border-box'
+                            }} 
+                            onFocus={(e) => {
+                              e.target.style.borderColor = '#f59e0b';
+                              e.target.style.boxShadow = '0 0 0 3px rgba(251, 191, 36, 0.1)';
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = '#fbbf24';
+                              e.target.style.boxShadow = 'none';
+                            }}
+                          />
+                        </div>
+                        
+                        <div>
+                          <label style={{ 
+                            fontWeight: 600, 
+                            color: '#a16207', 
+                            display: 'block', 
+                            marginBottom: '6px', 
+                            fontSize: '0.875rem' 
+                          }}>
+                            Weight (kg) <span style={{ color: '#dc2626' }}>*</span>
+                          </label>
+                          <input 
+                            type="number" 
+                            name="weight" 
+                            value={formData.weight} 
+                            onChange={handleInputChange} 
+                            placeholder="e.g., 70" 
+                            min="30" 
+                            max="200"
+                            required
+                            style={{ 
+                              border: '2px solid #fbbf24', 
+                              borderRadius: '8px', 
+                              padding: '12px 16px', 
+                              width: '100%', 
+                              fontWeight: 500,
+                              fontSize: '0.9rem',
+                              outline: 'none',
+                              transition: 'all 0.2s',
+                              boxSizing: 'border-box'
+                            }} 
+                            onFocus={(e) => {
+                              e.target.style.borderColor = '#f59e0b';
+                              e.target.style.boxShadow = '0 0 0 3px rgba(251, 191, 36, 0.1)';
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = '#fbbf24';
+                              e.target.style.boxShadow = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Medical Information Section */}
+                    <div style={{ 
+                      background: '#fef2f2', 
+                      padding: '24px', 
+                      borderRadius: '12px', 
+                      marginBottom: '24px',
+                      border: '1px solid #fecaca'
+                    }}>
+                      <h4 style={{ 
+                        margin: '0 0 20px 0', 
+                        color: '#dc2626', 
+                        fontSize: '1.1rem',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        🩺 Medical Information
+                      </h4>
+                      
+                      <div style={{ marginBottom: '20px' }}>
+                        <label style={{ 
+                          fontWeight: 600, 
+                          color: '#dc2626', 
+                          display: 'block', 
+                          marginBottom: '6px', 
+                          fontSize: '0.875rem' 
+                        }}>
+                          Blood Group <span style={{ color: '#dc2626' }}>*</span>
+                        </label>
+                        <select 
+                          name="bloodGroup" 
+                          value={formData.bloodGroup} 
+                          onChange={handleInputChange} 
+                          required 
+                          style={{ 
+                            border: '2px solid #f87171', 
+                            borderRadius: '8px', 
+                            padding: '12px 16px', 
+                            width: '100%', 
+                            fontWeight: 500,
+                            fontSize: '0.9rem',
+                            background: 'white',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            boxSizing: 'border-box'
+                          }}
+                          onFocus={(e) => {
+                            e.target.style.borderColor = '#ef4444';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(248, 113, 113, 0.1)';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = '#f87171';
+                            e.target.style.boxShadow = 'none';
+                          }}
+                        >
+                          <option value="">Select Blood Group</option>
+                          <option value="A+">A+ (A Positive)</option>
+                          <option value="A-">A- (A Negative)</option>
+                          <option value="B+">B+ (B Positive)</option>
+                          <option value="B-">B- (B Negative)</option>
+                          <option value="AB+">AB+ (AB Positive)</option>
+                          <option value="AB-">AB- (AB Negative)</option>
+                          <option value="O+">O+ (O Positive)</option>
+                          <option value="O-">O- (O Negative)</option>
+                        </select>
+                      </div>
+                      
+                      <div style={{ marginBottom: '20px' }}>
+                        <label style={{ 
+                          fontWeight: 600, 
+                          color: '#dc2626', 
+                          display: 'block', 
+                          marginBottom: '6px', 
+                          fontSize: '0.875rem' 
+                        }}>
+                          Medical History
+                        </label>
+                        <textarea 
+                          name="medicalHistory" 
+                          value={formData.medicalHistory} 
+                          onChange={handleInputChange} 
+                          placeholder="Any chronic conditions, medications, allergies, or relevant medical history..."
+                          rows={4}
+                          style={{ 
+                            border: '2px solid #f87171', 
+                            borderRadius: '8px', 
+                            padding: '12px 16px', 
+                            width: '100%', 
+                            fontWeight: 400,
+                            fontSize: '0.9rem',
+                            resize: 'vertical',
+                            outline: 'none',
+                            fontFamily: 'inherit',
+                            lineHeight: 1.5,
+                            minHeight: '100px',
+                            transition: 'all 0.2s',
+                            boxSizing: 'border-box'
+                          }}
+                          onFocus={(e) => {
+                            e.target.style.borderColor = '#ef4444';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(248, 113, 113, 0.1)';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = '#f87171';
+                            e.target.style.boxShadow = 'none';
+                          }}
+                        />
+                      </div>
+                      
+                      <div>
+                        <label style={{ 
+                          fontWeight: 600, 
+                          color: '#dc2626', 
+                          display: 'block', 
+                          marginBottom: '6px', 
+                          fontSize: '0.875rem' 
+                        }}>
+                          Doctor's Assessment & Notes <span style={{ color: '#dc2626' }}>*</span>
+                        </label>
+                        <textarea 
+                          name="doctorsNote" 
+                          value={formData.doctorsNote} 
+                          onChange={handleInputChange} 
+                          placeholder="Medical officer's assessment, fitness for donation, any recommendations..."
+                          rows={4}
+                          required
+                          style={{ 
+                            border: '2px solid #f87171', 
+                            borderRadius: '8px', 
+                            padding: '12px 16px', 
+                            width: '100%', 
+                            fontWeight: 400,
+                            fontSize: '0.9rem',
+                            resize: 'vertical',
+                            outline: 'none',
+                            fontFamily: 'inherit',
+                            lineHeight: 1.5,
+                            minHeight: '100px',
+                            transition: 'all 0.2s',
+                            boxSizing: 'border-box'
+                          }}
+                          onFocus={(e) => {
+                            e.target.style.borderColor = '#ef4444';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(248, 113, 113, 0.1)';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = '#f87171';
+                            e.target.style.boxShadow = 'none';
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Verification Details Section */}
+                    <div style={{ 
+                      background: '#f0f9ff', 
+                      padding: '24px', 
+                      borderRadius: '12px', 
+                      marginBottom: '24px',
+                      border: '1px solid #bae6fd'
+                    }}>
+                      <h4 style={{ 
+                        margin: '0 0 20px 0', 
+                        color: '#0369a1', 
+                        fontSize: '1.1rem',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        ✅ Verification Details
+                      </h4>
+                      
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+                        gap: '16px',
+                        marginBottom: '16px'
+                      }}>
+                        <div>
+                          <label style={{ 
+                            fontWeight: 600, 
+                            color: '#0369a1', 
+                            display: 'block', 
+                            marginBottom: '6px', 
+                            fontSize: '0.875rem' 
+                          }}>
+                            Verification Status <span style={{ color: '#dc2626' }}>*</span>
+                          </label>
+                          <select 
+                            name="verificationStatus" 
+                            value={formData.verificationStatus} 
+                            onChange={handleInputChange} 
+                            required 
+                            style={{ 
+                              border: '2px solid #38bdf8', 
+                              borderRadius: '8px', 
+                              padding: '12px 16px', 
+                              width: '100%', 
+                              fontWeight: 500,
+                              fontSize: '0.9rem',
+                              background: 'white',
+                              outline: 'none',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              boxSizing: 'border-box'
+                            }}
+                            onFocus={(e) => {
+                              e.target.style.borderColor = '#0284c7';
+                              e.target.style.boxShadow = '0 0 0 3px rgba(56, 189, 248, 0.1)';
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = '#38bdf8';
+                              e.target.style.boxShadow = 'none';
+                            }}
+                          >
+                            <option value="">Select Status</option>
+                            <option value="verified">✅ Verified - Eligible</option>
+                            <option value="rejected">❌ Rejected - Not Eligible</option>
+                            <option value="pending">⏳ Pending - Under Review</option>
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label style={{ 
+                            fontWeight: 600, 
+                            color: '#0369a1', 
+                            display: 'block', 
+                            marginBottom: '6px', 
+                            fontSize: '0.875rem' 
+                          }}>
+                            Verification Date & Time
+                          </label>
+                          <input 
+                            type="text" 
+                            value={verificationDateTime} 
+                            readOnly 
+                            style={{ 
+                              background: '#e0f2fe', 
+                              color: '#0369a1', 
+                              fontWeight: 600, 
+                              border: '2px solid #38bdf8', 
+                              borderRadius: '8px', 
+                              padding: '12px 16px', 
+                              width: '100%',
+                              fontSize: '0.9rem',
+                              boxSizing: 'border-box'
+                            }} 
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label style={{ 
+                          fontWeight: 600, 
+                          color: '#0369a1', 
+                          display: 'block', 
+                          marginBottom: '6px', 
+                          fontSize: '0.875rem' 
+                        }}>
+                          Additional Notes & Recommendations
+                        </label>
+                        <textarea 
+                          name="additionalNotes" 
+                          value={formData.additionalNotes} 
+                          onChange={handleInputChange} 
+                          placeholder="Any additional notes, follow-up recommendations, or special instructions..."
+                          rows={3}
+                          style={{ 
+                            border: '2px solid #38bdf8', 
+                            borderRadius: '8px', 
+                            padding: '12px 16px', 
+                            width: '100%', 
+                            fontWeight: 400,
+                            fontSize: '0.9rem',
+                            resize: 'vertical',
+                            outline: 'none',
+                            fontFamily: 'inherit',
+                            lineHeight: 1.5,
+                            minHeight: '80px',
+                            transition: 'all 0.2s',
+                            boxSizing: 'border-box'
+                          }}
+                          onFocus={(e) => {
+                            e.target.style.borderColor = '#0284c7';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(56, 189, 248, 0.1)';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = '#38bdf8';
+                            e.target.style.boxShadow = 'none';
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '16px', 
+                      justifyContent: 'flex-end', 
+                      marginTop: '32px',
+                      paddingTop: '24px',
+                      borderTop: '2px solid #f1f5f9'
+                    }}>
+                      <button 
+                        type="button" 
+                        onClick={() => setPopupDonor(null)} 
+                        style={{ 
+                          padding: '14px 28px', 
+                          borderRadius: '8px', 
+                          border: '2px solid #6b7280', 
+                          background: 'white', 
+                          color: '#374151', 
+                          fontWeight: 600, 
+                          cursor: 'pointer',
+                          fontSize: '0.95rem',
+                          transition: 'all 0.2s',
+                          minWidth: '120px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = '#f9fafb';
+                          e.target.style.borderColor = '#374151';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'white';
+                          e.target.style.borderColor = '#6b7280';
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={handleSubmitDonorDetails}
+                        style={{ 
+                          padding: '14px 28px', 
+                          borderRadius: '8px', 
+                          border: 'none', 
+                          background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', 
+                          color: 'white', 
+                          fontWeight: 600, 
+                          cursor: 'pointer',
+                          fontSize: '0.95rem',
+                          transition: 'all 0.2s',
+                          minWidth: '160px',
+                          boxShadow: '0 4px 6px -1px rgba(220, 38, 38, 0.2)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'linear-gradient(135deg, #b91c1c 0%, #991b1b 100%)';
+                          e.target.style.transform = 'translateY(-1px)';
+                          e.target.style.boxShadow = '0 6px 12px -2px rgba(220, 38, 38, 0.3)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+                          e.target.style.transform = 'translateY(0)';
+                          e.target.style.boxShadow = '0 4px 6px -1px rgba(220, 38, 38, 0.2)';
+                        }}
+                      >
+                        💾 Save Verification
+                      </button>
+                    </div>
+                    {submitStatus && (
+                      <div style={{ 
+                        marginTop: '16px', 
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        textAlign: 'center', 
+                        fontWeight: 600,
+                        fontSize: '0.9rem',
+                        background: submitStatus.startsWith('Donor details saved') ? '#dcfce7' : '#fef2f2',
+                        color: submitStatus.startsWith('Donor details saved') ? '#15803d' : '#dc2626',
+                        border: `1px solid ${submitStatus.startsWith('Donor details saved') ? '#bbf7d0' : '#fecaca'}`
+                      }}>
+                        {submitStatus}
+                      </div>
+                    )}
+                  </form>
+                </div>
               </div>
             </div>
           )}
           {showDonatePopup && donatePopupDonor && (
-            <div className="popup-overlay">
-              <div className="popup-form">
-                <button className="popup-close" onClick={handleCloseDonatePopup}>&times;</button>
-                <h3>Donation Details</h3>
-                <form onSubmit={handleDonateSubmit}>
-                  <label>
-                    Full Name:
-                    <input type="text" value={donatePopupDonor.full_name} readOnly style={{ backgroundColor: '#f3f4f6' }} />
-                  </label>
-                  <label>
-                    Donor ID:
-                    <input type="text" value={donatePopupDonor.donor_id} readOnly style={{ backgroundColor: '#f3f4f6' }} />
-                  </label>
-                  <label>
-                    Blood Type:
-                    <input type="text" name="bloodType" value={donateForm.bloodType} onChange={handleDonateFormChange} readOnly style={{ backgroundColor: '#f3f4f6' }} />
-                  </label>
-                  <label>
-                    Donation Date & Time:
-                    <input type="text" value={donationTimestamp ? new Date(donationTimestamp).toLocaleString('en-GB', { hour12: false }) : ''} readOnly style={{ backgroundColor: '#f3f4f6' }} />
-                  </label>
-                  <label>
-                    Units:
-                    <input type="text" name="volume" value={donateForm.volume} onChange={handleDonateFormChange} placeholder="Number of units" required />
-                  </label>
-                  <button type="submit" className="btn-donate" style={{ marginTop: '12px' }}>Submit</button>
-                </form>
+            <div className="popup-overlay" style={{ 
+              position: 'fixed', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0, 
+              backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              zIndex: 1000,
+              padding: '20px',
+              overflowY: 'auto',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}>
+              <div style={{ 
+                backgroundColor: 'white',
+                borderRadius: '16px',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                maxWidth: '700px',
+                width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                position: 'relative',
+                margin: 'auto',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}>
+                <button 
+                  onClick={handleCloseDonatePopup} 
+                  style={{ 
+                    position: 'absolute',
+                    top: '16px',
+                    right: '16px',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '40px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    zIndex: 10,
+                    color: '#64748b',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                >
+                  ×
+                </button>
+
+                <div style={{ 
+                  background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', 
+                  color: 'white', 
+                  padding: '32px 40px', 
+                  borderRadius: '16px 16px 0 0',
+                  textAlign: 'center'
+                }}>
+                  <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>🩸 Blood Donation Record</h3>
+                  <p style={{ margin: '8px 0 0 0', opacity: 0.9, fontSize: '1rem' }}>Complete donation information</p>
+                </div>
+                
+                <div style={{ padding: '32px 40px' }}>
+                  <form onSubmit={handleDonateSubmit}>
+                    {/* Donor Information Section */}
+                    <div style={{ 
+                      background: '#f8fafc', 
+                      padding: '24px', 
+                      borderRadius: '12px', 
+                      marginBottom: '24px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <h4 style={{ 
+                        margin: '0 0 20px 0', 
+                        color: '#1e293b', 
+                        fontSize: '1.1rem',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        👤 Donor Information
+                      </h4>
+                      
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+                        gap: '16px', 
+                        marginBottom: '16px' 
+                      }}>
+                        <div>
+                          <label style={{ 
+                            fontWeight: 600, 
+                            color: '#64748b', 
+                            display: 'block', 
+                            marginBottom: '6px', 
+                            fontSize: '0.875rem' 
+                          }}>
+                            Full Name
+                          </label>
+                          <input 
+                            type="text" 
+                            value={donatePopupDonor.full_name || ''} 
+                            readOnly 
+                            style={{ 
+                              background: '#e2e8f0', 
+                              color: '#475569', 
+                              fontWeight: 500, 
+                              border: '2px solid #cbd5e1', 
+                              borderRadius: '8px', 
+                              padding: '12px 16px', 
+                              width: '100%',
+                              fontSize: '0.9rem',
+                              boxSizing: 'border-box'
+                            }} 
+                          />
+                        </div>
+                        
+                        <div>
+                          <label style={{ 
+                            fontWeight: 600, 
+                            color: '#64748b', 
+                            display: 'block', 
+                            marginBottom: '6px', 
+                            fontSize: '0.875rem' 
+                          }}>
+                            Donor ID
+                          </label>
+                          <input 
+                            type="text" 
+                            value={donatePopupDonor.donor_id || ''} 
+                            readOnly 
+                            style={{ 
+                              background: '#e2e8f0', 
+                              color: '#475569', 
+                              fontWeight: 500, 
+                              border: '2px solid #cbd5e1', 
+                              borderRadius: '8px', 
+                              padding: '12px 16px', 
+                              width: '100%',
+                              fontSize: '0.9rem',
+                              boxSizing: 'border-box'
+                            }} 
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label style={{ 
+                          fontWeight: 600, 
+                          color: '#64748b', 
+                          display: 'block', 
+                          marginBottom: '6px', 
+                          fontSize: '0.875rem' 
+                        }}>
+                          Blood Type
+                        </label>
+                        <input 
+                          type="text" 
+                          name="bloodType" 
+                          value={donateForm.bloodType || ''} 
+                          onChange={handleDonateFormChange} 
+                          readOnly 
+                          style={{ 
+                            background: '#fee2e2', 
+                            color: '#dc2626', 
+                            fontWeight: 600, 
+                            border: '2px solid #fecaca', 
+                            borderRadius: '8px', 
+                            padding: '12px 16px', 
+                            width: '100%',
+                            fontSize: '0.9rem',
+                            boxSizing: 'border-box'
+                          }} 
+                        />
+                      </div>
+                    </div>
+
+                    {/* Donation Details Section */}
+                    <div style={{ 
+                      background: '#f0fdf4', 
+                      padding: '24px', 
+                      borderRadius: '12px', 
+                      marginBottom: '24px',
+                      border: '1px solid #bbf7d0'
+                    }}>
+                      <h4 style={{ 
+                        margin: '0 0 20px 0', 
+                        color: '#15803d', 
+                        fontSize: '1.1rem',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        📅 Donation Details
+                      </h4>
+                      
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+                        gap: '16px',
+                        marginBottom: '16px'
+                      }}>
+                        <div>
+                          <label style={{ 
+                            fontWeight: 600, 
+                            color: '#15803d', 
+                            display: 'block', 
+                            marginBottom: '6px', 
+                            fontSize: '0.875rem' 
+                          }}>
+                            Donation Date & Time
+                          </label>
+                          <input 
+                            type="text" 
+                            value={donationTimestamp ? new Date(donationTimestamp).toLocaleString('en-GB', { 
+                              weekday: 'long',
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : ''} 
+                            readOnly 
+                            style={{ 
+                              background: '#dcfce7', 
+                              color: '#15803d', 
+                              fontWeight: 600, 
+                              border: '2px solid #bbf7d0', 
+                              borderRadius: '8px', 
+                              padding: '12px 16px', 
+                              width: '100%',
+                              fontSize: '0.9rem',
+                              boxSizing: 'border-box'
+                            }} 
+                          />
+                        </div>
+                        
+                        <div>
+                          <label style={{ 
+                            fontWeight: 600, 
+                            color: '#15803d', 
+                            display: 'block', 
+                            marginBottom: '6px', 
+                            fontSize: '0.875rem' 
+                          }}>
+                            Units Donated <span style={{ color: '#dc2626' }}>*</span>
+                          </label>
+                          <input 
+                            type="number" 
+                            name="volume" 
+                            value={donateForm.volume || ''} 
+                            onChange={handleDonateFormChange} 
+                            placeholder="Enter number of units (e.g., 1, 2, 3)" 
+                            min="1"
+                            max="10"
+                            required 
+                            style={{ 
+                              border: '2px solid #22c55e', 
+                              borderRadius: '8px', 
+                              padding: '12px 16px', 
+                              width: '100%', 
+                              fontWeight: 500,
+                              fontSize: '0.9rem',
+                              background: 'white',
+                              outline: 'none',
+                              transition: 'all 0.2s',
+                              boxSizing: 'border-box'
+                            }}
+                            onFocus={(e) => {
+                              e.target.style.borderColor = '#16a34a';
+                              e.target.style.boxShadow = '0 0 0 3px rgba(34, 197, 94, 0.1)';
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = '#22c55e';
+                              e.target.style.boxShadow = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label style={{ 
+                          fontWeight: 600, 
+                          color: '#15803d', 
+                          display: 'block', 
+                          marginBottom: '6px', 
+                          fontSize: '0.875rem' 
+                        }}>
+                          Additional Notes
+                        </label>
+                        <textarea 
+                          name="notes" 
+                          value={donateForm.notes || ''} 
+                          onChange={handleDonateFormChange} 
+                          placeholder="Any additional notes about the donation (optional)..."
+                          rows={3}
+                          style={{ 
+                            border: '2px solid #22c55e', 
+                            borderRadius: '8px', 
+                            padding: '12px 16px', 
+                            width: '100%', 
+                            fontWeight: 400,
+                            fontSize: '0.9rem',
+                            resize: 'vertical',
+                            outline: 'none',
+                            fontFamily: 'inherit',
+                            lineHeight: 1.5,
+                            minHeight: '80px',
+                            transition: 'all 0.2s',
+                            boxSizing: 'border-box'
+                          }}
+                          onFocus={(e) => {
+                            e.target.style.borderColor = '#16a34a';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(34, 197, 94, 0.1)';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = '#22c55e';
+                            e.target.style.boxShadow = 'none';
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '16px', 
+                      justifyContent: 'flex-end', 
+                      marginTop: '32px',
+                      paddingTop: '24px',
+                      borderTop: '2px solid #f1f5f9'
+                    }}>
+                      <button 
+                        type="button" 
+                        onClick={handleCloseDonatePopup} 
+                        style={{ 
+                          padding: '14px 28px', 
+                          borderRadius: '8px', 
+                          border: '2px solid #6b7280', 
+                          background: 'white', 
+                          color: '#374151', 
+                          fontWeight: 600, 
+                          cursor: 'pointer',
+                          fontSize: '0.95rem',
+                          transition: 'all 0.2s',
+                          minWidth: '120px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = '#f9fafb';
+                          e.target.style.borderColor = '#374151';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'white';
+                          e.target.style.borderColor = '#6b7280';
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit" 
+                        style={{ 
+                          padding: '14px 28px', 
+                          borderRadius: '8px', 
+                          border: 'none', 
+                          background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', 
+                          color: 'white', 
+                          fontWeight: 600, 
+                          cursor: 'pointer',
+                          fontSize: '0.95rem',
+                          transition: 'all 0.2s',
+                          minWidth: '180px',
+                          boxShadow: '0 4px 6px -1px rgba(220, 38, 38, 0.2)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = 'linear-gradient(135deg, #b91c1c 0%, #991b1b 100%)';
+                          e.target.style.transform = 'translateY(-1px)';
+                          e.target.style.boxShadow = '0 6px 12px -2px rgba(220, 38, 38, 0.3)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+                          e.target.style.transform = 'translateY(0)';
+                          e.target.style.boxShadow = '0 4px 6px -1px rgba(220, 38, 38, 0.2)';
+                        }}
+                      >
+                        🩸 Record Donation
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>
           )}
-          {showRejectConfirm && (
-            <div className="modal-overlay">
-              <div className="modal-content">
-                <h3>Confirm Rejection</h3>
-                <p>Are you really want to reject this donor request?</p>
-                <div className="modal-actions">
-                  <button className="btn-cancel" onClick={() => setShowRejectConfirm(false)}>Cancel</button>
-                  <button className="btn-verify" onClick={confirmReject}>Confirm</button>
+          {showRejectConfirm && rejectDonorData && (
+            <div className="modal-overlay" onClick={() => setShowRejectConfirm(false)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{
+                maxWidth: '500px',
+                padding: '2rem',
+                borderRadius: '16px',
+                background: 'white',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                border: '1px solid #e5e7eb'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginBottom: '1.5rem',
+                  paddingBottom: '1rem',
+                  borderBottom: '2px solid #fee2e2'
+                }}>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: '1rem',
+                    fontSize: '1.5rem'
+                  }}>
+                    ⚠️
+                  </div>
+                  <div>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '1.25rem',
+                      fontWeight: '700',
+                      color: '#dc2626',
+                      marginBottom: '0.25rem'
+                    }}>Confirm Rejection</h3>
+                    <p style={{
+                      margin: 0,
+                      fontSize: '0.875rem',
+                      color: '#6b7280'
+                    }}>This action cannot be undone</p>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: '#f9fafb',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <p style={{
+                    margin: '0 0 1rem 0',
+                    fontSize: '1rem',
+                    color: '#374151',
+                    fontWeight: '500'
+                  }}>Are you sure you want to reject this donor registration request?</p>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'auto 1fr',
+                    gap: '0.5rem 1rem',
+                    fontSize: '0.875rem'
+                  }}>
+                    <span style={{ fontWeight: '600', color: '#6b7280' }}>Name:</span>
+                    <span style={{ color: '#111827', fontWeight: '500' }}>{rejectDonorData.donor_fullname}</span>
+
+                    <span style={{ fontWeight: '600', color: '#6b7280' }}>Email:</span>
+                    <span style={{ color: '#111827' }}>{rejectDonorData.donor_email}</span>
+
+                    <span style={{ fontWeight: '600', color: '#6b7280' }}>Request ID:</span>
+                    <span style={{ color: '#111827', fontFamily: 'monospace', fontSize: '0.8rem' }}>{rejectDonorData.request_id}</span>
+
+                    <span style={{ fontWeight: '600', color: '#6b7280' }}>City:</span>
+                    <span style={{ color: '#111827' }}>{rejectDonorData.city}</span>
+
+                    <span style={{ fontWeight: '600', color: '#6b7280' }}>Requested:</span>
+                    <span style={{ color: '#111827' }}>{new Date(rejectDonorData.created_at).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  gap: '0.75rem',
+                  justifyContent: 'flex-end'
+                }}>
+                  <button
+                    onClick={() => setShowRejectConfirm(false)}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '8px',
+                      background: 'white',
+                      color: '#374151',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={e => {
+                      e.target.style.borderColor = '#d1d5db';
+                      e.target.style.background = '#f9fafb';
+                    }}
+                    onMouseOut={e => {
+                      e.target.style.borderColor = '#e5e7eb';
+                      e.target.style.background = 'white';
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmReject}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      border: '2px solid #dc2626',
+                      borderRadius: '8px',
+                      background: '#dc2626',
+                      color: 'white',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={e => {
+                      e.target.style.background = '#b91c1c';
+                      e.target.style.borderColor = '#b91c1c';
+                    }}
+                    onMouseOut={e => {
+                      e.target.style.background = '#dc2626';
+                      e.target.style.borderColor = '#dc2626';
+                    }}
+                  >
+                    Reject Request
+                  </button>
                 </div>
               </div>
             </div>
           )}
         </div>
       </main>
+      
       <ConfirmDialog
         open={showLogoutDialog}
         title="Confirm Logout"
