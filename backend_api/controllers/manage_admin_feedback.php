@@ -115,7 +115,7 @@ try {
         // Simple success response without complex JOINs
         echo json_encode([
             'success' => true,
-            'message' => ucfirst($action) . 'd feedback successfully',
+            'message' => 'Feedback ' . ($action === 'approve' ? 'approved' : 'rejected') . ' successfully',
             'feedback_id' => $feedback_id,
             'action' => $action,
             'approved_status' => $approved_value
