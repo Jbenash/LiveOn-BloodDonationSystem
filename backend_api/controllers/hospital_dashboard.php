@@ -70,7 +70,7 @@ class HospitalDashboard
                 'preferredHospitalName' => $row['preferred_hospital_name'],
                 'email' => $row['email'],
                 'age' => $row['age'],
-                'profilePic' => $row['donor_image'] ? (strpos($row['donor_image'], 'http') === 0 ? $row['donor_image'] : 'http://localhost/liveonv2/backend_api/' . $row['donor_image']) : null,
+                'profilePic' => $row['donor_image'] ? (strpos($row['donor_image'], 'http') === 0 ? $row['donor_image'] : 'http://localhost/LiveOn-BloodDonationSystem/backend_api/' . $row['donor_image']) : null,
             ];
         }
 

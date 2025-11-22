@@ -119,7 +119,7 @@ class DonorDashboard
             'age' => $age,
             'location' => $donor['city'],
             'email' => $donor['email'],
-            'profilePic' => !empty($donor['donor_image']) ? ('http://localhost/liveonv2/' . $donor['donor_image']) : null,
+            'profilePic' => !empty($donor['donor_image']) ? ('http://localhost/LiveOn-BloodDonationSystem/' . $donor['donor_image']) : null,
             'totalDonations' => $totalDonations,
             'lastDonation' => $lastDonation,
             'nextEligible' => $nextEligible,
