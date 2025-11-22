@@ -182,7 +182,7 @@ const AdminDashboard = () => {
   // Mark message as read
   const markMessageAsRead = async (messageId) => {
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/mark_message_read.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/mark_message_read.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -218,7 +218,7 @@ const AdminDashboard = () => {
 
       // Mark all unread messages as read in the database
       const promises = unreadMessageIds.map(messageId =>
-        fetch('http://localhost/Liveonv2/backend_api/controllers/mark_message_read.php', {
+        fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/mark_message_read.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -252,7 +252,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchPasswordResets = async () => {
       try {
-        const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/get_password_reset_requests.php', { credentials: 'include' });
+        const res = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_password_reset_requests.php', { credentials: 'include' });
         const data = await res.json();
         if (data.success) setPasswordResetRequests(data.requests);
       } catch (e) { }
@@ -288,7 +288,7 @@ const AdminDashboard = () => {
     }
     setPasswordResetLoading(true);
     try {
-      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/complete_password_reset.php', {
+      const res = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/complete_password_reset.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ request_id: selectedResetRequest.request_id, new_password: adminNewPassword }),
@@ -298,7 +298,7 @@ const AdminDashboard = () => {
       if (data.success) {
         closePasswordResetModal();
         // Refresh requests
-        const res2 = await fetch('http://localhost/Liveonv2/backend_api/controllers/get_password_reset_requests.php', { credentials: 'include' });
+        const res2 = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_password_reset_requests.php', { credentials: 'include' });
         const data2 = await res2.json();
         if (data2.success) setPasswordResetRequests(data2.requests);
       } else {
@@ -314,7 +314,7 @@ const AdminDashboard = () => {
   const handlePasswordReset = async (requestId, requestedPassword) => {
     setPasswordResetLoading(true);
     try {
-      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/complete_password_reset.php', {
+      const res = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/complete_password_reset.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ request_id: requestId, new_password: requestedPassword }),
@@ -324,7 +324,7 @@ const AdminDashboard = () => {
       if (data.success) {
         toast.success('Password reset approved successfully');
         // Refresh requests
-        const res2 = await fetch('http://localhost/Liveonv2/backend_api/controllers/get_password_reset_requests.php', { credentials: 'include' });
+        const res2 = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_password_reset_requests.php', { credentials: 'include' });
         const data2 = await res2.json();
         if (data2.success) setPasswordResetRequests(data2.requests);
       } else {
@@ -341,7 +341,7 @@ const AdminDashboard = () => {
   const handleRejectPasswordReset = async (requestId) => {
     setPasswordResetLoading(true);
     try {
-      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/complete_password_reset.php', {
+      const res = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/complete_password_reset.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ request_id: requestId, reject: true }),
@@ -351,7 +351,7 @@ const AdminDashboard = () => {
       if (data.success) {
         toast.success('Password reset request rejected');
         // Refresh requests
-        const res2 = await fetch('http://localhost/Liveonv2/backend_api/controllers/get_password_reset_requests.php', { credentials: 'include' });
+        const res2 = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_password_reset_requests.php', { credentials: 'include' });
         const data2 = await res2.json();
         if (data2.success) setPasswordResetRequests(data2.requests);
       } else {
@@ -367,7 +367,7 @@ const AdminDashboard = () => {
   // Fetch system activities
   const fetchSystemActivities = async () => {
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/get_system_activities.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_system_activities.php', {
         credentials: 'include'
       });
 
@@ -400,7 +400,7 @@ const AdminDashboard = () => {
 
   const fetchAdminMessages = async () => {
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/get_admin_messages.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_admin_messages.php', {
         credentials: 'include'
       });
 
@@ -434,7 +434,7 @@ const AdminDashboard = () => {
   // Fetch notifications from notifications table
   const fetchNotifications = async () => {
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/get_notifications.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_notifications.php', {
         credentials: 'include'
       });
 
@@ -468,7 +468,7 @@ const AdminDashboard = () => {
   // Mark notification as read
   const markNotificationAsRead = async (notificationId) => {
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/mark_notification_read.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/mark_notification_read.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -504,7 +504,7 @@ const AdminDashboard = () => {
 
       // Mark all unread notifications as read in the database
       const promises = unreadNotificationIds.map(notificationId =>
-        fetch('http://localhost/Liveonv2/backend_api/controllers/mark_notification_read.php', {
+        fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/mark_notification_read.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -532,7 +532,7 @@ const AdminDashboard = () => {
         setError(null);
 
         // First check if we have a valid session
-        const sessionResponse = await fetch('http://localhost/Liveonv2/backend_api/controllers/check_session.php', {
+        const sessionResponse = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/check_session.php', {
           credentials: 'include'
         });
 
@@ -596,7 +596,7 @@ const AdminDashboard = () => {
 
   const fetchMROs = async () => {
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/get_all_mros.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_all_mros.php', {
         credentials: 'include'
       });
 
@@ -630,7 +630,7 @@ const AdminDashboard = () => {
     try {
       setError(null);
 
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/admin_dashboard.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/admin_dashboard.php', {
         credentials: 'include'
       });
 
@@ -744,7 +744,7 @@ const AdminDashboard = () => {
     }, 5000); // 5 seconds timeout
 
     // Call logout API first
-    fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
+    fetch("http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/logout.php", {
       method: 'POST',
       credentials: 'include'
     })
@@ -818,7 +818,7 @@ const AdminDashboard = () => {
 
     try {
       // Call logout API
-      const response = await fetch("http://localhost/Liveonv2/backend_api/controllers/logout.php", {
+      const response = await fetch("http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/logout.php", {
         method: 'POST',
         credentials: 'include',
       });
@@ -862,7 +862,7 @@ const AdminDashboard = () => {
   // Function to verify session before admin operations
   const verifyAdminSession = async () => {
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/check_session.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/check_session.php', {
         credentials: 'include'
       });
 
@@ -926,7 +926,7 @@ const AdminDashboard = () => {
         return;
       }
 
-      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/edit_user.php', {
+      const res = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/edit_user.php', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -1003,7 +1003,7 @@ const AdminDashboard = () => {
     setEditMroLoading(true);
     setEditMroError('');
     try {
-      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/edit_mro.php', {
+      const res = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/edit_mro.php', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -1084,7 +1084,7 @@ const AdminDashboard = () => {
         return;
       }
 
-      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/edit_hospital.php', {
+      const res = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/edit_hospital.php', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -1235,7 +1235,7 @@ const AdminDashboard = () => {
 
       console.log('Sending request data:', requestData);
 
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/admin_update_donor.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/admin_update_donor.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData),
@@ -1341,7 +1341,7 @@ const AdminDashboard = () => {
       }
 
       console.log('Removing donor:', donorToRemove);
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/remove_donor.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/remove_donor.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1417,7 +1417,7 @@ const AdminDashboard = () => {
         return;
       }
 
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/remove_user.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/remove_user.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1485,7 +1485,7 @@ const AdminDashboard = () => {
         return;
       }
 
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/remove_hospital.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/remove_hospital.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1553,7 +1553,7 @@ const AdminDashboard = () => {
         return;
       }
 
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/remove_mro.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/remove_mro.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1614,7 +1614,7 @@ const AdminDashboard = () => {
     if (!feedbackToAction || !feedbackActionType) return;
 
     try {
-      const res = await fetch('http://localhost/Liveonv2/backend_api/controllers/manage_admin_feedback.php', {
+      const res = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/manage_admin_feedback.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1763,7 +1763,7 @@ const AdminDashboard = () => {
         requestData.story_id = editStory.story_id;
       }
 
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/save_success_story.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/save_success_story.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -1822,7 +1822,7 @@ const AdminDashboard = () => {
     setPasswordResetLoading(true);
     setPasswordResetError('');
     try {
-      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/complete_password_reset.php', {
+      const res = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/complete_password_reset.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ request_id: pendingPasswordResetAction.request_id, reject: true }),

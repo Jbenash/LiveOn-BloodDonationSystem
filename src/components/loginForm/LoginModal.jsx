@@ -31,7 +31,7 @@ const LoginModal = ({ isOpen, onClose }) => {
     setLoadingMessage("Signing in...");
 
     try {
-      const response = await fetch("http://localhost/liveonv2/backend_api/controllers/user_login.php", {
+      const response = await fetch("http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/user_login.php", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -71,7 +71,7 @@ const LoginModal = ({ isOpen, onClose }) => {
 
           const checkSession = async () => {
             try {
-              const sessionResponse = await fetch('http://localhost/liveonv2/backend_api/controllers/check_session.php?simple=true', {
+              const sessionResponse = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/check_session.php?simple=true', {
                 credentials: 'include'
               });
               const sessionData = await sessionResponse.json();
@@ -175,7 +175,7 @@ const LoginModal = ({ isOpen, onClose }) => {
       return;
     }
     try {
-      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_password_reset_request.php', {
+      const res = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/submit_password_reset_request.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.username, requested_password: newPassword })
@@ -489,7 +489,7 @@ const ContactAdminPopup = ({ isOpen, onClose, userEmail }) => {
     setSubmitStatus('');
 
     try {
-      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_admin_contact.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/submit_admin_contact.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

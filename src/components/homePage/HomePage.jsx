@@ -88,7 +88,7 @@ const HomePage = () => {
 
   useEffect(() => {
     // Fetch success stories
-    fetch('http://localhost/Liveonv2/backend_api/controllers/get_success_stories.php')
+    fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_success_stories.php')
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -106,7 +106,7 @@ const HomePage = () => {
 
   useEffect(() => {
     // Fetch feedbacks
-    fetch('http://localhost/Liveonv2/backend_api/controllers/get_feedbacks.php?approved_only=true')
+    fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_feedbacks.php?approved_only=true')
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -207,7 +207,7 @@ const HomePage = () => {
     setContactSubmitStatus('');
 
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/submit_contact_form.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/submit_contact_form.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

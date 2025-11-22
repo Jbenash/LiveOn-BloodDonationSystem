@@ -97,7 +97,7 @@ const DonorDashboard = () => {
 
         while (attempts < maxAttempts && !sessionValid) {
           try {
-            const sessionResponse = await fetch('http://localhost/liveonv2/backend_api/controllers/check_session.php?simple=true', {
+            const sessionResponse = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/check_session.php?simple=true', {
               credentials: 'include'
             });
 
@@ -133,7 +133,7 @@ const DonorDashboard = () => {
 
         // Session is valid, proceed with dashboard data fetch
         console.log('Session valid, fetching dashboard data...');
-        const response = await fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
+        const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/donor_dashboard.php', {
           credentials: 'include',
           signal: controller.signal
         });
@@ -223,7 +223,7 @@ const DonorDashboard = () => {
 
   useEffect(() => {
     if (activeSection === 'donations' && user?.donorId) {
-      fetch(`http://localhost/liveonv2/backend_api/controllers/get_donor_donations.php?donor_id=${user.donorId}`, {
+      fetch(`http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_donor_donations.php?donor_id=${user.donorId}`, {
         credentials: 'include'
       })
         .then(res => res.json())
@@ -300,7 +300,7 @@ const DonorDashboard = () => {
     setError(null); // Clear any error state during logout
 
     // Call logout API first
-    fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
+    fetch("http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/logout.php", {
       method: 'POST',
       credentials: 'include'
     })
@@ -348,7 +348,7 @@ const DonorDashboard = () => {
 
     try {
       // Call logout API
-      const response = await fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
+      const response = await fetch("http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/logout.php", {
         method: 'POST',
         credentials: 'include',
       });
@@ -391,7 +391,7 @@ const DonorDashboard = () => {
       formData.append('removeAvatar', '1');
     }
     try {
-      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/update_donor_profile.php', {
+      const res = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/update_donor_profile.php', {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -405,7 +405,7 @@ const DonorDashboard = () => {
           // bloodType and age: keep existing values as they cannot be changed
           location: editForm.location,
           email: editForm.email,
-          profilePic: (editForm.removeAvatar || data.avatarRemoved) ? null : (data.imagePath ? `http://localhost/liveonv2/${data.imagePath}` : u.profilePic)
+          profilePic: (editForm.removeAvatar || data.avatarRemoved) ? null : (data.imagePath ? `http://localhost/LiveOn-BloodDonationSystem/${data.imagePath}` : u.profilePic)
         }));
 
         // Reset edit form to clear any cached data
@@ -435,7 +435,7 @@ const DonorDashboard = () => {
     }
 
     try {
-      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/request_donor_removal.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/request_donor_removal.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -469,7 +469,7 @@ const DonorDashboard = () => {
   const fetchHospitals = async (location) => {
     setLoadingHospitals(true);
     try {
-      const response = await fetch(`http://localhost/liveonv2/backend_api/controllers/get_hospitals.php?location=${encodeURIComponent(location)}`, {
+      const response = await fetch(`http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_hospitals.php?location=${encodeURIComponent(location)}`, {
         credentials: 'include'
       });
 
@@ -505,7 +505,7 @@ const DonorDashboard = () => {
   const fetchApprovedFeedback = async () => {
     setFeedbackLoading(true);
     try {
-      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/get_approved_feedback.php?limit=6', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_approved_feedback.php?limit=6', {
         credentials: 'include'
       });
 
@@ -652,7 +652,7 @@ const DonorDashboard = () => {
           setError(null);
           setLoading(true);
           // Re-fetch data
-          fetch('http://localhost/liveonv2/backend_api/controllers/donor_dashboard.php', {
+          fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/donor_dashboard.php', {
             credentials: 'include'
           })
             .then(res => {
@@ -1593,7 +1593,7 @@ const DonorDashboard = () => {
                     }
 
                     try {
-                      const res = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_feedback.php', {
+                      const res = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/submit_feedback.php', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

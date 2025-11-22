@@ -21,7 +21,7 @@ const RewardsDashboard = ({ donorId }) => {
   const fetchRewardsData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost/liveonv2/backend_api/controllers/get_donor_rewards.php?donor_id=${donorId}`);
+      const response = await fetch(`http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_donor_rewards.php?donor_id=${donorId}`);
       const data = await response.json();
 
       if (data.success) {
@@ -31,7 +31,7 @@ const RewardsDashboard = ({ donorId }) => {
       }
 
       // Also fetch redemption history
-      const historyResponse = await fetch(`http://localhost/liveonv2/backend_api/controllers/get_redemption_history.php?donor_id=${donorId}`);
+      const historyResponse = await fetch(`http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/get_redemption_history.php?donor_id=${donorId}`);
       const historyData = await historyResponse.json();
 
       if (historyData.success) {
@@ -49,7 +49,7 @@ const RewardsDashboard = ({ donorId }) => {
 
     try {
       setRedeeming(rewardId);
-      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/redeem_reward.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/redeem_reward.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

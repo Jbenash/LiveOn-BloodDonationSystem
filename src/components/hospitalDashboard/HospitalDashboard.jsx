@@ -89,7 +89,7 @@ const HospitalDashboard = () => {
       // Don't redirect immediately - let the API call determine if session is valid
       // The session might be valid even if we can't detect the cookie name
 
-      fetch('http://localhost/liveonv2/backend_api/controllers/hospital_dashboard.php', {
+      fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/hospital_dashboard.php', {
         credentials: 'include',
         signal: controller.signal
       })
@@ -179,7 +179,7 @@ const HospitalDashboard = () => {
     setError(null); // Clear any error state during logout
 
     // Call logout API first
-    fetch('http://localhost/liveonv2/backend_api/controllers/logout.php', {
+    fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/logout.php', {
       method: 'POST',
       credentials: 'include',
     })
@@ -230,7 +230,7 @@ const HospitalDashboard = () => {
     setFeedbackSubmitting(true);
 
     try {
-      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/submit_hospital_feedback.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/submit_hospital_feedback.php', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -285,7 +285,7 @@ const HospitalDashboard = () => {
 
     setUpdatingInventory(true);
     try {
-      const response = await fetch('http://localhost/liveonv2/backend_api/controllers/update_blood_inventory.php', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/update_blood_inventory.php', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -332,7 +332,7 @@ const HospitalDashboard = () => {
 
     try {
       // Call logout API
-      const response = await fetch("http://localhost/liveonv2/backend_api/controllers/logout.php", {
+      const response = await fetch("http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/logout.php", {
         method: 'POST',
         credentials: 'include',
       });
@@ -388,7 +388,7 @@ const HospitalDashboard = () => {
           setError(null);
           setLoading(true);
           // Re-fetch data
-          fetch('http://localhost/liveonv2/backend_api/controllers/hospital_dashboard.php', {
+          fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/hospital_dashboard.php', {
             credentials: 'include'
           })
             .then(res => {
@@ -1038,7 +1038,7 @@ const HospitalDashboard = () => {
                         }
                         if (window.confirm(`Are you sure you want to send an emergency request for ${emergencyUnits} units of ${emergencyBloodType} blood? This will notify all available donors.`)) {
                           setEmergencyError('');
-                          fetch('http://localhost/liveonv2/backend_api/controllers/emergency_request.php', {
+                          fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/emergency_request.php', {
                             method: 'POST',
                             credentials: 'include',
                             headers: { 'Content-Type': 'application/json' },
@@ -1058,7 +1058,7 @@ const HospitalDashboard = () => {
                               relevantDonors.forEach(donor => {
                                 if (donor.contact) {
                                   const smsMessage = `Dear ${donor.name}, urgent need for ${emergencyUnits} units of ${emergencyBloodType} blood at ${hospital.name}. Please contact us if you can donate.`;
-                                  fetch('http://localhost/liveonv2/backend_api/controllers/send_sms.php', {
+                                  fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/send_sms.php', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
@@ -1130,7 +1130,7 @@ const HospitalDashboard = () => {
                       }
                       if (window.confirm('Are you sure you want to send this donation request? This will notify the selected donor.')) {
                         setDonationError('');
-                        fetch('http://localhost/liveonv2/backend_api/controllers/send_donation_request.php', {
+                        fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/send_donation_request.php', {
                           method: 'POST',
                           credentials: 'include',
                           headers: { 'Content-Type': 'application/json' },
@@ -1148,7 +1148,7 @@ const HospitalDashboard = () => {
                             const donor = donors.find(d => d.donor_id === donationRequestDonorId);
                             if (donor && donor.contact) {
                               const smsMessage = `Dear ${donor.name}, you have a new blood donation request from ${hospital.name}. Reason: ${donationReason}`;
-                              fetch('http://localhost/liveonv2/backend_api/controllers/send_sms.php', {
+                              fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/send_sms.php', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({

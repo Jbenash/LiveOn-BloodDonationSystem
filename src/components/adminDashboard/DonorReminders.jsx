@@ -28,7 +28,7 @@ const DonorReminders = () => {
 
   const loadSettings = async () => {
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/donor_reminders.php?action=settings', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/donor_reminders.php?action=settings', {
         credentials: 'include'
       });
       const data = await response.json();
@@ -46,7 +46,7 @@ const DonorReminders = () => {
 
   const loadDonorsNeedingReminders = async () => {
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/donor_reminders.php?action=donors_needing_reminders', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/donor_reminders.php?action=donors_needing_reminders', {
         credentials: 'include'
       });
       const data = await response.json();
@@ -60,7 +60,7 @@ const DonorReminders = () => {
 
   const loadStats = async () => {
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/donor_reminders.php?action=stats&days=30', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/donor_reminders.php?action=stats&days=30', {
         credentials: 'include'
       });
       const data = await response.json();
@@ -93,7 +93,7 @@ const DonorReminders = () => {
         reminder_interval_months: '6'
       };
 
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/donor_reminders.php?action=settings', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/donor_reminders.php?action=settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -123,7 +123,7 @@ const DonorReminders = () => {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/donor_reminders.php?action=send_reminders', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/donor_reminders.php?action=send_reminders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -147,7 +147,7 @@ const DonorReminders = () => {
 
   const sendSingleReminder = async (donorId) => {
     try {
-      const response = await fetch('http://localhost/Liveonv2/backend_api/controllers/donor_reminders.php?action=send_single_reminder', {
+      const response = await fetch('http://localhost/LiveOn-BloodDonationSystem/backend_api/controllers/donor_reminders.php?action=send_single_reminder', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
